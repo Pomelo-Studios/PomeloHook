@@ -29,7 +29,9 @@ func (s *Store) CreateTunnel(p CreateTunnelParams) (*Tunnel, error) {
 	subdomain := p.Name
 	if subdomain == "" {
 		b := make([]byte, 4)
-		rand.Read(b)
+		if _, err := rand.Read(b); err != nil {
+			return nil, err
+		}
 		subdomain = hex.EncodeToString(b)
 	}
 	_, err := s.DB.Exec(
