@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -21,6 +22,8 @@ func TestCreateAndGetUser(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, user.APIKey)
+	require.True(t, strings.HasPrefix(user.APIKey, "ph_"))
+	require.Len(t, user.APIKey, 51) // "ph_" (3) + 48 hex chars
 	require.Equal(t, "yagiz@example.com", user.Email)
 
 	found, err := db.GetUserByAPIKey(user.APIKey)
