@@ -77,14 +77,14 @@ dashboard/
 
 ```bash
 cd server
-go mod init github.com/pomelo-studios/pomeloook/server
+go mod init github.com/pomelo-studios/pomelo-hook/server
 ```
 
 - [ ] **Step 2: Initialize CLI Go module**
 
 ```bash
 cd cli
-go mod init github.com/pomelo-studios/pomeloook/cli
+go mod init github.com/pomelo-studios/pomelo-hook/cli
 ```
 
 - [ ] **Step 3: Scaffold dashboard with Vite**
@@ -186,7 +186,7 @@ package store_test
 import (
     "testing"
     "github.com/stretchr/testify/require"
-    "github.com/pomelo-studios/pomeloook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
 func TestOpenCreatesSchema(t *testing.T) {
@@ -317,7 +317,7 @@ package store_test
 import (
     "testing"
     "github.com/stretchr/testify/require"
-    "github.com/pomelo-studios/pomeloook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
 func TestCreateAndGetUser(t *testing.T) {
@@ -435,8 +435,8 @@ import (
     "net/http/httptest"
     "testing"
     "github.com/stretchr/testify/require"
-    "github.com/pomelo-studios/pomeloook/server/auth"
-    "github.com/pomelo-studios/pomeloook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/auth"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
 func TestMiddlewareRejects401WithoutKey(t *testing.T) {
@@ -489,7 +489,7 @@ import (
     "context"
     "net/http"
     "strings"
-    "github.com/pomelo-studios/pomeloook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
 type contextKey string
@@ -553,7 +553,7 @@ package store_test
 import (
     "testing"
     "github.com/stretchr/testify/require"
-    "github.com/pomelo-studios/pomeloook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
 func TestCreatePersonalTunnel(t *testing.T) {
@@ -698,7 +698,7 @@ package tunnel_test
 import (
     "testing"
     "github.com/stretchr/testify/require"
-    "github.com/pomelo-studios/pomeloook/server/tunnel"
+    "github.com/pomelo-studios/pomelo-hook/server/tunnel"
 )
 
 func TestRegisterAndGet(t *testing.T) {
@@ -827,7 +827,7 @@ import (
     "testing"
     "time"
     "github.com/stretchr/testify/require"
-    "github.com/pomelo-studios/pomeloook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
 func TestSaveAndGetEvent(t *testing.T) {
@@ -1083,9 +1083,9 @@ import (
     "testing"
     "time"
     "github.com/stretchr/testify/require"
-    "github.com/pomelo-studios/pomeloook/server/store"
-    "github.com/pomelo-studios/pomeloook/server/tunnel"
-    wh "github.com/pomelo-studios/pomeloook/server/webhook"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/tunnel"
+    wh "github.com/pomelo-studios/pomelo-hook/server/webhook"
 )
 
 func TestWebhookStoredWhenNoActiveTunnel(t *testing.T) {
@@ -1131,8 +1131,8 @@ import (
     "io"
     "net/http"
     "strings"
-    "github.com/pomelo-studios/pomeloook/server/store"
-    "github.com/pomelo-studios/pomeloook/server/tunnel"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/tunnel"
 )
 
 type Handler struct {
@@ -1230,9 +1230,9 @@ import (
     "net/http/httptest"
     "testing"
     "github.com/stretchr/testify/require"
-    "github.com/pomelo-studios/pomeloook/server/api"
-    "github.com/pomelo-studios/pomeloook/server/store"
-    "github.com/pomelo-studios/pomeloook/server/tunnel"
+    "github.com/pomelo-studios/pomelo-hook/server/api"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/tunnel"
 )
 
 func TestListEventsRequiresAuth(t *testing.T) {
@@ -1284,9 +1284,9 @@ package api
 
 import (
     "net/http"
-    "github.com/pomelo-studios/pomeloook/server/auth"
-    "github.com/pomelo-studios/pomeloook/server/store"
-    "github.com/pomelo-studios/pomeloook/server/tunnel"
+    "github.com/pomelo-studios/pomelo-hook/server/auth"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/tunnel"
 )
 
 func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
@@ -1325,7 +1325,7 @@ package api
 import (
     "encoding/json"
     "net/http"
-    "github.com/pomelo-studios/pomeloook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
 func handleLogin(s *store.Store) http.HandlerFunc {
@@ -1372,7 +1372,7 @@ import (
     "strconv"
     "strings"
     "time"
-    "github.com/pomelo-studios/pomeloook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
 func handleListEvents(s *store.Store) http.HandlerFunc {
@@ -1464,8 +1464,8 @@ package api
 import (
     "encoding/json"
     "net/http"
-    "github.com/pomelo-studios/pomeloook/server/auth"
-    "github.com/pomelo-studios/pomeloook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/auth"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
 func handleCreateTunnel(s *store.Store) http.HandlerFunc {
@@ -1551,8 +1551,8 @@ package api
 import (
     "encoding/json"
     "net/http"
-    "github.com/pomelo-studios/pomeloook/server/auth"
-    "github.com/pomelo-studios/pomeloook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/auth"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
 func handleListOrgUsers(s *store.Store) http.HandlerFunc {
@@ -1604,11 +1604,11 @@ import (
     "log"
     "net/http"
     "time"
-    "github.com/pomelo-studios/pomeloook/server/api"
-    "github.com/pomelo-studios/pomeloook/server/config"
-    "github.com/pomelo-studios/pomeloook/server/store"
-    "github.com/pomelo-studios/pomeloook/server/tunnel"
-    wh "github.com/pomelo-studios/pomeloook/server/webhook"
+    "github.com/pomelo-studios/pomelo-hook/server/api"
+    "github.com/pomelo-studios/pomelo-hook/server/config"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/tunnel"
+    wh "github.com/pomelo-studios/pomelo-hook/server/webhook"
 )
 
 func main() {
@@ -1685,9 +1685,9 @@ import (
     "testing"
     "github.com/gorilla/websocket"
     "github.com/stretchr/testify/require"
-    "github.com/pomelo-studios/pomeloook/server/api"
-    "github.com/pomelo-studios/pomeloook/server/store"
-    "github.com/pomelo-studios/pomeloook/server/tunnel"
+    "github.com/pomelo-studios/pomelo-hook/server/api"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/tunnel"
 )
 
 func TestWSConnectRegistersInManager(t *testing.T) {
@@ -1740,9 +1740,9 @@ import (
     "log"
     "net/http"
     "github.com/gorilla/websocket"
-    "github.com/pomelo-studios/pomeloook/server/auth"
-    "github.com/pomelo-studios/pomeloook/server/store"
-    "github.com/pomelo-studios/pomeloook/server/tunnel"
+    "github.com/pomelo-studios/pomelo-hook/server/auth"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/tunnel"
 )
 
 var upgrader = websocket.Upgrader{
@@ -1926,7 +1926,7 @@ import (
     "fmt"
     "net/http"
     "github.com/spf13/cobra"
-    "github.com/pomelo-studios/pomeloook/cli/config"
+    "github.com/pomelo-studios/pomelo-hook/cli/config"
 )
 
 var loginCmd = &cobra.Command{
@@ -1980,7 +1980,7 @@ package main
 import (
     "fmt"
     "os"
-    "github.com/pomelo-studios/pomeloook/cli/cmd"
+    "github.com/pomelo-studios/pomelo-hook/cli/cmd"
 )
 
 func main() {
@@ -2035,7 +2035,7 @@ import (
     "net/http/httptest"
     "testing"
     "github.com/stretchr/testify/require"
-    "github.com/pomelo-studios/pomeloook/cli/forward"
+    "github.com/pomelo-studios/pomelo-hook/cli/forward"
 )
 
 func TestForwardDeliversToLocalServer(t *testing.T) {
@@ -2169,7 +2169,7 @@ import (
     "net/http"
     "time"
     "github.com/gorilla/websocket"
-    "github.com/pomelo-studios/pomeloook/cli/forward"
+    "github.com/pomelo-studios/pomelo-hook/cli/forward"
 )
 
 type Client struct {
@@ -2258,9 +2258,9 @@ import (
     "fmt"
     "log"
     "github.com/spf13/cobra"
-    "github.com/pomelo-studios/pomeloook/cli/config"
-    "github.com/pomelo-studios/pomeloook/cli/forward"
-    "github.com/pomelo-studios/pomeloook/cli/tunnel"
+    "github.com/pomelo-studios/pomelo-hook/cli/config"
+    "github.com/pomelo-studios/pomelo-hook/cli/forward"
+    "github.com/pomelo-studios/pomelo-hook/cli/tunnel"
 )
 
 var connectCmd = &cobra.Command{
@@ -2398,7 +2398,7 @@ import (
     "net/http"
     "time"
     "github.com/spf13/cobra"
-    "github.com/pomelo-studios/pomeloook/cli/config"
+    "github.com/pomelo-studios/pomelo-hook/cli/config"
 )
 
 var listCmd = &cobra.Command{
@@ -2469,7 +2469,7 @@ import (
     "fmt"
     "net/http"
     "github.com/spf13/cobra"
-    "github.com/pomelo-studios/pomeloook/cli/config"
+    "github.com/pomelo-studios/pomelo-hook/cli/config"
 )
 
 var replayCmd = &cobra.Command{
@@ -2969,7 +2969,7 @@ func Serve(apiHandler http.Handler) {
 Add to `runConnect` in `cli/cmd/connect.go`, after printing the tunnel URL and before `client.Connect()`:
 
 ```go
-// start local dashboard (imports "github.com/pomelo-studios/pomeloook/cli/dashboard")
+// start local dashboard (imports "github.com/pomelo-studios/pomelo-hook/cli/dashboard")
 // Pass a local API proxy to the relay server
 localAPI := newLocalAPIProxy(cfg.ServerURL, cfg.APIKey)
 dashboard.Serve(localAPI)
@@ -3047,10 +3047,10 @@ import (
     "time"
     "github.com/gorilla/websocket"
     "github.com/stretchr/testify/require"
-    "github.com/pomelo-studios/pomeloook/server/api"
-    "github.com/pomelo-studios/pomeloook/server/store"
-    "github.com/pomelo-studios/pomeloook/server/tunnel"
-    wh "github.com/pomelo-studios/pomeloook/server/webhook"
+    "github.com/pomelo-studios/pomelo-hook/server/api"
+    "github.com/pomelo-studios/pomelo-hook/server/store"
+    "github.com/pomelo-studios/pomelo-hook/server/tunnel"
+    wh "github.com/pomelo-studios/pomelo-hook/server/webhook"
 )
 
 func TestEndToEnd_WebhookReceivedAndForwarded(t *testing.T) {
