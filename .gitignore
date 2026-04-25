@@ -1,0 +1,14 @@
+node_modules/
+package-lock.json
+.env
+.env.local
+.env.*.local
+dist/
+build/
+.next/
+.DS_Store
+*.db
+cli/dashboard/static/
+bin/
+server/server
+cli/cli
