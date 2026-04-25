@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "modernc.org/sqlite"
 )
@@ -11,9 +12,26 @@ type Store struct {
 }
 
 func Open(dsn string) (*Store, error) {
+	// Enable foreign keys and WAL mode via DSN for file DBs
+	// For :memory: we use a special URI
+	if dsn == ":memory:" {
+		dsn = "file::memory:?mode=memory&_pragma=foreign_keys(1)"
+	} else {
+		dsn = dsn + "?_pragma=foreign_keys(1)"
+	}
+
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
+	}
+
+	// Set max open connections to 1 for SQLite (single writer)
+	db.SetMaxOpenConns(1)
+
+	// Ping to verify connection is valid and catch bad DSNs early
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("open sqlite %q: %w", dsn, err)
 	}
 
 	if err := migrate(db); err != nil {
@@ -29,7 +47,13 @@ func (s *Store) Close() error {
 }
 
 func migrate(db *sql.DB) error {
-	_, err := db.Exec(`
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
 		CREATE TABLE IF NOT EXISTS organizations (
 			id         TEXT PRIMARY KEY,
 			name       TEXT NOT NULL,
@@ -68,6 +92,12 @@ func migrate(db *sql.DB) error {
 			forwarded       BOOLEAN NOT NULL DEFAULT FALSE,
 			replayed_at     DATETIME
 		);
+		CREATE INDEX IF NOT EXISTS idx_events_tunnel_received
+			ON webhook_events (tunnel_id, received_at);
 	`)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
