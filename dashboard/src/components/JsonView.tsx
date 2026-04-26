@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { ReactNode } from 'react'
 
 function renderValue(v: unknown): ReactNode {
@@ -32,18 +33,17 @@ interface Props {
 }
 
 export function JsonView({ value }: Props) {
-  try {
-    const parsed = JSON.parse(value)
-    return (
-      <pre className="text-xs leading-relaxed font-mono whitespace-pre-wrap break-all text-zinc-400">
-        {renderValue(parsed)}
-      </pre>
-    )
-  } catch {
-    return (
-      <pre className="text-xs leading-relaxed font-mono whitespace-pre-wrap break-all text-zinc-400">
-        {value}
-      </pre>
-    )
-  }
+  const content = useMemo(() => {
+    try {
+      return { ok: true, node: renderValue(JSON.parse(value)) }
+    } catch {
+      return { ok: false, node: null }
+    }
+  }, [value])
+
+  return (
+    <pre className="text-xs leading-relaxed font-mono whitespace-pre-wrap break-all text-zinc-400">
+      {content.ok ? content.node : value}
+    </pre>
+  )
 }

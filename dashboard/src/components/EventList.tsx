@@ -1,4 +1,5 @@
 import type { WebhookEvent } from '../types'
+import { formatTime } from '../utils/formatTime'
 
 interface Props {
   events: WebhookEvent[]
@@ -13,11 +14,6 @@ function StatusBadge({ event }: { event: WebhookEvent }) {
   if (event.ResponseStatus >= 400)
     return <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-950 text-red-400">{event.ResponseStatus}</span>
   return <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400">{event.ResponseStatus}</span>
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso)
-  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}:${String(d.getUTCSeconds()).padStart(2, '0')}`
 }
 
 export function EventList({ events, selectedID, onSelect, tunnelSubdomain }: Props) {
