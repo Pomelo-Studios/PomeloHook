@@ -1,9 +1,12 @@
-// cli/cmd/root.go
 package cmd
 
 import (
+	"errors"
+
 	"github.com/spf13/cobra"
 )
+
+var errNotLoggedIn = errors.New("not logged in — run: pomelo-hook login")
 
 var rootCmd = &cobra.Command{
 	Use:   "pomelo-hook",

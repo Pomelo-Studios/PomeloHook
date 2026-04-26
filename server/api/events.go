@@ -13,6 +13,10 @@ import (
 	"github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
+func canAccessTunnel(user *store.User, tun *store.Tunnel) bool {
+	return tun.UserID == user.ID || tun.OrgID == user.OrgID
+}
+
 func handleListEvents(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := auth.UserFromContext(r.Context())
@@ -25,7 +29,7 @@ func handleListEvents(s *store.Store) http.HandlerFunc {
 		}
 
 		tun, err := s.GetTunnelByID(tunnelID)
-		if err != nil || (tun.UserID != user.ID && tun.OrgID != user.OrgID) {
+		if err != nil || !canAccessTunnel(user, tun) {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
@@ -55,7 +59,7 @@ func handleReplayEvent(s *store.Store) http.HandlerFunc {
 		}
 
 		tun, err := s.GetTunnelByID(event.TunnelID)
-		if err != nil || (tun.UserID != user.ID && tun.OrgID != user.OrgID) {
+		if err != nil || !canAccessTunnel(user, tun) {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}

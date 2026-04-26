@@ -24,15 +24,30 @@ type CreateTunnelParams struct {
 	Name   string // optional, used as subdomain for org tunnels
 }
 
+const tunnelColumns = `id, type, COALESCE(user_id,''), COALESCE(org_id,''), subdomain, COALESCE(active_user_id,''), status`
+
+func scanTunnel(row rowScanner) (*Tunnel, error) {
+	t := &Tunnel{}
+	return t, row.Scan(&t.ID, &t.Type, &t.UserID, &t.OrgID, &t.Subdomain, &t.ActiveUserID, &t.Status)
+}
+
+func randomHex(n int) (string, error) {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
 func (s *Store) CreateTunnel(p CreateTunnelParams) (*Tunnel, error) {
 	id := uuid.NewString()
 	subdomain := p.Name
 	if subdomain == "" {
-		b := make([]byte, 4)
-		if _, err := rand.Read(b); err != nil {
+		var err error
+		subdomain, err = randomHex(4)
+		if err != nil {
 			return nil, err
 		}
-		subdomain = hex.EncodeToString(b)
 	}
 	_, err := s.DB.Exec(
 		`INSERT INTO tunnels (id, type, user_id, org_id, subdomain) VALUES (?,?,?,?,?)`,
@@ -45,21 +60,13 @@ func (s *Store) CreateTunnel(p CreateTunnelParams) (*Tunnel, error) {
 }
 
 func (s *Store) GetTunnelBySubdomain(subdomain string) (*Tunnel, error) {
-	row := s.DB.QueryRow(
-		`SELECT id, type, COALESCE(user_id,''), COALESCE(org_id,''), subdomain, COALESCE(active_user_id,''), status FROM tunnels WHERE subdomain = ?`,
-		subdomain,
-	)
-	t := &Tunnel{}
-	return t, row.Scan(&t.ID, &t.Type, &t.UserID, &t.OrgID, &t.Subdomain, &t.ActiveUserID, &t.Status)
+	row := s.DB.QueryRow(`SELECT `+tunnelColumns+` FROM tunnels WHERE subdomain = ?`, subdomain)
+	return scanTunnel(row)
 }
 
 func (s *Store) GetTunnelByID(id string) (*Tunnel, error) {
-	row := s.DB.QueryRow(
-		`SELECT id, type, COALESCE(user_id,''), COALESCE(org_id,''), subdomain, COALESCE(active_user_id,''), status FROM tunnels WHERE id = ?`,
-		id,
-	)
-	t := &Tunnel{}
-	return t, row.Scan(&t.ID, &t.Type, &t.UserID, &t.OrgID, &t.Subdomain, &t.ActiveUserID, &t.Status)
+	row := s.DB.QueryRow(`SELECT `+tunnelColumns+` FROM tunnels WHERE id = ?`, id)
+	return scanTunnel(row)
 }
 
 func (s *Store) SetTunnelActive(tunnelID, userID string) error {
@@ -80,7 +87,7 @@ func (s *Store) GetActiveTunnelUser(tunnelID string) (string, error) {
 
 func (s *Store) ListTunnelsForUser(userID, orgID string) ([]*Tunnel, error) {
 	rows, err := s.DB.Query(
-		`SELECT id, type, COALESCE(user_id,''), COALESCE(org_id,''), subdomain, COALESCE(active_user_id,''), status FROM tunnels WHERE user_id=? OR org_id=?`,
+		`SELECT `+tunnelColumns+` FROM tunnels WHERE user_id=? OR org_id=?`,
 		userID, orgID,
 	)
 	if err != nil {
@@ -89,8 +96,8 @@ func (s *Store) ListTunnelsForUser(userID, orgID string) ([]*Tunnel, error) {
 	defer rows.Close()
 	var tunnels []*Tunnel
 	for rows.Next() {
-		t := &Tunnel{}
-		if err := rows.Scan(&t.ID, &t.Type, &t.UserID, &t.OrgID, &t.Subdomain, &t.ActiveUserID, &t.Status); err != nil {
+		t, err := scanTunnel(rows)
+		if err != nil {
 			return nil, err
 		}
 		tunnels = append(tunnels, t)

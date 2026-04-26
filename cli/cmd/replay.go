@@ -26,7 +26,7 @@ func init() {
 func runReplay(cmd *cobra.Command, args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("not logged in — run: pomelo-hook login")
+		return errNotLoggedIn
 	}
 	eventID := args[0]
 

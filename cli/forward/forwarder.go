@@ -61,7 +61,7 @@ func (f *Forwarder) Forward(raw []byte) (*ForwardResult, error) {
 		return &ForwardResult{EventID: p.EventID, StatusCode: 0, MS: ms}, err
 	}
 	defer resp.Body.Close()
-	bodyBytes, _ := io.ReadAll(resp.Body)
+	bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 
 	return &ForwardResult{
 		EventID:    p.EventID,

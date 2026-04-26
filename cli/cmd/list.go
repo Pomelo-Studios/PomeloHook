@@ -27,7 +27,7 @@ func init() {
 func runList(cmd *cobra.Command, args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("not logged in — run: pomelo-hook login")
+		return errNotLoggedIn
 	}
 
 	url := fmt.Sprintf("%s/api/events?limit=%d", cfg.ServerURL, lastN)

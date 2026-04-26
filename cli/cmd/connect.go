@@ -37,7 +37,7 @@ func init() {
 func runConnect(cmd *cobra.Command, args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("not logged in — run: pomelo-hook login")
+		return errNotLoggedIn
 	}
 
 	tunnelID, subdomain, err := resolveTunnel(cfg, orgTunnel, orgTunnelName)
@@ -116,7 +116,7 @@ func newLocalAPIProxy(serverURL, apiKey string) http.Handler {
 		}
 		req.Header = r.Header.Clone()
 		req.Header.Set("Authorization", "Bearer "+apiKey)
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := apiClient.Do(req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadGateway)
 			return
