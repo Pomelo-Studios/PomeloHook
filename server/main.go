@@ -28,6 +28,10 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/api/", router)
 	mux.Handle("/webhook/", webhookHandler)
+	dh := dashboardHandler()
+	mux.Handle("/admin", dh)
+	mux.Handle("/admin/", dh)
+	mux.Handle("/assets/", dh)
 
 	ticker := time.NewTicker(24 * time.Hour)
 	go func() {

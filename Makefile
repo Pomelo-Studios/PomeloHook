@@ -2,9 +2,10 @@
 
 dashboard:
 	cd dashboard && npm run build
-	rm -rf cli/dashboard/static
-	mkdir -p cli/dashboard/static
+	rm -rf cli/dashboard/static server/dashboard/static
+	mkdir -p cli/dashboard/static server/dashboard/static
 	cp -r dashboard/dist/* cli/dashboard/static/
+	cp -r dashboard/dist/* server/dashboard/static/
 
 build: dashboard
 	cd server && go build -o ../bin/pomelo-hook-server .
