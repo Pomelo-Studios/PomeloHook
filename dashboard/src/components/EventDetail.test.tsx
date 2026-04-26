@@ -12,19 +12,36 @@ const mockEvent: WebhookEvent = {
   Headers: '{"Content-Type":["application/json"]}',
   RequestBody: '{"amount":100}',
   ResponseStatus: 200,
-  ResponseBody: 'ok',
+  ResponseBody: '{"success":true}',
   ResponseMS: 42,
   Forwarded: true,
   ReplayedAt: null,
 }
 
 describe('EventDetail', () => {
-  it('shows request body', () => {
+  it('shows method and path in header', () => {
     render(<EventDetail event={mockEvent} onReplay={vi.fn()} />)
-    expect(screen.getByText(/amount/)).toBeInTheDocument()
+    expect(screen.getByText('POST')).toBeInTheDocument()
+    expect(screen.getByText('/webhook/stripe')).toBeInTheDocument()
   })
 
-  it('calls onReplay with target URL when replay clicked', () => {
+  it('renders request body JSON key', () => {
+    render(<EventDetail event={mockEvent} onReplay={vi.fn()} />)
+    expect(screen.getByText(/"amount"/)).toBeInTheDocument()
+  })
+
+  it('shows response status badge for forwarded event', () => {
+    render(<EventDetail event={mockEvent} onReplay={vi.fn()} />)
+    expect(screen.getByText(/200 OK/)).toBeInTheDocument()
+  })
+
+  it('shows not-forwarded state', () => {
+    const unforwarded = { ...mockEvent, Forwarded: false, ResponseStatus: 0, ResponseBody: '' }
+    render(<EventDetail event={unforwarded} onReplay={vi.fn()} />)
+    expect(screen.getByText('not forwarded')).toBeInTheDocument()
+  })
+
+  it('calls onReplay with event ID and target URL when replay clicked', () => {
     const onReplay = vi.fn()
     render(<EventDetail event={mockEvent} onReplay={onReplay} />)
     fireEvent.click(screen.getByRole('button', { name: /replay/i }))

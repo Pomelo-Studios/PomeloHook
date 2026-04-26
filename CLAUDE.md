@@ -1,52 +1,34 @@
 # PomeloHook — CLAUDE.md
 
-## What This Is
+## Must-follow constraints
 
-Self-hosted webhook relay and inspection tool. Like ngrok, but team-focused. Exposes a public URL, forwards webhooks to a local machine via WebSocket tunnel, stores all events, and provides a web dashboard with replay.
+- **Events must be persisted before forwarding** — never after. If the forward fails, the event must still exist and be replayable.
+- **Never change the WebSocket message format** between server and CLI without updating both sides. It is the core tunnel contract.
+- **Org tunnels allow exactly one active forwarder** — enforce at server level in `tunnel.Manager`, not in the API layer.
+- **Build the dashboard before building the CLI binary** — `cli/dashboard/static/` is embedded via `go:embed`. `go build ./...` in `cli/` will fail with a missing embed error if you skip this.
 
-## Stack
-
-- **Server:** Go — relay server, WebSocket tunnel manager, REST API, SQLite
-- **CLI:** Go — tunnel client, local HTTP forwarder, embedded dashboard server
-- **Dashboard:** React + Vite — served at `localhost:4040`, embedded in CLI binary via `go:embed`
-
-## Monorepo Structure
-
-```
-server/      Go relay server
-cli/         Go CLI client
-dashboard/   React/Vite web UI
-docs/        Specs and design documents
-```
-
-## Running Locally
+## Build order
 
 ```bash
-# Server
-cd server && go run main.go
-
-# CLI
-cd cli && go run main.go connect --port 3000
-
-# Dashboard (dev mode)
-cd dashboard && npm run dev
+make dashboard   # npm run build → copies dist/ into cli/dashboard/static/
+make build       # builds server and CLI binaries into bin/
+make test        # runs all tests across server, CLI, and dashboard
 ```
 
-## Key Architecture Decisions
+## Repo-specific conventions
 
-- **Tunnel mechanism:** WebSocket (client opens persistent connection to server, server proxies requests through it)
-- **Storage:** SQLite — single file, no external DB. Events retained 30 days (`POMELO_RETENTION_DAYS` env var).
-- **Auth:** API key per user, stored in `~/.pomelo-hook/config.json`
-- **Two tunnel types:** Personal (owner only) and Org (shared visibility, one active forwarder at a time)
-- **Dashboard data:** Personal events from local CLI server; org events from relay server API
+- Pure-Go SQLite via `modernc.org/sqlite` — no CGO, no system sqlite3 required.
+- Go 1.22 pattern routing: use `r.PathValue("id")` for path parameters, not mux vars.
+- Three separate Go modules: `server/go.mod`, `cli/go.mod` — run `go test ./...` from inside each directory, not the root.
 
-## Rules
+## Known gotchas
 
-- Never break the WebSocket tunnel interface between server and CLI — it's the core contract
-- All webhook events must be persisted before forwarding, never after — if forward fails, the event is still stored and replayable
-- Org tunnel: one active forwarder at a time, enforce at server level
-- Dashboard is embedded in the CLI binary — always run `cd dashboard && npm run build` before building the CLI binary
+- `dashboard/vite.config.ts` imports from `vitest/config`, **not** `vite`. Using the wrong import drops the `test` key and breaks `npm test`.
+- `cli/dashboard/static/` is tracked in git (not gitignored) so `go:embed` works on a fresh clone without running the dashboard build first.
+- `cli/cmd/root.go` owns the `errNotLoggedIn` sentinel — do not re-declare it in individual command files.
 
-## Design Spec
+## Validation before finishing
 
-Full design: `docs/superpowers/specs/2026-04-26-pomelo-hook-design.md`
+- `cd server && go test ./...` — all packages pass
+- `cd cli && go test ./...` — all packages pass
+- If dashboard was modified: `cd dashboard && npm test` passes and `npm run build` succeeds
