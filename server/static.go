@@ -11,7 +11,10 @@ import (
 var dashboardFiles embed.FS
 
 func dashboardHandler() http.Handler {
-	sub, _ := fs.Sub(dashboardFiles, "dashboard/static")
+	sub, err := fs.Sub(dashboardFiles, "dashboard/static")
+	if err != nil {
+		panic("dashboard embed misconfigured: " + err.Error())
+	}
 	fileServer := http.FileServer(http.FS(sub))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
