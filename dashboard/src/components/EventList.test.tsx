@@ -25,9 +25,19 @@ describe('EventList', () => {
     expect(screen.getByText('/webhook/stripe')).toBeInTheDocument()
   })
 
-  it('shows green indicator for forwarded event', () => {
+  it('shows status code badge for forwarded event', () => {
     render(<EventList events={[mockEvent]} onSelect={() => {}} selectedID={null} />)
-    const indicator = screen.getByTestId('status-indicator')
-    expect(indicator).toHaveClass('bg-green-500')
+    expect(screen.getByText('200')).toBeInTheDocument()
+  })
+
+  it('shows err badge for non-forwarded event', () => {
+    const failed = { ...mockEvent, Forwarded: false, ResponseStatus: 0 }
+    render(<EventList events={[failed]} onSelect={() => {}} selectedID={null} />)
+    expect(screen.getByText('err')).toBeInTheDocument()
+  })
+
+  it('shows latency in milliseconds', () => {
+    render(<EventList events={[mockEvent]} onSelect={() => {}} selectedID={null} />)
+    expect(screen.getByText(/42ms/)).toBeInTheDocument()
   })
 })
