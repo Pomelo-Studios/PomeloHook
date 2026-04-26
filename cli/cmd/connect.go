@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pomelo-studios/pomelo-hook/cli/config"
+	"github.com/pomelo-studios/pomelo-hook/cli/dashboard"
 	"github.com/pomelo-studios/pomelo-hook/cli/forward"
 	"github.com/pomelo-studios/pomelo-hook/cli/tunnel"
 	"github.com/spf13/cobra"
@@ -47,6 +48,8 @@ func runConnect(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Tunnel: %s/webhook/%s → localhost:%s\n", cfg.ServerURL, subdomain, localPort)
 	fmt.Println("Dashboard: http://localhost:4040")
 	fmt.Println("Press Ctrl+C to stop")
+
+	dashboard.Serve(newLocalAPIProxy(cfg.ServerURL, cfg.APIKey))
 
 	client := tunnel.New(tunnel.Options{
 		ServerURL: cfg.ServerURL,
