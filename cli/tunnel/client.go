@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -38,7 +39,7 @@ func New(opts Options) *Client {
 }
 
 func (c *Client) Connect() error {
-	wsURL := "ws" + c.serverURL[4:] + "/api/ws?tunnel_id=" + c.tunnelID
+	wsURL := strings.Replace(c.serverURL, "http", "ws", 1) + "/api/ws?tunnel_id=" + c.tunnelID
 	headers := http.Header{"Authorization": {"Bearer " + c.apiKey}}
 
 	var attempt int

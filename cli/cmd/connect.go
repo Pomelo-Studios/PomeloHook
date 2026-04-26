@@ -7,12 +7,15 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/pomelo-studios/pomelo-hook/cli/config"
 	"github.com/pomelo-studios/pomelo-hook/cli/forward"
 	"github.com/pomelo-studios/pomelo-hook/cli/tunnel"
 	"github.com/spf13/cobra"
 )
+
+var apiClient = &http.Client{Timeout: 15 * time.Second}
 
 var connectCmd = &cobra.Command{
 	Use:   "connect",
@@ -74,7 +77,7 @@ func resolveTunnel(cfg *config.Config, isOrg bool, tunnelName string) (id, subdo
 	req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := apiClient.Do(req)
 	if err != nil {
 		return "", "", fmt.Errorf("cannot reach server: %w", err)
 	}

@@ -47,11 +47,17 @@ func runReplay(cmd *cobra.Command, args []string) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("replay failed: server returned %d", resp.StatusCode)
+	}
+
 	var result struct {
 		StatusCode int   `json:"status_code"`
 		ResponseMS int64 `json:"response_ms"`
 	}
-	json.NewDecoder(resp.Body).Decode(&result)
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
 	fmt.Printf("Replayed %s → %d (%dms)\n", eventID, result.StatusCode, result.ResponseMS)
 	return nil
 }

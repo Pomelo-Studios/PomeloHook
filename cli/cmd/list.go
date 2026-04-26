@@ -46,6 +46,10 @@ func runList(cmd *cobra.Command, args []string) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("server returned %d", resp.StatusCode)
+	}
+
 	var events []struct {
 		ID             string    `json:"ID"`
 		Method         string    `json:"Method"`
@@ -54,15 +58,21 @@ func runList(cmd *cobra.Command, args []string) error {
 		ResponseStatus int       `json:"ResponseStatus"`
 		Forwarded      bool      `json:"Forwarded"`
 	}
-	json.NewDecoder(resp.Body).Decode(&events)
+	if err := json.NewDecoder(resp.Body).Decode(&events); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
 
 	for _, e := range events {
 		status := "✗"
 		if e.Forwarded {
 			status = "✓"
 		}
+		id := e.ID
+		if len(id) > 8 {
+			id = id[:8]
+		}
 		fmt.Printf("[%s] %s %s %s → %d (%s)\n",
-			e.ID[:8], status, e.Method, e.Path,
+			id, status, e.Method, e.Path,
 			e.ResponseStatus, e.ReceivedAt.Format("15:04:05"))
 	}
 	return nil
