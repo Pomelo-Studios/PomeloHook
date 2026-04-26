@@ -1,5 +1,6 @@
-// server/store/orgs.go
 package store
+
+import "database/sql"
 
 type Org struct {
 	ID        string
@@ -14,9 +15,12 @@ func (s *Store) GetOrg(orgID string) (*Org, error) {
 }
 
 func (s *Store) UpdateOrg(id, name string) (*Org, error) {
-	_, err := s.DB.Exec(`UPDATE organizations SET name = ? WHERE id = ?`, name, id)
+	res, err := s.DB.Exec(`UPDATE organizations SET name = ? WHERE id = ?`, name, id)
 	if err != nil {
 		return nil, err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return nil, sql.ErrNoRows
 	}
 	return s.GetOrg(id)
 }
