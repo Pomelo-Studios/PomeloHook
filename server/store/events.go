@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -49,16 +50,27 @@ func (s *Store) GetEvent(id string) (*WebhookEvent, error) {
 	row := s.DB.QueryRow(
 		`SELECT id, tunnel_id, received_at, method, path, headers,
          COALESCE(request_body,''), COALESCE(response_status,0),
-         COALESCE(response_body,''), COALESCE(response_ms,0), forwarded
+         COALESCE(response_body,''), COALESCE(response_ms,0), forwarded, replayed_at
          FROM webhook_events WHERE id=?`, id)
 	e := &WebhookEvent{}
 	var receivedAt string
+	var replayedAt *string
 	err := row.Scan(&e.ID, &e.TunnelID, &receivedAt, &e.Method, &e.Path, &e.Headers,
-		&e.RequestBody, &e.ResponseStatus, &e.ResponseBody, &e.ResponseMS, &e.Forwarded)
+		&e.RequestBody, &e.ResponseStatus, &e.ResponseBody, &e.ResponseMS, &e.Forwarded, &replayedAt)
 	if err != nil {
 		return nil, err
 	}
-	e.ReceivedAt, _ = time.Parse(time.RFC3339, receivedAt)
+	var parseErr error
+	e.ReceivedAt, parseErr = time.Parse(time.RFC3339, receivedAt)
+	if parseErr != nil {
+		return nil, fmt.Errorf("parse received_at for event %s: %w", id, parseErr)
+	}
+	if replayedAt != nil {
+		t, err := time.Parse(time.RFC3339, *replayedAt)
+		if err == nil {
+			e.ReplayedAt = &t
+		}
+	}
 	return e, nil
 }
 
@@ -66,7 +78,7 @@ func (s *Store) ListEvents(tunnelID string, limit int) ([]*WebhookEvent, error) 
 	rows, err := s.DB.Query(
 		`SELECT id, tunnel_id, received_at, method, path, headers,
          COALESCE(request_body,''), COALESCE(response_status,0),
-         COALESCE(response_body,''), COALESCE(response_ms,0), forwarded
+         COALESCE(response_body,''), COALESCE(response_ms,0), forwarded, replayed_at
          FROM webhook_events WHERE tunnel_id=? ORDER BY received_at DESC LIMIT ?`,
 		tunnelID, limit,
 	)
@@ -78,11 +90,18 @@ func (s *Store) ListEvents(tunnelID string, limit int) ([]*WebhookEvent, error) 
 	for rows.Next() {
 		e := &WebhookEvent{}
 		var receivedAt string
+		var replayedAt *string
 		if err := rows.Scan(&e.ID, &e.TunnelID, &receivedAt, &e.Method, &e.Path, &e.Headers,
-			&e.RequestBody, &e.ResponseStatus, &e.ResponseBody, &e.ResponseMS, &e.Forwarded); err != nil {
+			&e.RequestBody, &e.ResponseStatus, &e.ResponseBody, &e.ResponseMS, &e.Forwarded, &replayedAt); err != nil {
 			return nil, err
 		}
 		e.ReceivedAt, _ = time.Parse(time.RFC3339, receivedAt)
+		if replayedAt != nil {
+			t, err := time.Parse(time.RFC3339, *replayedAt)
+			if err == nil {
+				e.ReplayedAt = &t
+			}
+		}
 		events = append(events, e)
 	}
 	if err := rows.Err(); err != nil {
