@@ -22,7 +22,7 @@ func requireAdmin(next http.Handler) http.Handler {
 	})
 }
 
-func handleGetMe(s *store.Store) http.HandlerFunc {
+func handleGetMe() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := auth.UserFromContext(r.Context())
 		w.Header().Set("Content-Type", "application/json")
@@ -59,6 +59,10 @@ func handleCreateAdminUser(s *store.Store) http.HandlerFunc {
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, "invalid body", http.StatusBadRequest)
+			return
+		}
+		if body.Role != "admin" && body.Role != "member" {
+			http.Error(w, "role must be admin or member", http.StatusBadRequest)
 			return
 		}
 		created, err := s.CreateUser(store.CreateUserParams{OrgID: caller.OrgID, Email: body.Email, Name: body.Name, Role: body.Role})
@@ -133,7 +137,7 @@ func handleGetAdminOrg(s *store.Store) http.HandlerFunc {
 
 func handleUpdateAdminOrg(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("id")
+		caller := auth.UserFromContext(r.Context())
 		var body struct {
 			Name string `json:"name"`
 		}
@@ -141,7 +145,7 @@ func handleUpdateAdminOrg(s *store.Store) http.HandlerFunc {
 			http.Error(w, "invalid body", http.StatusBadRequest)
 			return
 		}
-		org, err := s.UpdateOrg(id, body.Name)
+		org, err := s.UpdateOrg(caller.OrgID, body.Name)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
@@ -167,11 +171,11 @@ func handleListAdminTunnels(s *store.Store) http.HandlerFunc {
 func handleDeleteAdminTunnel(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
-		m.Unregister(id)
 		if err := s.DeleteTunnel(id); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
+		m.Unregister(id)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
@@ -179,11 +183,11 @@ func handleDeleteAdminTunnel(s *store.Store, m *tunnel.Manager) http.HandlerFunc
 func handleDisconnectTunnel(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
-		m.Unregister(id)
 		if err := s.SetTunnelInactive(id); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
+		m.Unregister(id)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

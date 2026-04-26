@@ -14,7 +14,7 @@ func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
 
 	mux.HandleFunc("POST /api/auth/login", handleLogin(s))
 	mux.Handle("GET /api/ws", auth.Middleware(s, http.HandlerFunc(handleWSConnect(s, m))))
-	mux.Handle("GET /api/me", auth.Middleware(s, http.HandlerFunc(handleGetMe(s))))
+	mux.Handle("GET /api/me", auth.Middleware(s, http.HandlerFunc(handleGetMe())))
 
 	mux.Handle("GET /api/events", auth.Middleware(s, http.HandlerFunc(handleListEvents(s))))
 	mux.Handle("POST /api/events/{id}/replay", auth.Middleware(s, http.HandlerFunc(handleReplayEvent(s))))
@@ -30,7 +30,7 @@ func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
 	mux.Handle("DELETE /api/admin/users/{id}", admin(http.HandlerFunc(handleDeleteAdminUser(s))))
 	mux.Handle("POST /api/admin/users/{id}/rotate-key", admin(http.HandlerFunc(handleRotateAPIKey(s))))
 	mux.Handle("GET /api/admin/orgs", admin(http.HandlerFunc(handleGetAdminOrg(s))))
-	mux.Handle("PUT /api/admin/orgs/{id}", admin(http.HandlerFunc(handleUpdateAdminOrg(s))))
+	mux.Handle("PUT /api/admin/orgs", admin(http.HandlerFunc(handleUpdateAdminOrg(s))))
 	mux.Handle("GET /api/admin/tunnels", admin(http.HandlerFunc(handleListAdminTunnels(s))))
 	mux.Handle("DELETE /api/admin/tunnels/{id}", admin(http.HandlerFunc(handleDeleteAdminTunnel(s, m))))
 	mux.Handle("POST /api/admin/tunnels/{id}/disconnect", admin(http.HandlerFunc(handleDisconnectTunnel(s, m))))
