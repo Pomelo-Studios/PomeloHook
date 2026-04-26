@@ -22,7 +22,7 @@ export function EventList({ events, selectedID, onSelect }: Props) {
           <span className="font-mono text-xs font-bold text-gray-600 w-12">{event.Method}</span>
           <span className="font-mono text-xs text-gray-800 truncate flex-1">{event.Path}</span>
           <span className="text-xs text-gray-400">{event.ResponseStatus || '—'}</span>
-          <span className="text-xs text-gray-400">{event.ResponseMS}ms</span>
+          <span className="text-xs text-gray-400">{event.ResponseMS ? `${event.ResponseMS}ms` : '—'}</span>
         </button>
       ))}
     </div>

@@ -21,9 +21,11 @@ export function EventDetail({ event, onReplay }: Props) {
 
       <div>
         <div className="text-gray-500 mb-1">Response</div>
-        <div className={`rounded p-2 ${event.ResponseStatus >= 400 ? 'bg-red-50' : 'bg-green-50'}`}>
-          <div className="font-bold">{event.ResponseStatus} · {event.ResponseMS}ms</div>
-          <pre className="mt-2 whitespace-pre-wrap break-all">{event.ResponseBody}</pre>
+        <div className={`rounded p-2 ${!event.Forwarded ? 'bg-gray-100' : event.ResponseStatus >= 400 ? 'bg-red-50' : 'bg-green-50'}`}>
+          <div className="font-bold">
+            {event.Forwarded ? `${event.ResponseStatus} · ${event.ResponseMS}ms` : 'Not forwarded'}
+          </div>
+          {event.ResponseBody && <pre className="mt-2 whitespace-pre-wrap break-all">{event.ResponseBody}</pre>}
         </div>
       </div>
 
