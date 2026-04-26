@@ -1,11 +1,16 @@
+// cli/main.go
 package main
 
 import (
 	"fmt"
 	"os"
+
+	"github.com/pomelo-studios/pomelo-hook/cli/cmd"
 )
 
 func main() {
-	fmt.Println("pomelo-hook")
-	os.Exit(0)
+	if err := cmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
