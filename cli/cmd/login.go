@@ -1,14 +1,14 @@
-// cli/cmd/login.go
 package cmd
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
-	"github.com/spf13/cobra"
 	"github.com/pomelo-studios/pomelo-hook/cli/config"
+	"github.com/spf13/cobra"
 )
 
 var loginCmd = &cobra.Command{
@@ -28,7 +28,10 @@ func init() {
 }
 
 func runLogin(cmd *cobra.Command, args []string) error {
-	payload, _ := json.Marshal(map[string]string{"email": email})
+	payload, err := json.Marshal(map[string]string{"email": email})
+	if err != nil {
+		return fmt.Errorf("failed to encode request: %w", err)
+	}
 	resp, err := http.Post(serverURL+"/api/auth/login", "application/json", bytes.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("cannot reach server: %w", err)
@@ -41,8 +44,11 @@ func runLogin(cmd *cobra.Command, args []string) error {
 		APIKey string `json:"api_key"`
 		Name   string `json:"name"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {
 		return err
+	}
+	if result.APIKey == "" || result.Name == "" {
+		return fmt.Errorf("server returned incomplete credentials")
 	}
 	cfg := &config.Config{ServerURL: serverURL, APIKey: result.APIKey, UserName: result.Name}
 	if err := config.Save(cfg); err != nil {
