@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 
 	"github.com/pomelo-studios/pomelo-hook/cli/config"
 	"github.com/pomelo-studios/pomelo-hook/cli/forward"
@@ -54,5 +58,68 @@ func runConnect(cmd *cobra.Command, args []string) error {
 }
 
 func resolveTunnel(cfg *config.Config, isOrg bool, tunnelName string) (id, subdomain string, err error) {
-	return "", "", fmt.Errorf("not yet implemented")
+	tunnelType := "personal"
+	if isOrg {
+		tunnelType = "org"
+	}
+
+	payload, err := json.Marshal(map[string]string{"type": tunnelType, "name": tunnelName})
+	if err != nil {
+		return "", "", fmt.Errorf("failed to encode request: %w", err)
+	}
+	req, err := http.NewRequest("POST", cfg.ServerURL+"/api/tunnels", bytes.NewReader(payload))
+	if err != nil {
+		return "", "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", "", fmt.Errorf("cannot reach server: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusConflict {
+		return "", "", fmt.Errorf("org tunnel '%s' is already active", tunnelName)
+	}
+	if resp.StatusCode != http.StatusCreated {
+		return "", "", fmt.Errorf("failed to create tunnel: %d", resp.StatusCode)
+	}
+
+	var tun struct {
+		ID        string `json:"ID"`
+		Subdomain string `json:"Subdomain"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&tun); err != nil {
+		return "", "", err
+	}
+	if tun.ID == "" || tun.Subdomain == "" {
+		return "", "", fmt.Errorf("server returned incomplete tunnel data")
+	}
+	return tun.ID, tun.Subdomain, nil
+}
+
+func newLocalAPIProxy(serverURL, apiKey string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		target := serverURL + r.URL.RequestURI()
+		req, err := http.NewRequest(r.Method, target, r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		req.Header = r.Header.Clone()
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+		for k, v := range resp.Header {
+			w.Header()[k] = v
+		}
+		w.WriteHeader(resp.StatusCode)
+		io.Copy(w, resp.Body)
+	})
 }
