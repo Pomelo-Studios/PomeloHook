@@ -34,6 +34,11 @@ export default function App() {
   const [tunnelID, setTunnelID] = useState('')
   const [tunnelSubdomain, setTunnelSubdomain] = useState('')
   const [replayError, setReplayError] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    api.getMe('').then(me => { if (me.role === 'admin') setIsAdmin(true) }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     api.getTunnels().then(tunnels => {
@@ -60,7 +65,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-zinc-950 font-mono text-sm">
-      <Header subdomain={tunnelSubdomain} connected={!!tunnelID} />
+      <Header subdomain={tunnelSubdomain} connected={!!tunnelID} isAdmin={isAdmin} />
       <div className="flex flex-1 overflow-hidden">
         <div className="w-[38%] border-r border-zinc-800 flex flex-col overflow-hidden">
           <EventList
