@@ -11,3 +11,5 @@ build/
 bin/
 server/server
 cli/cli
+.worktrees/
+.superpowers/
