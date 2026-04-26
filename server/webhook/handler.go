@@ -29,7 +29,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bodyBytes, _ := io.ReadAll(r.Body)
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "failed to read request body", http.StatusInternalServerError)
+		return
+	}
 	headerJSON, _ := json.Marshal(r.Header)
 
 	event, err := h.store.SaveEvent(store.SaveEventParams{

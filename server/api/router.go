@@ -12,26 +12,13 @@ func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /api/auth/login", handleLogin(s))
-
 	mux.Handle("GET /api/ws", auth.Middleware(s, http.HandlerFunc(handleWSConnect(s, m))))
 
-	protected := auth.Middleware(s, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == "GET" && r.URL.Path == "/api/events":
-			handleListEvents(s)(w, r)
-		case r.Method == "POST" && len(r.URL.Path) > 12 && r.URL.Path[len(r.URL.Path)-7:] == "/replay":
-			handleReplayEvent(s)(w, r)
-		case r.Method == "GET" && r.URL.Path == "/api/tunnels":
-			handleListTunnels(s)(w, r)
-		case r.Method == "POST" && r.URL.Path == "/api/tunnels":
-			handleCreateTunnel(s)(w, r)
-		case r.Method == "GET" && r.URL.Path == "/api/orgs/users":
-			handleListOrgUsers(s)(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	}))
+	mux.Handle("GET /api/events", auth.Middleware(s, http.HandlerFunc(handleListEvents(s))))
+	mux.Handle("POST /api/events/{id}/replay", auth.Middleware(s, http.HandlerFunc(handleReplayEvent(s))))
+	mux.Handle("GET /api/tunnels", auth.Middleware(s, http.HandlerFunc(handleListTunnels(s))))
+	mux.Handle("POST /api/tunnels", auth.Middleware(s, http.HandlerFunc(handleCreateTunnel(s))))
+	mux.Handle("GET /api/orgs/users", auth.Middleware(s, http.HandlerFunc(handleListOrgUsers(s))))
 
-	mux.Handle("/api/", protected)
 	return mux
 }

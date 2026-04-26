@@ -25,29 +25,29 @@ func handleWSConnect(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 			return
 		}
 
-		if err := m.CheckAvailable(tunnelID); err != nil {
+		ch := make(chan []byte, 64)
+		if err := m.CheckAndRegister(tunnelID, user.ID, user.Name, ch); err != nil {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return
 		}
 
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
+			m.Unregister(tunnelID)
 			log.Printf("ws upgrade error: %v", err)
 			return
 		}
 
-		ch := make(chan []byte, 64)
-		m.Register(tunnelID, user.ID, user.Name, ch)
 		s.SetTunnelActive(tunnelID, user.ID)
-
-		ack, _ := json.Marshal(map[string]string{"status": "connected", "tunnel_id": tunnelID})
-		conn.WriteMessage(websocket.TextMessage, ack)
 
 		defer func() {
 			m.Unregister(tunnelID)
 			s.SetTunnelInactive(tunnelID)
 			conn.Close()
 		}()
+
+		ack, _ := json.Marshal(map[string]string{"status": "connected", "tunnel_id": tunnelID})
+		conn.WriteMessage(websocket.TextMessage, ack)
 
 		for payload := range ch {
 			if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil {

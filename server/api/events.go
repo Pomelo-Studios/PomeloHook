@@ -4,16 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
+	"github.com/pomelo-studios/pomelo-hook/server/auth"
 	"github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
 func handleListEvents(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := auth.UserFromContext(r.Context())
 		tunnelID := r.URL.Query().Get("tunnel_id")
 		limit := 50
 		if l := r.URL.Query().Get("limit"); l != "" {
@@ -21,6 +23,13 @@ func handleListEvents(s *store.Store) http.HandlerFunc {
 				limit = n
 			}
 		}
+
+		tun, err := s.GetTunnelByID(tunnelID)
+		if err != nil || (tun.UserID != user.ID && tun.OrgID != user.OrgID) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
 		events, err := s.ListEvents(tunnelID, limit)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -36,16 +45,18 @@ func handleListEvents(s *store.Store) http.HandlerFunc {
 
 func handleReplayEvent(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parts := strings.Split(r.URL.Path, "/")
-		if len(parts) < 4 {
-			http.Error(w, "invalid path", http.StatusBadRequest)
-			return
-		}
-		eventID := parts[3]
+		user := auth.UserFromContext(r.Context())
+		eventID := r.PathValue("id")
 
 		event, err := s.GetEvent(eventID)
 		if err != nil {
 			http.Error(w, "event not found", http.StatusNotFound)
+			return
+		}
+
+		tun, err := s.GetTunnelByID(event.TunnelID)
+		if err != nil || (tun.UserID != user.ID && tun.OrgID != user.OrgID) {
+			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 
@@ -63,7 +74,9 @@ func handleReplayEvent(s *store.Store) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadGateway)
 			return
 		}
-		s.MarkEventReplayed(eventID)
+		if err := s.MarkEventReplayed(eventID); err != nil {
+			log.Printf("mark event %s replayed: %v", eventID, err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{

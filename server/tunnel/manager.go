@@ -18,18 +18,27 @@ func NewManager() *Manager {
 	}
 }
 
-func (m *Manager) Register(tunnelID, userID, userName string, ch chan []byte) {
+// CheckAndRegister atomically verifies the tunnel is not active and registers it.
+func (m *Manager) CheckAndRegister(tunnelID, userID, userName string, ch chan []byte) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if owner, ok := m.owners[tunnelID]; ok {
+		return fmt.Errorf("tunnel is currently active by %s", owner)
+	}
 	m.conns[tunnelID] = ch
 	m.owners[tunnelID] = userName
+	return nil
 }
 
+// Unregister removes the tunnel and closes its channel. Safe to call multiple times.
 func (m *Manager) Unregister(tunnelID string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	delete(m.conns, tunnelID)
-	delete(m.owners, tunnelID)
+	if ch, ok := m.conns[tunnelID]; ok {
+		close(ch)
+		delete(m.conns, tunnelID)
+		delete(m.owners, tunnelID)
+	}
 }
 
 func (m *Manager) Get(tunnelID string) (chan []byte, bool) {
@@ -37,13 +46,4 @@ func (m *Manager) Get(tunnelID string) (chan []byte, bool) {
 	defer m.mu.RUnlock()
 	ch, ok := m.conns[tunnelID]
 	return ch, ok
-}
-
-func (m *Manager) CheckAvailable(tunnelID string) error {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if owner, ok := m.owners[tunnelID]; ok {
-		return fmt.Errorf("tunnel is currently active by %s", owner)
-	}
-	return nil
 }

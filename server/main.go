@@ -29,9 +29,12 @@ func main() {
 	mux.Handle("/api/", router)
 	mux.Handle("/webhook/", webhookHandler)
 
+	ticker := time.NewTicker(24 * time.Hour)
 	go func() {
-		for range time.Tick(24 * time.Hour) {
-			db.DeleteEventsOlderThan(cfg.RetentionDays)
+		for range ticker.C {
+			if _, err := db.DeleteEventsOlderThan(cfg.RetentionDays); err != nil {
+				log.Printf("retention cleanup error: %v", err)
+			}
 		}
 	}()
 

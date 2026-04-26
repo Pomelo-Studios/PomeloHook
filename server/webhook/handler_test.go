@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -30,7 +29,6 @@ func TestWebhookStoredWhenNoActiveTunnel(t *testing.T) {
 
 	require.Equal(t, http.StatusAccepted, rec.Code)
 
-	time.Sleep(10 * time.Millisecond)
 	events, err := db.ListEvents("t1", 10)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
