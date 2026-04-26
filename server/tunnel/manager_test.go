@@ -10,7 +10,7 @@ import (
 func TestRegisterAndGet(t *testing.T) {
 	m := tunnel.NewManager()
 	ch := make(chan []byte, 1)
-	m.Register("tunnel-1", "user-1", ch)
+	m.Register("tunnel-1", "user-1", "Alice", ch)
 	got, ok := m.Get("tunnel-1")
 	require.True(t, ok)
 	require.Equal(t, ch, got)
@@ -19,7 +19,7 @@ func TestRegisterAndGet(t *testing.T) {
 func TestUnregister(t *testing.T) {
 	m := tunnel.NewManager()
 	ch := make(chan []byte, 1)
-	m.Register("tunnel-1", "user-1", ch)
+	m.Register("tunnel-1", "user-1", "Alice", ch)
 	m.Unregister("tunnel-1")
 	_, ok := m.Get("tunnel-1")
 	require.False(t, ok)
@@ -28,8 +28,8 @@ func TestUnregister(t *testing.T) {
 func TestOrgTunnelConflictReturnsActiveUser(t *testing.T) {
 	m := tunnel.NewManager()
 	ch := make(chan []byte, 1)
-	m.Register("tunnel-1", "user-1", ch)
+	m.Register("tunnel-1", "user-1", "Alice", ch)
 	err := m.CheckAvailable("tunnel-1")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "user-1")
+	require.Contains(t, err.Error(), "Alice")
 }

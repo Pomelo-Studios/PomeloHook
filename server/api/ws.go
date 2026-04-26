@@ -37,7 +37,7 @@ func handleWSConnect(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 		}
 
 		ch := make(chan []byte, 64)
-		m.Register(tunnelID, user.ID, ch)
+		m.Register(tunnelID, user.ID, user.Name, ch)
 		s.SetTunnelActive(tunnelID, user.ID)
 
 		ack, _ := json.Marshal(map[string]string{"status": "connected", "tunnel_id": tunnelID})

@@ -18,11 +18,11 @@ func NewManager() *Manager {
 	}
 }
 
-func (m *Manager) Register(tunnelID, userID string, ch chan []byte) {
+func (m *Manager) Register(tunnelID, userID, userName string, ch chan []byte) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.conns[tunnelID] = ch
-	m.owners[tunnelID] = userID
+	m.owners[tunnelID] = userName
 }
 
 func (m *Manager) Unregister(tunnelID string) {
