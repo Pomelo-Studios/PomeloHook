@@ -106,20 +106,18 @@ func (s *Store) ListTables() ([]TableInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var names []string
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			rows.Close()
 			return nil, err
 		}
 		names = append(names, name)
 	}
 	if err := rows.Err(); err != nil {
-		rows.Close()
 		return nil, err
 	}
-	rows.Close()
 
 	tables := make([]TableInfo, 0, len(names))
 	for _, name := range names {
