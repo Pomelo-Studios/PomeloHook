@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { HookIcon } from './HookIcon'
 
 interface Props {
   subdomain: string
@@ -11,41 +12,60 @@ export function Header({ subdomain, connected, isAdmin }: Props) {
   const onAdmin = location.pathname.startsWith('/admin')
 
   return (
-    <header className="h-11 bg-zinc-900 border-b border-zinc-800 px-4 flex items-center gap-3 flex-shrink-0">
-      <div className="flex items-center gap-2">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5">
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-        </svg>
-        <span className="text-zinc-50 text-[13px] font-bold tracking-tight">PomeloHook</span>
-      </div>
-      <div className="w-px h-4 bg-zinc-800" />
+    <header
+      className="h-[52px] flex-shrink-0 flex items-center gap-3 px-5 border-b"
+      style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+    >
+      <HookIcon size={28} />
+      <span className="font-extrabold text-[15px] tracking-tight" style={{ color: 'var(--text-primary)' }}>
+        PomeloHook
+      </span>
+
+      <div className="w-px h-[18px]" style={{ background: 'var(--border)' }} />
+
       {subdomain ? (
-        <div className="flex items-center gap-1.5">
-          <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-zinc-600'}`} />
-          <span className="text-zinc-400 text-[10px] font-mono">{subdomain}</span>
+        <div className="flex items-center gap-2">
+          <div
+            className="w-[7px] h-[7px] rounded-full flex-shrink-0"
+            style={{ background: connected ? '#4CD4A1' : 'var(--text-dim)' }}
+          />
+          <span className="font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+            {subdomain}
+          </span>
         </div>
       ) : (
-        <span className="text-zinc-600 text-[10px]">no active tunnel</span>
+        <span className="text-[10px]" style={{ color: 'var(--text-dim)' }}>no active tunnel</span>
       )}
+
       <div className="ml-auto flex items-center gap-2">
         {isAdmin && (
           <div className="flex gap-1">
-            <Link
-              to="/"
-              className={`text-[10px] px-2.5 py-1 rounded border ${!onAdmin ? 'text-emerald-400 bg-emerald-950 border-emerald-900' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
-            >
-              Dashboard
-            </Link>
-            <Link
-              to="/admin"
-              className={`text-[10px] px-2.5 py-1 rounded border ${onAdmin ? 'text-emerald-400 bg-emerald-950 border-emerald-900' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
-            >
-              Admin
-            </Link>
+            {[
+              { to: '/', label: 'Dashboard', active: !onAdmin },
+              { to: '/admin', label: 'Admin', active: onAdmin },
+            ].map(({ to, label, active }) => (
+              <Link
+                key={to}
+                to={to}
+                className="text-[11px] font-medium px-[10px] py-1 rounded-md border transition-colors"
+                style={
+                  active
+                    ? { color: '#FF6B6B', background: 'var(--selected-bg)', borderColor: 'var(--selected-border)' }
+                    : { color: 'var(--text-dim)', background: 'transparent', borderColor: 'transparent' }
+                }
+              >
+                {label}
+              </Link>
+            ))}
           </div>
         )}
         {connected && (
-          <span className="text-[9px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded font-medium">connected</span>
+          <span
+            className="text-[10px] font-semibold px-[10px] py-[3px] rounded-full border"
+            style={{ color: 'var(--ok-text)', background: 'var(--ok-bg)', borderColor: 'var(--ok-bg)' }}
+          >
+            ● connected
+          </span>
         )}
       </div>
     </header>
