@@ -42,7 +42,7 @@ export const api = {
       request<{ api_key: string }>(`/api/admin/users/${id}/rotate-key`, { method: 'POST', headers: authHeaders(apiKey) }),
     getOrg: (apiKey: string) =>
       request<Org>('/api/admin/orgs', { headers: authHeaders(apiKey) }),
-    updateOrg: (apiKey: string, id: string, name: string) =>
+    updateOrg: (apiKey: string, _id: string, name: string) =>
       request<Org>(`/api/admin/orgs`, { method: 'PUT', headers: authHeaders(apiKey), body: JSON.stringify({ name }) }),
     listTunnels: (apiKey: string) =>
       request<Tunnel[]>('/api/admin/tunnels', { headers: authHeaders(apiKey) }),
