@@ -2,11 +2,11 @@
 
 [[00 - PomeloHook Index|← Index]]  |  EN: [[10 - Development Guide]]
 
-> Bir şeyleri bozmadan PomeloHook üzerinde çalışmak için gereken her şey.
+> Build sırası katıdır. Statik dosyalar commit'lenir. SQLite'da tek yazar. Geri kalanı burada açıklanır.
 
 ---
 
-## Build Sırası (Tartışmasız)
+## Build Sırası
 
 ```bash
 make dashboard   # 1. npm run build → dist'i cli/dashboard/static/'e kopyalar
@@ -109,7 +109,7 @@ go test ./...  # başarısız olur
 
 ---
 
-## Önemli Tuzaklar
+## Tuzaklar
 
 **1. `vite.config.ts` `vitest/config`'den import yapar**
 ```ts
