@@ -4,7 +4,7 @@
 
 ---
 
-## Üç Bileşen
+## Yapı
 
 ```
 PomeloHook/

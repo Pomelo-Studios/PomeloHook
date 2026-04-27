@@ -20,16 +20,14 @@ Stripe → POST https://your-server/webhook/abc123
 
 ---
 
-## Why Does It Exist?
-
-### The Problem
+## Why
 
 Two classic solutions exist for webhook development:
 
 1. **ngrok** — easy but: paid for stable subdomains, no event history, can't self-host, weak team support
 2. **Webhook.site / RequestBin** — inspect only, can't forward to local, ephemeral
 
-### What PomeloHook Adds
+## What's Different
 
 | Feature | ngrok | PomeloHook |
 |---------|-------|-----------|
@@ -43,7 +41,7 @@ Two classic solutions exist for webhook development:
 
 ---
 
-## Who Uses It?
+## Who It's For
 
 - **Individual developer**: deploys to their VPS, runs `pomelo-hook connect --port 3000`, receives Stripe webhooks locally
 - **Small team**: opens an org tunnel named `stripe-webhooks`, shares it. Whoever connects first gets live events; everyone can browse history
@@ -51,7 +49,7 @@ Two classic solutions exist for webhook development:
 
 ---
 
-## Release History
+## Releases
 
 | Version | What Shipped |
 |---------|-------------|

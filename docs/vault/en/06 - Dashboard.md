@@ -45,7 +45,7 @@ make build       # go build ./... (embeds what's in static/)
 
 ---
 
-## SPA Routing Problem & Fix
+## SPA Routing Fix
 
 React Router needs the server to return `index.html` for any path, not just `/`. Without a fix:
 - `localhost:4040/admin` on refresh → Go file server returns 404
@@ -115,7 +115,7 @@ dashboard/src/
 
 ---
 
-## Key Design Decisions
+## Design Notes
 
 **Events capped at 500** — `EventList` renders at most 500 events. Beyond that, the list becomes unusable anyway. Older events are still in the DB; use `pomelo-hook list` or the admin DB panel.
 

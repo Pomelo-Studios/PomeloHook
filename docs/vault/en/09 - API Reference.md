@@ -224,7 +224,7 @@ The path after the subdomain is preserved:
 | Admin | `/api/admin/*`, can modify any user/org/tunnel in their org |
 | No auth | `/api/auth/login` and `/webhook/*` only |
 
-**Scoping note:** Admins operate within their own org. There is no super-admin that spans multiple orgs. Each org is a separate isolated tenant.
+**Scoping note:** Admins operate within their own org. There is no super-admin that spans multiple orgs. Each org is a separate tenant. No cross-org access.
 
 ---
 
