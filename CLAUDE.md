@@ -21,11 +21,19 @@ make test        # runs all tests across server, CLI, and dashboard
 - Go 1.22 pattern routing: use `r.PathValue("id")` for path parameters, not mux vars.
 - Three separate Go modules: `server/go.mod`, `cli/go.mod` — run `go test ./...` from inside each directory, not the root.
 
+## Admin panel
+
+- Served at `/admin` on the **server** (not the CLI). Embedded via `server/dashboard/static/` (`go:embed`).
+- Access is gated by `requireAdmin` middleware — only users with `role='admin'` reach any `/api/admin/*` route.
+- Two auth modes: **CLI mode** (`/api/me` returns 200, no login form) vs **server mode** (`/api/me` returns 401, shows email login form, key stored in `sessionStorage`).
+- `server/api/admin.go` owns all admin handlers; `server/store/admin.go` owns all admin store methods.
+
 ## Known gotchas
 
 - `dashboard/vite.config.ts` imports from `vitest/config`, **not** `vite`. Using the wrong import drops the `test` key and breaks `npm test`.
 - `cli/dashboard/static/` is tracked in git (not gitignored) so `go:embed` works on a fresh clone without running the dashboard build first.
 - `cli/cmd/root.go` owns the `errNotLoggedIn` sentinel — do not re-declare it in individual command files.
+- `server/dashboard/static/` is also tracked in git for the same reason — always run `make dashboard` before `make build` if you change the dashboard.
 
 ## Validation before finishing
 

@@ -39,6 +39,7 @@ Events are always stored regardless of whether forwarding succeeds — they are 
 - **30-day retention** — events auto-deleted after 30 days (configurable)
 - **Replay** — resend any stored event to any URL from the CLI or dashboard
 - **Local dashboard** — embedded in the CLI binary, no separate install
+- **Admin panel** — web UI for managing users, orgs, tunnels, and the SQLite database; served at `/admin` on the server
 - **No CGO** — pure-Go SQLite, single binary deployment
 
 ---
@@ -78,9 +79,9 @@ The server listens on port `8080` by default.
 | `POMELO_DB_PATH`       | `pomelodata.db`  | Path to the SQLite database file     |
 | `POMELO_RETENTION_DAYS`| `30`             | Days before events are auto-deleted  |
 
-### 3. Seed your organization and users
+### 3. Seed your first organization and admin user
 
-There is no admin UI for user management. Seed directly into SQLite on first run:
+The admin panel handles user management after the initial bootstrap. Seed one organization and one admin user directly into SQLite on first run:
 
 ```bash
 sqlite3 pomelodata.db <<'SQL'
@@ -103,6 +104,8 @@ Retrieve Alice's API key:
 ```bash
 sqlite3 pomelodata.db "SELECT api_key FROM users WHERE email='alice@acme.com';"
 ```
+
+After this, use the admin panel at `https://your-server.com/admin` to manage additional users.
 
 ---
 
@@ -200,6 +203,29 @@ The dashboard is embedded in the CLI binary and requires no separate install.
 
 ---
 
+## Admin Panel
+
+The admin panel is served at `https://your-server.com/admin` and is embedded in the server binary. Only users with `role='admin'` can access it.
+
+### Accessing the panel
+
+1. Navigate to `https://your-server.com/admin`
+2. Enter your email address — the server returns your API key
+3. The session is stored in `sessionStorage` (cleared on tab close)
+
+When accessing the panel through the CLI dashboard (`http://localhost:4040/admin`), authentication is handled automatically via the CLI's API key.
+
+### What you can manage
+
+| Section | Capabilities |
+|---------|-------------|
+| **Users** | List, create, edit, delete org users; rotate API keys |
+| **Organizations** | View and rename your organization |
+| **Tunnels** | List all org tunnels; delete or force-disconnect active connections |
+| **Database** | Browse any SQLite table with pagination; run raw SQL queries (write queries require confirmation) |
+
+---
+
 ## API Reference
 
 All endpoints except `POST /api/auth/login` require `Authorization: Bearer <api_key>`.
@@ -207,12 +233,31 @@ All endpoints except `POST /api/auth/login` require `Authorization: Bearer <api_
 | Method | Path                          | Description                        |
 |--------|-------------------------------|------------------------------------|
 | POST   | `/api/auth/login`             | Return API key for an email        |
+| GET    | `/api/me`                     | Return the authenticated user      |
 | POST   | `/api/tunnels`                | Create a personal or org tunnel    |
 | GET    | `/api/tunnels`                | List tunnels visible to the caller |
 | GET    | `/api/ws?tunnel_id=<id>`      | Upgrade to WebSocket tunnel        |
 | GET    | `/api/events?tunnel_id=<id>`  | List events (default limit: 50)    |
 | POST   | `/api/events/{id}/replay`     | Replay event to a target URL       |
-| GET    | `/api/orgs/users`             | List org users (admin only)        |
+| GET    | `/api/orgs/users`             | List org users                     |
+
+Admin endpoints (require `role='admin'`):
+
+| Method | Path                                  | Description                            |
+|--------|---------------------------------------|----------------------------------------|
+| GET    | `/api/admin/users`                    | List all org users                     |
+| POST   | `/api/admin/users`                    | Create a user                          |
+| PUT    | `/api/admin/users/{id}`               | Update user (email, name, role)        |
+| DELETE | `/api/admin/users/{id}`               | Delete a user                          |
+| POST   | `/api/admin/users/{id}/rotate-key`    | Rotate a user's API key                |
+| GET    | `/api/admin/orgs`                     | Get the organization                   |
+| PUT    | `/api/admin/orgs`                     | Update org name                        |
+| GET    | `/api/admin/tunnels`                  | List all org tunnels                   |
+| DELETE | `/api/admin/tunnels/{id}`             | Delete a tunnel and its events         |
+| POST   | `/api/admin/tunnels/{id}/disconnect`  | Force-disconnect an active tunnel      |
+| GET    | `/api/admin/db/tables`                | List SQLite tables                     |
+| GET    | `/api/admin/db/tables/{name}`         | Browse table rows (`?limit=&offset=`)  |
+| POST   | `/api/admin/db/query`                 | Run a raw SQL query                    |
 
 Webhook ingestion (no auth):
 
