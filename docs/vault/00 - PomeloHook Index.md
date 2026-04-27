@@ -1,6 +1,6 @@
 # PomeloHook — Vault Index
 
-> Self-hosted webhook relay and inspection tool.  
+> Webhook relay you can self-host. Events stored before forwarding, always.  
 
 ---
 

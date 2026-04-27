@@ -100,9 +100,7 @@ WebSocket handler (`ws.go`), `ch := make(chan []byte, 64)` ile bir kanal açar. 
 
 ## 5. Response Durumu
 
-CLI, response'u WebSocket üzerinden sunucuya **geri göndermez** — bu bilinçli bir karardır. Neden? → [[08 - Kritik Kararlar]] (Karar #7)
-
-`store.MarkEventForwarded()` ve `WebhookEvent.ResponseStatus` alanları kodda mevcut ama CLI şu an bu çağrıyı yapmıyor. Dashboard'da response bilgisi görmek için replay gerekir.
+Yanıt durumu, canlı iletim sırasında değil; replay sırasında DB'ye yazılır. `store.MarkEventForwarded()` ve `WebhookEvent.ResponseStatus` bu amaçla vardır.
 
 ---
 

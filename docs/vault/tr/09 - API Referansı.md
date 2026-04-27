@@ -189,7 +189,7 @@ Path subdomain'den sonra korunur:
 | Admin | `/api/admin/*`, kendi org'undaki her kullanıcı/org/tunnel |
 | Auth yok | Yalnızca `/api/auth/login` ve `/webhook/*` |
 
-**Kapsam notu:** Admin'ler kendi org'larında çalışır. Birden fazla org'u kapsayan süper-admin yoktur. Her org ayrı izole bir kiracıdır.
+**Kapsam notu:** Admin'ler kendi org'larında çalışır. Birden fazla org'u kapsayan süper-admin yoktur. Her org ayrı bir tenant'tır. Org'lar arası erişim yoktur.
 
 ---
 

@@ -175,7 +175,7 @@ Dosya yoksa veya okunamazsa → `errNotLoggedIn` sentinel → `"run 'pomelo-hook
 
 ---
 
-## Org Tunnel — Çakışma Yönetimi
+## Org Tunnel Çakışması
 
 ```bash
 pomelo-hook connect --org --tunnel stripe-webhooks --port 3000
