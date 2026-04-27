@@ -54,7 +54,7 @@ INDEX: idx_events_tunnel_received ON webhook_events(tunnel_id, received_at)
 
 ## Design Decisions
 
-### Why SQLite?
+### SQLite
 
 **Considered:** PostgreSQL, MySQL, embedded key-value (bbolt, badger)
 
@@ -66,15 +66,15 @@ INDEX: idx_events_tunnel_received ON webhook_events(tunnel_id, received_at)
 
 **Trade-off:** Single writer. `db.SetMaxOpenConns(1)` is enforced. This is fine — PomeloHook is not a high-write system. Events arrive one-by-one; concurrent writes are rare.
 
-### Why TEXT PRIMARY Keys, Not Auto-Increment?
+### TEXT Primary Keys, Not Auto-Increment
 
 UUIDs for programmatically created rows (`uuid.NewString()`), manual strings for seeded rows (`org_1`, `usr_1`). UUIDs are safe to expose in URLs and API responses without revealing row counts or sequential IDs.
 
-### Why Store Headers as JSON TEXT?
+### Headers as JSON TEXT
 
 `http.Header` is `map[string][]string`. SQLite has no native map type. JSON serialization is straightforward, and the dashboard needs to display headers as-is. No need to query individual header values at the DB level.
 
-### Why `COALESCE` in Column Lists?
+### `COALESCE` in Column Lists
 
 ```go
 const tunnelColumns = `id, type, COALESCE(user_id,''), ...`
@@ -82,7 +82,7 @@ const tunnelColumns = `id, type, COALESCE(user_id,''), ...`
 
 Nullable columns (user_id, org_id, active_user_id) would return `sql.NullString` if scanned normally. `COALESCE(col,'')` lets us scan directly into `string`, simplifying the scan functions. The trade-off: you can't distinguish NULL from empty string, but that distinction is never needed here.
 
-### Why `received_at` as TEXT (RFC3339), Not DATETIME?
+### `received_at` as RFC3339 TEXT
 
 SQLite stores datetimes as text internally regardless. Storing RFC3339 explicitly means:
 - Portable across SQLite drivers
