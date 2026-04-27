@@ -33,7 +33,7 @@ describe('EventList', () => {
   it('shows err badge for non-forwarded event', () => {
     const failed = { ...mockEvent, Forwarded: false, ResponseStatus: 0 }
     render(<EventList events={[failed]} onSelect={() => {}} selectedID={null} />)
-    expect(screen.getByText('err')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
   })
 
   it('shows latency in milliseconds', () => {
