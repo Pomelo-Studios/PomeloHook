@@ -1,5 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
+import { Sun, Moon } from 'lucide-react'
 import { HookIcon } from './HookIcon'
+import { useTheme } from '../hooks/useTheme'
 
 interface Props {
   subdomain: string
@@ -10,6 +12,7 @@ interface Props {
 export function Header({ subdomain, connected, isAdmin }: Props) {
   const location = useLocation()
   const onAdmin = location.pathname.startsWith('/admin')
+  const { theme, toggle } = useTheme()
 
   return (
     <header
@@ -67,6 +70,14 @@ export function Header({ subdomain, connected, isAdmin }: Props) {
             ● connected
           </span>
         )}
+        <button
+          onClick={toggle}
+          className="w-7 h-7 flex items-center justify-center rounded-md transition-colors"
+          style={{ color: 'var(--text-dim)' }}
+          aria-label="Toggle theme"
+        >
+          {theme === 'dark' ? <Sun size={14} strokeWidth={2} /> : <Moon size={14} strokeWidth={2} />}
+        </button>
       </div>
     </header>
   )
