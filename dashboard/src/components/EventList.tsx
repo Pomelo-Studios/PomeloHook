@@ -8,47 +8,79 @@ interface Props {
   tunnelSubdomain?: string
 }
 
-function StatusBadge({ event }: { event: WebhookEvent }) {
-  if (!event.Forwarded)
-    return <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500">err</span>
-  if (event.ResponseStatus >= 400)
-    return <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-950 text-red-400">{event.ResponseStatus}</span>
-  return <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400">{event.ResponseStatus}</span>
+function StatusPill({ event }: { event: WebhookEvent }) {
+  const style: React.CSSProperties =
+    !event.Forwarded
+      ? { background: 'var(--method-dim-bg)', color: 'var(--text-dim)' }
+      : event.ResponseStatus >= 400
+        ? { background: 'var(--err-bg)', color: 'var(--err-text)' }
+        : { background: 'var(--ok-bg)', color: 'var(--ok-text)' }
+
+  return (
+    <span className="text-[10px] font-semibold px-2 py-[2px] rounded-full flex-shrink-0" style={style}>
+      {!event.Forwarded ? '—' : event.ResponseStatus}
+    </span>
+  )
+}
+
+function MethodBadge({ method, selected }: { method: string; selected: boolean }) {
+  return (
+    <span
+      className="font-mono text-[9px] font-bold px-[7px] py-[2px] rounded-[4px] flex-shrink-0"
+      style={
+        selected
+          ? { background: '#FF6B6B', color: 'white' }
+          : { background: 'var(--method-dim-bg)', color: 'var(--method-dim-text)' }
+      }
+    >
+      {method}
+    </span>
+  )
 }
 
 export function EventList({ events, selectedID, onSelect, tunnelSubdomain }: Props) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between flex-shrink-0">
-        <span className="text-[10px] text-zinc-500 uppercase tracking-widest">Events</span>
-        <span className="text-[9px] px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-600">
+      <div
+        className="px-4 py-[10px] flex items-center justify-between flex-shrink-0 border-b"
+        style={{ borderColor: 'var(--border)' }}
+      >
+        <span className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color: 'var(--text-dim)' }}>
+          Events
+        </span>
+        <span
+          className="text-[10px] font-medium px-2 py-[1px] rounded-full"
+          style={{ background: 'var(--method-dim-bg)', color: 'var(--text-dim)' }}
+        >
           {events.length}
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto divide-y divide-zinc-900">
+      <div className="flex-1 overflow-y-auto">
         {events.map(event => {
           const selected = event.ID === selectedID
           return (
             <button
               key={event.ID}
               onClick={() => onSelect(event)}
-              className={`w-full text-left px-3 py-2.5 border-l-2 transition-colors ${
-                selected ? 'bg-zinc-900 border-emerald-500' : 'border-transparent hover:bg-zinc-900/50'
-              }`}
+              className="w-full text-left px-4 py-[10px] flex flex-col gap-1 border-b border-l-[3px] transition-colors"
+              style={{
+                borderBottomColor: 'var(--border-subtle)',
+                borderLeftColor: selected ? '#FF6B6B' : 'transparent',
+                background: selected ? 'var(--selected-bg)' : 'transparent',
+              }}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
-                  selected ? 'bg-emerald-500 text-zinc-950' : 'bg-zinc-800 text-zinc-400'
-                }`}>
-                  {event.Method}
-                </span>
-                <span className={`text-[10px] truncate flex-1 ${selected ? 'text-zinc-50' : 'text-zinc-400'}`}>
+              <div className="flex items-center gap-[6px]">
+                <MethodBadge method={event.Method} selected={selected} />
+                <span
+                  className="text-[11px] font-mono flex-1 truncate"
+                  style={{ color: selected ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                >
                   {event.Path}
                 </span>
-                <StatusBadge event={event} />
+                <StatusPill event={event} />
               </div>
-              <div className="text-[9px] text-zinc-600 pl-0.5">
+              <div className="font-mono text-[9px]" style={{ color: 'var(--text-dim)' }}>
                 {event.ResponseMS ? `${event.ResponseMS}ms` : '—'} · {formatTime(event.ReceivedAt)}
               </div>
             </button>
@@ -57,9 +89,11 @@ export function EventList({ events, selectedID, onSelect, tunnelSubdomain }: Pro
       </div>
 
       {tunnelSubdomain && (
-        <div className="px-3 py-2 border-t border-zinc-900 bg-zinc-950 flex-shrink-0">
-          <div className="text-[9px] text-zinc-600 mb-0.5">Webhook URL</div>
-          <div className="text-[9px] text-zinc-500 font-mono truncate">/webhook/{tunnelSubdomain}</div>
+        <div className="px-4 py-[10px] flex-shrink-0 border-t" style={{ borderColor: 'var(--border)' }}>
+          <div className="text-[9px] font-medium mb-[3px]" style={{ color: 'var(--text-dim)' }}>Webhook URL</div>
+          <div className="font-mono text-[10px] truncate" style={{ color: 'var(--text-secondary)' }}>
+            /webhook/{tunnelSubdomain}
+          </div>
         </div>
       )}
     </div>
