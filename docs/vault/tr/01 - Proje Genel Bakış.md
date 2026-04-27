@@ -18,16 +18,14 @@ Stripe → POST https://senin-sunucun/webhook/abc123
 
 ---
 
-## Neden Var?
-
-### Problem
+## Neden
 
 Webhook geliştirirken iki klasik çözüm var:
 
 1. **ngrok** — kolay ama: kalıcı subdomain ücretli, event geçmişi yok, self-host edilemiyor, takım desteği zayıf
 2. **Webhook.site / RequestBin** — sadece inspect eder, yerel uygulamaya forward edemez, geçicidir
 
-### PomeloHook'un Farkı
+## Ne Fark Yaratır
 
 | Özellik | ngrok | PomeloHook |
 |---------|-------|-----------|
@@ -41,7 +39,7 @@ Webhook geliştirirken iki klasik çözüm var:
 
 ---
 
-## Kim Kullanır?
+## Kimler İçin
 
 - **Bireysel geliştirici**: kendi VPS'ine kurar, `pomelo-hook connect --port 3000` der, Stripe webhook'larını yerel uygulamasına çeker
 - **Küçük takım**: `stripe-webhooks` adlı bir org tunnel açar, paylaşır. Kim bağlıysa o alır; herkes geçmişe bakabilir
@@ -49,7 +47,7 @@ Webhook geliştirirken iki klasik çözüm var:
 
 ---
 
-## Versiyon Geçmişi
+## Sürümler
 
 | Versiyon | Ne Geldi |
 |---------|----------|
