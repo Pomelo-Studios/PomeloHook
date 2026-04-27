@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"strings"
 )
 
 //go:embed static
@@ -16,9 +17,20 @@ func Serve(apiHandler http.Handler) {
 		log.Fatalf("dashboard embed error: %v", err)
 	}
 
+	fileServer := http.FileServer(http.FS(distFS))
+	spa := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if !strings.HasPrefix(path, "/assets/") && path != "/index.html" {
+			path = "/index.html"
+		}
+		r2 := r.Clone(r.Context())
+		r2.URL.Path = path
+		fileServer.ServeHTTP(w, r2)
+	})
+
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiHandler)
-	mux.Handle("/", http.FileServer(http.FS(distFS)))
+	mux.Handle("/", spa)
 
 	go func() {
 		log.Printf("Dashboard: http://localhost:4040")
