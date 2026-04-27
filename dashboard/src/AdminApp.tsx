@@ -46,7 +46,7 @@ export function AdminApp() {
 
   return (
     <div className="flex flex-col h-screen bg-zinc-950 font-mono text-sm">
-      <Header subdomain={subdomain} connected={false} isAdmin />
+      <Header subdomain={subdomain} connected={false} isAdmin={!isServerMode} />
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-44 bg-zinc-900/50 border-r border-zinc-800 flex flex-col gap-1 p-2 flex-shrink-0">
           <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-2 pt-2 pb-1">Manage</p>
