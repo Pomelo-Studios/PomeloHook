@@ -20,8 +20,8 @@ func Serve(apiHandler http.Handler) {
 	fileServer := http.FileServer(http.FS(distFS))
 	spa := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		if !strings.HasPrefix(path, "/assets/") && path != "/index.html" {
-			path = "/index.html"
+		if !strings.HasPrefix(path, "/assets/") {
+			path = "/"
 		}
 		r2 := r.Clone(r.Context())
 		r2.URL.Path = path

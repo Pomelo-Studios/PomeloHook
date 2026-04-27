@@ -24,8 +24,8 @@ func dashboardHandler() http.Handler {
 				path = "/"
 			}
 		}
-		if !strings.HasPrefix(path, "/assets/") && path != "/index.html" {
-			path = "/index.html"
+		if !strings.HasPrefix(path, "/assets/") {
+			path = "/"
 		}
 		r2 := r.Clone(r.Context())
 		r2.URL.Path = path

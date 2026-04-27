@@ -32,6 +32,9 @@ func main() {
 	mux.Handle("/admin", dh)
 	mux.Handle("/admin/", dh)
 	mux.Handle("/assets/", dh)
+	mux.HandleFunc("/favicon.svg", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
 
 	ticker := time.NewTicker(24 * time.Hour)
 	go func() {
