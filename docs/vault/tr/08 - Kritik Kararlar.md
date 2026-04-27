@@ -2,7 +2,7 @@
 
 [[00 - PomeloHook Index|← Index]]  |  EN: [[08 - Design Decisions]]
 
-> Açık olmayan seçimlerin arkasındaki "neden". Hangi alternatifler vardı, hangi takaslar yapıldı.
+> Açık olmayan seçimlerin arkasındaki neden: hangi alternatifler vardı ve nelerden vazgeçildi.
 
 ---
 
