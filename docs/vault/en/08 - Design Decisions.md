@@ -2,7 +2,7 @@
 
 [[00 - PomeloHook Index|← Index]]
 
-> The "why" behind non-obvious choices. What alternatives existed, what trade-offs were made.  
+> The why behind non-obvious choices: what alternatives existed and what was traded away.  
 > *Neden bu seçim yapıldı, alternatifler neydi, ne feda edildi.*
 
 ---
