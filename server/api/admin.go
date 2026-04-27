@@ -192,20 +192,12 @@ func handleDisconnectTunnel(s *store.Store, m *tunnel.Manager) http.HandlerFunc 
 	return func(w http.ResponseWriter, r *http.Request) {
 		caller := auth.UserFromContext(r.Context())
 		id := r.PathValue("id")
-		// verify tunnel belongs to caller's org
-		tunnels, err := s.ListAllTunnels(caller.OrgID)
+		ok, err := s.TunnelBelongsToOrg(id, caller.OrgID)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		found := false
-		for _, t := range tunnels {
-			if t.ID == id {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !ok {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { api } from '../../api/client'
 
 interface Props {
   onLogin: (apiKey: string) => void
@@ -14,13 +15,7 @@ export function LoginForm({ onLogin }: Props) {
     setError('')
     setLoading(true)
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      if (!res.ok) throw new Error('Invalid email or unauthorized')
-      const data = await res.json() as { api_key: string }
+      const data = await api.login(email)
       onLogin(data.api_key)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')

@@ -123,6 +123,15 @@ func (s *Store) DeleteTunnel(id, orgID string) error {
 	return tx.Commit()
 }
 
+func (s *Store) TunnelBelongsToOrg(id, orgID string) (bool, error) {
+	var count int
+	err := s.DB.QueryRow(
+		`SELECT COUNT(*) FROM tunnels WHERE id=? AND (org_id=? OR user_id IN (SELECT id FROM users WHERE org_id=?))`,
+		id, orgID, orgID,
+	).Scan(&count)
+	return count > 0, err
+}
+
 func (s *Store) ListTables() ([]TableInfo, error) {
 	rows, err := s.DB.Query(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
 	if err != nil {

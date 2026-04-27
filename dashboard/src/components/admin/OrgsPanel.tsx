@@ -20,6 +20,7 @@ export function OrgsPanel({ apiKey }: Props) {
     try {
       const updated = await api.admin.updateOrg(apiKey, name)
       setOrg(updated)
+      setName(updated.Name)
       setEditing(false)
     } catch {
       setError('Save failed')

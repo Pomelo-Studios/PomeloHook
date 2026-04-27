@@ -16,11 +16,12 @@ export function AdminApp() {
   const [subdomain, setSubdomain] = useState('')
 
   useEffect(() => {
+    if (loading || (isServerMode && !apiKey)) return
     api.getTunnels().then(tunnels => {
       const active = tunnels.find(t => t.Status === 'active')
       if (active) setSubdomain(active.Subdomain)
     }).catch(() => {})
-  }, [])
+  }, [loading, isServerMode, apiKey])
 
   if (loading) {
     return <div className="bg-zinc-950 h-screen flex items-center justify-center text-zinc-600 text-xs font-mono">Loading…</div>

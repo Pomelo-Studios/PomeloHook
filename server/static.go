@@ -24,7 +24,6 @@ func dashboardHandler() http.Handler {
 				path = "/"
 			}
 		}
-		// SPA fallback: non-asset paths serve index.html
 		if !strings.HasPrefix(path, "/assets/") && path != "/index.html" {
 			path = "/index.html"
 		}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../../api/client'
 import { ConfirmDialog } from './ConfirmDialog'
-import type { User } from '../../types'
+import type { User, ConfirmState } from '../../types'
 
 interface Props { apiKey: string }
 
@@ -13,7 +13,7 @@ export function UsersPanel({ apiKey }: Props) {
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState<FormState | null>(null)
   const [editingID, setEditingID] = useState<string | null>(null)
-  const [confirm, setConfirm] = useState<{ message: string; detail?: string; onConfirm: () => void } | null>(null)
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null)
   const [newKey, setNewKey] = useState<{ userEmail: string; key: string } | null>(null)
   const [error, setError] = useState('')
 

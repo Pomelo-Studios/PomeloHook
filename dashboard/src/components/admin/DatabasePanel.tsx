@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../../api/client'
 import { ConfirmDialog } from './ConfirmDialog'
-import type { TableInfo, TableResult, QueryResult } from '../../types'
+import type { TableInfo, TableResult, QueryResult, ConfirmState } from '../../types'
 
 interface Props { apiKey: string }
 
@@ -16,7 +16,7 @@ export function DatabasePanel({ apiKey }: Props) {
   const [sql, setSql] = useState('')
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null)
   const [queryError, setQueryError] = useState('')
-  const [confirm, setConfirm] = useState<{ sql: string; onConfirm: () => void } | null>(null)
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export function DatabasePanel({ apiKey }: Props) {
     const trimmed = sql.trim()
     if (!trimmed) return
     if (WRITE_RE.test(trimmed)) {
-      setConfirm({ sql: trimmed, onConfirm: execQuery })
+      setConfirm({ message: 'This query will modify the database.', detail: trimmed, onConfirm: execQuery })
     } else {
       execQuery()
     }
@@ -63,8 +63,8 @@ export function DatabasePanel({ apiKey }: Props) {
     <div className="flex flex-col h-full">
       {confirm && (
         <ConfirmDialog
-          message="This query will modify the database."
-          detail={confirm.sql}
+          message={confirm.message}
+          detail={confirm.detail}
           onConfirm={confirm.onConfirm}
           onCancel={() => setConfirm(null)}
         />

@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import { api } from '../../api/client'
 import { ConfirmDialog } from './ConfirmDialog'
-import type { Tunnel } from '../../types'
+import type { Tunnel, ConfirmState } from '../../types'
 
 interface Props { apiKey: string }
 
 export function TunnelsPanel({ apiKey }: Props) {
   const [tunnels, setTunnels] = useState<Tunnel[]>([])
   const [loading, setLoading] = useState(true)
-  const [confirm, setConfirm] = useState<{ message: string; detail?: string; onConfirm: () => void } | null>(null)
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null)
   const [error, setError] = useState('')
 
   function load() {

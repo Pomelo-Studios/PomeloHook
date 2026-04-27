@@ -12,7 +12,7 @@ vi.mock('../../api/client', () => ({
 }))
 
 const mockUsers = [
-  { ID: 'u1', OrgID: 'org1', Email: 'alice@a.com', Name: 'Alice', APIKey: 'ph_abc123', Role: 'admin' },
+  { ID: 'u1', OrgID: 'org1', Email: 'alice@a.com', Name: 'Alice', APIKey: 'ph_abc123', Role: 'admin' as const },
 ]
 
 beforeEach(() => {

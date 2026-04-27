@@ -21,13 +21,21 @@ export interface Tunnel {
   ActiveUserID: string
 }
 
+export type Role = 'admin' | 'member'
+
 export interface User {
   ID: string
   OrgID: string
   Email: string
   Name: string
   APIKey: string
-  Role: string
+  Role: Role
+}
+
+export interface ConfirmState {
+  message: string
+  detail?: string
+  onConfirm: () => void
 }
 
 export interface Org {
