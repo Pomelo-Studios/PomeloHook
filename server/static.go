@@ -15,20 +15,23 @@ func dashboardHandler() http.Handler {
 	if err != nil {
 		panic("dashboard embed misconfigured: " + err.Error())
 	}
+	indexHTML, err := fs.ReadFile(sub, "index.html")
+	if err != nil {
+		panic("dashboard index.html missing: " + err.Error())
+	}
 	fileServer := http.FileServer(http.FS(sub))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.HasPrefix(path, "/admin") {
 			path = strings.TrimPrefix(path, "/admin")
-			if path == "" {
-				path = "/"
-			}
 		}
-		if !strings.HasPrefix(path, "/assets/") {
-			path = "/"
+		if strings.HasPrefix(path, "/assets/") {
+			r2 := r.Clone(r.Context())
+			r2.URL.Path = path
+			fileServer.ServeHTTP(w, r2)
+			return
 		}
-		r2 := r.Clone(r.Context())
-		r2.URL.Path = path
-		fileServer.ServeHTTP(w, r2)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(indexHTML)
 	})
 }

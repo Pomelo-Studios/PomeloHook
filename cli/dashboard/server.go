@@ -17,15 +17,18 @@ func Serve(apiHandler http.Handler) {
 		log.Fatalf("dashboard embed error: %v", err)
 	}
 
+	indexHTML, err := fs.ReadFile(distFS, "index.html")
+	if err != nil {
+		log.Fatalf("dashboard index.html missing: %v", err)
+	}
 	fileServer := http.FileServer(http.FS(distFS))
 	spa := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
-		if !strings.HasPrefix(path, "/assets/") {
-			path = "/"
+		if strings.HasPrefix(r.URL.Path, "/assets/") {
+			fileServer.ServeHTTP(w, r)
+			return
 		}
-		r2 := r.Clone(r.Context())
-		r2.URL.Path = path
-		fileServer.ServeHTTP(w, r2)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(indexHTML)
 	})
 
 	mux := http.NewServeMux()
