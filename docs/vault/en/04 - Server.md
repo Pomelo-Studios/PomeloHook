@@ -23,7 +23,7 @@
 
 ---
 
-## Layers
+## Internals
 
 ### webhook/ — Entry Point
 
@@ -144,6 +144,7 @@ Caddy (simplest):
   (automatic TLS + WebSocket support)
 
 nginx (manual):
+  # add your own server block, upstream, and SSL directives
   proxy_http_version 1.1;
   proxy_set_header Upgrade $http_upgrade;
   proxy_set_header Connection "upgrade";
