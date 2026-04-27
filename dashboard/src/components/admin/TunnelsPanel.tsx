@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Trash2, Unplug } from 'lucide-react'
 import { api } from '../../api/client'
 import { ConfirmDialog } from './ConfirmDialog'
 import type { Tunnel, ConfirmState } from '../../types'
@@ -41,38 +42,74 @@ export function TunnelsPanel({ apiKey }: Props) {
     })
   }
 
-  if (loading) return <div className="p-4 text-zinc-600 text-xs">Loading…</div>
+  if (loading) return <div className="p-4 text-xs font-mono" style={{ color: 'var(--text-dim)' }}>Loading…</div>
 
   return (
     <div className="flex flex-col h-full">
       {confirm && <ConfirmDialog message={confirm.message} detail={confirm.detail} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
-      <div className="h-11 border-b border-zinc-800 flex items-center px-4 flex-shrink-0 bg-zinc-900/30">
-        <span className="text-zinc-300 text-xs font-semibold">Tunnels</span>
+
+      <div
+        className="h-[52px] flex items-center px-5 flex-shrink-0 border-b"
+        style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+      >
+        <div>
+          <div className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>Tunnels</div>
+          <div className="text-[11px]" style={{ color: 'var(--text-dim)' }}>{tunnels.length} tunnels</div>
+        </div>
       </div>
-      {error && <div className="bg-red-950 text-red-400 text-xs px-4 py-2 border-b border-red-900">{error}</div>}
+
+      {error && (
+        <div className="text-xs px-5 py-2 border-b" style={{ background: 'var(--err-bg)', color: 'var(--err-text)', borderColor: 'var(--selected-border)' }}>
+          {error}
+        </div>
+      )}
+
       <div className="flex-1 overflow-auto">
         <table className="w-full border-collapse">
           <thead className="sticky top-0">
-            <tr className="bg-zinc-900/80">
+            <tr style={{ background: 'var(--surface)' }}>
               {['Subdomain', 'Type', 'Status', 'Actions'].map(h => (
-                <th key={h} className="text-left text-[9px] uppercase tracking-widest text-zinc-500 px-3 py-2 border-b border-zinc-800 font-semibold">{h}</th>
+                <th key={h} className="text-left text-[9px] font-bold tracking-[1.5px] uppercase px-4 py-2 border-b" style={{ color: 'var(--text-dim)', borderColor: 'var(--border)' }}>
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {tunnels.map(t => (
-              <tr key={t.ID} className="hover:bg-zinc-900/40 group">
-                <td className="px-3 py-2 text-xs font-mono text-zinc-300">{t.Subdomain}</td>
-                <td className="px-3 py-2 text-xs text-zinc-500">{t.Type}</td>
-                <td className="px-3 py-2">
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${t.Status === 'active' ? 'bg-emerald-950 text-emerald-400' : 'bg-zinc-800 text-zinc-600'}`}>{t.Status}</span>
+              <tr key={t.ID} className="group transition-colors" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                <td className="px-4 py-3 text-xs font-mono font-semibold" style={{ color: 'var(--text-primary)' }}>{t.Subdomain}</td>
+                <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>{t.Type}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className="text-[10px] font-semibold px-2 py-[2px] rounded-full uppercase"
+                    style={
+                      t.Status === 'active'
+                        ? { background: 'var(--ok-bg)', color: 'var(--ok-text)' }
+                        : { background: 'var(--method-dim-bg)', color: 'var(--text-dim)' }
+                    }
+                  >
+                    {t.Status}
+                  </span>
                 </td>
-                <td className="px-3 py-2">
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                <td className="px-4 py-3">
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {t.Status === 'active' && (
-                      <button onClick={() => confirmDisconnect(t)} className="text-[10px] px-2 py-0.5 border border-zinc-700 text-zinc-400 rounded hover:text-zinc-200">Disconnect</button>
+                      <button
+                        onClick={() => confirmDisconnect(t)}
+                        className="flex items-center gap-1 text-[10px] px-2 py-[3px] rounded-md"
+                        style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                      >
+                        <Unplug size={10} /> Disconnect
+                      </button>
                     )}
-                    <button onClick={() => confirmDelete(t)} className="text-[10px] px-2 py-0.5 border border-red-900 text-red-500 rounded hover:text-red-300">Delete</button>
+                    <button
+                      onClick={() => confirmDelete(t)}
+                      className="flex items-center gap-1 text-[10px] px-2 py-[3px] rounded-md"
+                      style={{ border: '1px solid var(--selected-border)', color: 'var(--err-text)' }}
+                    >
+                      <Trash2 size={10} />
+                    </button>
                   </div>
                 </td>
               </tr>
