@@ -106,7 +106,7 @@ export function DatabasePanel({ apiKey }: Props) {
                       {tableData.rows.map((row, i) => (
                         <tr key={i} className="hover:bg-zinc-900/40">
                           {row.map((cell, j) => (
-                            <td key={j} className="px-3 py-1.5 text-[10px] text-zinc-400 font-mono border-b border-zinc-800/50 max-w-[200px] truncate">{String(cell ?? '')}</td>
+                            <td key={j} title={String(cell ?? '')} className="px-3 py-1.5 text-[10px] text-zinc-400 font-mono border-b border-zinc-800/50 max-w-[200px] truncate">{String(cell ?? '')}</td>
                           ))}
                         </tr>
                       ))}

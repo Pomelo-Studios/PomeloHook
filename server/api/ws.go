@@ -49,8 +49,26 @@ func handleWSConnect(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 		ack, _ := json.Marshal(map[string]string{"status": "connected", "tunnel_id": tunnelID})
 		conn.WriteMessage(websocket.TextMessage, ack)
 
-		for payload := range ch {
-			if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil {
+		disconnected := make(chan struct{})
+		go func() {
+			defer close(disconnected)
+			for {
+				if _, _, err := conn.ReadMessage(); err != nil {
+					return
+				}
+			}
+		}()
+
+		for {
+			select {
+			case payload, ok := <-ch:
+				if !ok {
+					return
+				}
+				if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil {
+					return
+				}
+			case <-disconnected:
 				return
 			}
 		}
