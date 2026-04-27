@@ -103,7 +103,7 @@ The WebSocket handler (`ws.go`) opens `ch := make(chan []byte, 64)`. This channe
 
 The CLI does **not** send the response back through the WebSocket to the server. This is intentional — see [[08 - Design Decisions]] (decision #7: server returns 202 immediately).
 
-`store.MarkEventForwarded()` and `WebhookEvent.ResponseStatus` exist in the store, but the CLI currently doesn't call them. Response status visible in the dashboard requires a replay.
+Response status is written to the DB during replay, not live forwarding. `store.MarkEventForwarded()` and `WebhookEvent.ResponseStatus` exist for this purpose.
 
 ---
 
