@@ -1,1 +1,60 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --color-coral: #FF6B6B;
+  --color-mint: #4CD4A1;
+}
+
+/* Light mode tokens */
+:root {
+  --bg: #F8FAFC;
+  --surface: #ffffff;
+  --border: #E2E8F0;
+  --border-subtle: #F1F5F9;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-dim: #94A3B8;
+  --selected-bg: #FFF5F5;
+  --selected-border: #FECACA;
+  --ok-bg: #ECFDF5;
+  --ok-text: #059669;
+  --err-bg: #FFF1F2;
+  --err-text: #E11D48;
+  --code-bg: #F8FAFC;
+  --code-border: #E2E8F0;
+  --code-text: #334155;
+  --method-dim-bg: #F1F5F9;
+  --method-dim-text: #64748B;
+}
+
+/* Dark mode tokens — system preference */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0D0D14;
+    --surface: #111118;
+    --border: #1A1A26;
+    --border-subtle: #111118;
+    --text-primary: #F9FAFB;
+    --text-secondary: #6B7280;
+    --text-dim: #374151;
+    --selected-bg: #130808;
+    --selected-border: #3F1010;
+    --ok-bg: #0A1F14;
+    --ok-text: #4CD4A1;
+    --err-bg: #1A0808;
+    --err-text: #FF6B6B;
+    --code-bg: #111118;
+    --code-border: #1F2937;
+    --code-text: #9CA3AF;
+    --method-dim-bg: #1F2937;
+    --method-dim-text: #6B7280;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
