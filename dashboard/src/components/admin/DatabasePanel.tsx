@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Play, AlertTriangle } from 'lucide-react'
 import { api } from '../../api/client'
 import { ConfirmDialog } from './ConfirmDialog'
 import type { TableInfo, TableResult, QueryResult, ConfirmState } from '../../types'
@@ -45,82 +46,107 @@ export function DatabasePanel({ apiKey }: Props) {
     setQueryError('')
     setQueryResult(null)
     try {
-      const result = await api.admin.runQuery(apiKey, sql)
-      setQueryResult(result)
+      setQueryResult(await api.admin.runQuery(apiKey, sql))
     } catch (err) {
       setQueryError(err instanceof Error ? err.message : 'Query failed')
     }
   }
 
-  const tabBtn = (id: 'tables' | 'sql', label: string) => (
-    <button onClick={() => setTab(id)}
-      className={`text-xs px-4 py-2 border-b-2 transition-colors ${tab === id ? 'text-emerald-400 border-emerald-500' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}>
-      {label}
-    </button>
-  )
+  const isWrite = WRITE_RE.test(sql.trim())
 
   return (
     <div className="flex flex-col h-full">
-      {confirm && (
-        <ConfirmDialog
-          message={confirm.message}
-          detail={confirm.detail}
-          onConfirm={confirm.onConfirm}
-          onCancel={() => setConfirm(null)}
-        />
-      )}
-      <div className="h-11 border-b border-zinc-800 flex items-center px-4 flex-shrink-0 bg-zinc-900/30">
-        <span className="text-zinc-300 text-xs font-semibold">Database</span>
+      {confirm && <ConfirmDialog message={confirm.message} detail={confirm.detail} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
+
+      <div
+        className="h-[52px] flex items-center px-5 flex-shrink-0 border-b"
+        style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+      >
+        <div className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>Database</div>
       </div>
-      {error && <div className="bg-red-950 text-red-400 text-xs px-4 py-2 border-b border-red-900">{error}</div>}
-      <div className="flex border-b border-zinc-800 flex-shrink-0 bg-zinc-900/20">
-        {tabBtn('tables', 'Tables')}
-        {tabBtn('sql', 'SQL')}
+
+      {error && (
+        <div className="text-xs px-5 py-2 border-b" style={{ background: 'var(--err-bg)', color: 'var(--err-text)', borderColor: 'var(--selected-border)' }}>
+          {error}
+        </div>
+      )}
+
+      <div className="flex flex-shrink-0 border-b" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+        {(['tables', 'sql'] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className="text-xs px-5 py-3 border-b-2 font-medium capitalize transition-colors"
+            style={
+              tab === t
+                ? { color: '#FF6B6B', borderBottomColor: '#FF6B6B' }
+                : { color: 'var(--text-secondary)', borderBottomColor: 'transparent' }
+            }
+          >
+            {t === 'sql' ? 'SQL' : 'Tables'}
+          </button>
+        ))}
       </div>
 
       {tab === 'tables' && (
         <div className="flex flex-1 overflow-hidden">
-          <div className="w-40 border-r border-zinc-800 overflow-y-auto flex-shrink-0 py-2">
-            <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-3 pb-2">Tables</p>
+          <div className="w-40 overflow-y-auto flex-shrink-0 py-2 border-r" style={{ borderColor: 'var(--border)' }}>
+            <p className="text-[9px] font-bold tracking-[1.5px] uppercase px-3 pb-2" style={{ color: 'var(--text-dim)' }}>Tables</p>
             {tables.map(t => (
-              <button key={t.name} onClick={() => loadTable(t.name, 0)}
-                className={`w-full text-left px-3 py-1.5 text-[10px] flex justify-between items-center hover:bg-zinc-800/50 ${selectedTable === t.name ? 'text-emerald-400 bg-zinc-800/50' : 'text-zinc-500'}`}>
+              <button
+                key={t.name}
+                onClick={() => loadTable(t.name, 0)}
+                className="w-full text-left px-3 py-[6px] text-[11px] flex justify-between items-center transition-colors"
+                style={{
+                  color: selectedTable === t.name ? '#FF6B6B' : 'var(--text-secondary)',
+                  background: selectedTable === t.name ? 'var(--selected-bg)' : 'transparent',
+                }}
+              >
                 <span>{t.name}</span>
-                <span className="text-zinc-600">{t.row_count}</span>
+                <span style={{ color: 'var(--text-dim)' }}>{t.row_count}</span>
               </button>
             ))}
           </div>
+
           <div className="flex-1 flex flex-col overflow-hidden">
             {tableData ? (
               <>
                 <div className="flex-1 overflow-auto">
                   <table className="w-full border-collapse">
                     <thead className="sticky top-0">
-                      <tr className="bg-zinc-900/80">
+                      <tr style={{ background: 'var(--surface)' }}>
                         {tableData.columns.map(c => (
-                          <th key={c} className="text-left text-[9px] uppercase tracking-widest text-zinc-500 px-3 py-2 border-b border-zinc-800 font-semibold whitespace-nowrap">{c}</th>
+                          <th key={c} className="text-left text-[9px] font-bold tracking-[1.5px] uppercase px-4 py-2 border-b whitespace-nowrap" style={{ color: 'var(--text-dim)', borderColor: 'var(--border)' }}>
+                            {c}
+                          </th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {tableData.rows.map((row, i) => (
-                        <tr key={i} className="hover:bg-zinc-900/40">
+                        <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                           {row.map((cell, j) => (
-                            <td key={j} title={String(cell ?? '')} className="px-3 py-1.5 text-[10px] text-zinc-400 font-mono border-b border-zinc-800/50 max-w-[200px] truncate">{String(cell ?? '')}</td>
+                            <td key={j} title={String(cell ?? '')} className="px-4 py-2 text-[10px] font-mono max-w-[200px] truncate" style={{ color: 'var(--text-secondary)' }}>
+                              {String(cell ?? '')}
+                            </td>
                           ))}
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <div className="border-t border-zinc-800 px-4 py-2 flex items-center gap-3 flex-shrink-0">
-                  <span className="text-[10px] text-zinc-600">{tableData.rows.length} rows</span>
-                  {offset > 0 && <button onClick={() => loadTable(selectedTable!, offset - 200)} className="text-[10px] text-zinc-500 hover:text-zinc-300">← prev</button>}
-                  {tableData.rows.length === 200 && <button onClick={() => loadTable(selectedTable!, offset + 200)} className="text-[10px] text-zinc-500 hover:text-zinc-300">next →</button>}
+                <div className="px-5 py-2 flex items-center gap-3 flex-shrink-0 border-t" style={{ borderColor: 'var(--border)' }}>
+                  <span className="text-[10px]" style={{ color: 'var(--text-dim)' }}>{tableData.rows.length} rows</span>
+                  {offset > 0 && (
+                    <button onClick={() => loadTable(selectedTable!, offset - 200)} className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>← prev</button>
+                  )}
+                  {tableData.rows.length === 200 && (
+                    <button onClick={() => loadTable(selectedTable!, offset + 200)} className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>next →</button>
+                  )}
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-center h-full text-zinc-600 text-xs">Select a table</div>
+              <div className="flex items-center justify-center h-full text-xs" style={{ color: 'var(--text-dim)' }}>Select a table</div>
             )}
           </div>
         </div>
@@ -128,45 +154,61 @@ export function DatabasePanel({ apiKey }: Props) {
 
       {tab === 'sql' && (
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="p-3 border-b border-zinc-800 flex-shrink-0">
+          <div className="p-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
             <textarea
               value={sql}
               onChange={e => setSql(e.target.value)}
               rows={4}
               placeholder="SELECT * FROM users LIMIT 10"
-              className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-xs text-zinc-200 font-mono outline-none focus:border-zinc-600 resize-none placeholder-zinc-700"
+              className="w-full rounded-lg px-3 py-2 text-xs font-mono outline-none resize-none"
+              style={{ background: 'var(--code-bg)', border: '1px solid var(--code-border)', color: 'var(--text-primary)' }}
             />
             <div className="flex items-center gap-2 mt-2">
-              <button onClick={runQuery} className="text-[10px] px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-emerald-50 rounded font-medium">▶ Run</button>
-              {WRITE_RE.test(sql.trim()) && (
-                <span className="text-[9px] text-amber-500 bg-amber-950/50 border border-amber-900/50 px-2 py-0.5 rounded">⚠ write operation</span>
+              <button
+                onClick={runQuery}
+                className="flex items-center gap-[6px] bg-coral hover:opacity-90 text-white rounded-lg px-3 py-[6px] text-[11px] font-bold transition-opacity"
+              >
+                <Play size={11} fill="white" strokeWidth={0} />
+                Run
+              </button>
+              {isWrite && (
+                <span
+                  className="flex items-center gap-1 text-[9px] px-2 py-[2px] rounded"
+                  style={{ color: '#FFA349', background: 'rgba(255,163,73,0.1)', border: '1px solid rgba(255,163,73,0.3)' }}
+                >
+                  <AlertTriangle size={10} /> write operation
+                </span>
               )}
             </div>
           </div>
           <div className="flex-1 overflow-auto">
-            {queryError && <div className="p-3 text-red-400 text-xs font-mono">{queryError}</div>}
+            {queryError && <div className="p-4 text-xs font-mono" style={{ color: 'var(--err-text)' }}>{queryError}</div>}
             {queryResult && (
               queryResult.columns.length > 0 ? (
                 <table className="w-full border-collapse">
                   <thead className="sticky top-0">
-                    <tr className="bg-zinc-900/80">
+                    <tr style={{ background: 'var(--surface)' }}>
                       {queryResult.columns.map(c => (
-                        <th key={c} className="text-left text-[9px] uppercase tracking-widest text-zinc-500 px-3 py-2 border-b border-zinc-800 font-semibold whitespace-nowrap">{c}</th>
+                        <th key={c} className="text-left text-[9px] font-bold tracking-[1.5px] uppercase px-4 py-2 border-b whitespace-nowrap" style={{ color: 'var(--text-dim)', borderColor: 'var(--border)' }}>
+                          {c}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {(queryResult.rows ?? []).map((row, i) => (
-                      <tr key={i} className="hover:bg-zinc-900/40">
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                         {row.map((cell, j) => (
-                          <td key={j} className="px-3 py-1.5 text-[10px] text-zinc-400 font-mono border-b border-zinc-800/50 max-w-[200px] truncate">{String(cell ?? '')}</td>
+                          <td key={j} className="px-4 py-2 text-[10px] font-mono max-w-[200px] truncate" style={{ color: 'var(--text-secondary)' }}>
+                            {String(cell ?? '')}
+                          </td>
                         ))}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               ) : (
-                <div className="p-3 text-zinc-500 text-xs">{queryResult.affected} row(s) affected</div>
+                <div className="p-4 text-xs" style={{ color: 'var(--text-secondary)' }}>{queryResult.affected} row(s) affected</div>
               )
             )}
           </div>
