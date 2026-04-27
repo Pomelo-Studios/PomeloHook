@@ -175,7 +175,7 @@ If the file is missing or unreadable → `errNotLoggedIn` sentinel → printed a
 
 ---
 
-## Org Tunnel — Conflict Handling
+## Org Tunnel Conflict
 
 ```bash
 pomelo-hook connect --org --tunnel stripe-webhooks --port 3000
