@@ -64,10 +64,10 @@ export default function App() {
   }, [])
 
   return (
-    <div className="flex flex-col h-screen bg-zinc-950 font-mono text-sm">
+    <div className="flex flex-col h-screen font-sans text-sm" style={{ background: 'var(--bg)' }}>
       <Header subdomain={tunnelSubdomain} connected={!!tunnelID} isAdmin={isAdmin} />
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-[38%] border-r border-zinc-800 flex flex-col overflow-hidden">
+        <div className="w-[240px] flex flex-col overflow-hidden" style={{ borderRight: '1px solid var(--border)' }}>
           <EventList
             events={events}
             selectedID={selected?.ID ?? null}
@@ -77,13 +77,13 @@ export default function App() {
         </div>
         <div className="flex-1 flex flex-col overflow-hidden">
           {replayError && (
-            <div className="bg-red-950 text-red-400 text-xs px-4 py-2 border-b border-red-900 flex-shrink-0">
+            <div className="text-xs px-4 py-2 flex-shrink-0" style={{ background: 'var(--err-bg)', color: 'var(--err-text)', borderBottom: '1px solid var(--selected-border)' }}>
               {replayError}
             </div>
           )}
           {selected
             ? <EventDetail event={selected} onReplay={handleReplay} />
-            : <div className="flex items-center justify-center h-full text-zinc-600 text-sm">Select an event</div>
+            : <div className="flex items-center justify-center h-full text-sm" style={{ color: 'var(--text-dim)' }}>Select an event</div>
           }
         </div>
       </div>

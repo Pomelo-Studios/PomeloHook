@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Pencil } from 'lucide-react'
 import { api } from '../../api/client'
 import type { Org } from '../../types'
 
@@ -29,37 +30,60 @@ export function OrgsPanel({ apiKey }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="h-11 border-b border-zinc-800 flex items-center px-4 flex-shrink-0 bg-zinc-900/30">
-        <span className="text-zinc-300 text-xs font-semibold">Organization</span>
+      <div
+        className="h-[52px] flex items-center px-5 flex-shrink-0 border-b"
+        style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+      >
+        <div className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>Organization</div>
       </div>
-      {error && <div className="bg-red-950 text-red-400 text-xs px-4 py-2 border-b border-red-900">{error}</div>}
+
+      {error && (
+        <div className="text-xs px-5 py-2 border-b" style={{ background: 'var(--err-bg)', color: 'var(--err-text)', borderColor: 'var(--selected-border)' }}>
+          {error}
+        </div>
+      )}
+
       {org && (
-        <div className="p-6 max-w-sm">
-          <div className="flex flex-col gap-4">
-            <div>
-              <p className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">ID</p>
-              <p className="text-xs text-zinc-400 font-mono">{org.ID}</p>
+        <div className="p-6 flex flex-col gap-5 max-w-sm">
+          {[{ label: 'ID', value: org.ID }, { label: 'Created', value: org.CreatedAt }].map(({ label, value }) => (
+            <div key={label}>
+              <p className="text-[9px] font-bold tracking-[1.5px] uppercase mb-1" style={{ color: 'var(--text-dim)' }}>{label}</p>
+              <p className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{value}</p>
             </div>
-            <div>
-              <p className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">Name</p>
-              {editing ? (
-                <div className="flex gap-2 items-center">
-                  <input value={name} onChange={e => setName(e.target.value)}
-                    className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-200 outline-none focus:border-zinc-500 w-48" />
-                  <button onClick={handleSave} className="text-[10px] px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 text-emerald-50 rounded font-medium">Save</button>
-                  <button onClick={() => { setEditing(false); setName(org.Name) }} className="text-[10px] px-2.5 py-1 border border-zinc-700 text-zinc-400 rounded">Cancel</button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-zinc-200">{org.Name}</p>
-                  <button onClick={() => setEditing(true)} className="text-[10px] px-2 py-0.5 border border-zinc-700 text-zinc-500 rounded hover:text-zinc-300">Edit</button>
-                </div>
-              )}
-            </div>
-            <div>
-              <p className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">Created</p>
-              <p className="text-xs text-zinc-400 font-mono">{org.CreatedAt}</p>
-            </div>
+          ))}
+          <div>
+            <p className="text-[9px] font-bold tracking-[1.5px] uppercase mb-1" style={{ color: 'var(--text-dim)' }}>Name</p>
+            {editing ? (
+              <div className="flex items-center gap-2">
+                <input
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className="rounded-lg px-3 py-[6px] text-xs font-mono outline-none w-48"
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                />
+                <button onClick={handleSave} className="bg-coral hover:opacity-90 text-white rounded-lg px-3 py-[6px] text-[11px] font-bold transition-opacity">
+                  Save
+                </button>
+                <button
+                  onClick={() => { setEditing(false); setName(org.Name) }}
+                  className="rounded-lg px-3 py-[6px] text-[11px]"
+                  style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <p className="text-xs" style={{ color: 'var(--text-primary)' }}>{org.Name}</p>
+                <button
+                  onClick={() => setEditing(true)}
+                  className="flex items-center gap-1 text-[10px] px-2 py-[3px] rounded-md"
+                  style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                >
+                  <Pencil size={10} /> Edit
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
