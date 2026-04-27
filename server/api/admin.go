@@ -78,6 +78,7 @@ func handleCreateAdminUser(s *store.Store) http.HandlerFunc {
 
 func handleUpdateAdminUser(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		caller := auth.UserFromContext(r.Context())
 		id := r.PathValue("id")
 		var body struct {
 			Email string `json:"email"`
@@ -88,9 +89,13 @@ func handleUpdateAdminUser(s *store.Store) http.HandlerFunc {
 			http.Error(w, "invalid body", http.StatusBadRequest)
 			return
 		}
-		updated, err := s.UpdateUser(id, body.Email, body.Name, body.Role)
+		if body.Role != "admin" && body.Role != "member" {
+			http.Error(w, "role must be admin or member", http.StatusBadRequest)
+			return
+		}
+		updated, err := s.UpdateUser(id, caller.OrgID, body.Email, body.Name, body.Role)
 		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -100,9 +105,10 @@ func handleUpdateAdminUser(s *store.Store) http.HandlerFunc {
 
 func handleDeleteAdminUser(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		caller := auth.UserFromContext(r.Context())
 		id := r.PathValue("id")
-		if err := s.DeleteUser(id); err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
+		if err := s.DeleteUser(id, caller.OrgID); err != nil {
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -111,10 +117,11 @@ func handleDeleteAdminUser(s *store.Store) http.HandlerFunc {
 
 func handleRotateAPIKey(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		caller := auth.UserFromContext(r.Context())
 		id := r.PathValue("id")
-		key, err := s.RotateAPIKey(id)
+		key, err := s.RotateAPIKey(id, caller.OrgID)
 		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -170,9 +177,10 @@ func handleListAdminTunnels(s *store.Store) http.HandlerFunc {
 
 func handleDeleteAdminTunnel(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		caller := auth.UserFromContext(r.Context())
 		id := r.PathValue("id")
-		if err := s.DeleteTunnel(id); err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
+		if err := s.DeleteTunnel(id, caller.OrgID); err != nil {
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		m.Unregister(id)
@@ -182,7 +190,25 @@ func handleDeleteAdminTunnel(s *store.Store, m *tunnel.Manager) http.HandlerFunc
 
 func handleDisconnectTunnel(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		caller := auth.UserFromContext(r.Context())
 		id := r.PathValue("id")
+		// verify tunnel belongs to caller's org
+		tunnels, err := s.ListAllTunnels(caller.OrgID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		found := false
+		for _, t := range tunnels {
+			if t.ID == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
 		if err := s.SetTunnelInactive(id); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return

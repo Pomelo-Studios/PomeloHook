@@ -20,7 +20,7 @@ func TestUpdateUser(t *testing.T) {
 	db, u := openWithOrg(t)
 	defer db.Close()
 
-	updated, err := db.UpdateUser(u.ID, "new@b.com", "Alice New", "member")
+	updated, err := db.UpdateUser(u.ID, "org1", "new@b.com", "Alice New", "member")
 	require.NoError(t, err)
 	require.Equal(t, "new@b.com", updated.Email)
 	require.Equal(t, "Alice New", updated.Name)
@@ -31,7 +31,7 @@ func TestDeleteUser(t *testing.T) {
 	db, u := openWithOrg(t)
 	defer db.Close()
 
-	require.NoError(t, db.DeleteUser(u.ID))
+	require.NoError(t, db.DeleteUser(u.ID, "org1"))
 	_, err := db.GetUserByEmail("a@b.com")
 	require.Error(t, err)
 }
@@ -40,7 +40,7 @@ func TestRotateAPIKey(t *testing.T) {
 	db, u := openWithOrg(t)
 	defer db.Close()
 
-	newKey, err := db.RotateAPIKey(u.ID)
+	newKey, err := db.RotateAPIKey(u.ID, "org1")
 	require.NoError(t, err)
 	require.NotEqual(t, u.APIKey, newKey)
 	require.Contains(t, newKey, "ph_")
@@ -62,7 +62,7 @@ func TestDeleteTunnel(t *testing.T) {
 	defer db.Close()
 	db.DB.Exec("INSERT INTO tunnels (id, type, org_id, subdomain) VALUES ('t1','org','org1','abc')")
 
-	require.NoError(t, db.DeleteTunnel("t1"))
+	require.NoError(t, db.DeleteTunnel("t1", "org1"))
 	tunnels, _ := db.ListAllTunnels("org1")
 	require.Empty(t, tunnels)
 }

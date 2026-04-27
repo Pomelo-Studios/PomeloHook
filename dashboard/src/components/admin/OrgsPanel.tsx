@@ -18,7 +18,7 @@ export function OrgsPanel({ apiKey }: Props) {
     if (!org) return
     setError('')
     try {
-      const updated = await api.admin.updateOrg(apiKey, org.ID, name)
+      const updated = await api.admin.updateOrg(apiKey, name)
       setOrg(updated)
       setEditing(false)
     } catch {

@@ -11,7 +11,7 @@ import { api } from './api/client'
 type Section = 'users' | 'orgs' | 'tunnels' | 'database'
 
 export function AdminApp() {
-  const { apiKey, isServerMode, loading, login } = useAuth()
+  const { apiKey, isServerMode, loading, login, logout } = useAuth()
   const [section, setSection] = useState<Section>('users')
   const [subdomain, setSubdomain] = useState('')
 
@@ -55,6 +55,14 @@ export function AdminApp() {
           <div className="border-t border-zinc-800 my-1" />
           <p className="text-[9px] text-zinc-600 uppercase tracking-widest px-2 pt-1 pb-1">Developer</p>
           {navItem('database', 'Database', '🗄️')}
+          {isServerMode && (
+            <button
+              onClick={logout}
+              className="mt-auto text-[10px] px-2.5 py-1.5 text-zinc-600 hover:text-zinc-400 w-full text-left"
+            >
+              Sign out
+            </button>
+          )}
         </aside>
         <main className="flex-1 overflow-hidden flex flex-col">
           {section === 'users' && <UsersPanel apiKey={apiKey} />}
