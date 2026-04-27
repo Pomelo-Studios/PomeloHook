@@ -21,6 +21,10 @@ func handleLogin(s *store.Store) http.HandlerFunc {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
+		if user.Role != "admin" {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"api_key": user.APIKey, "name": user.Name})
 	}

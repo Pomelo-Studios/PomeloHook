@@ -1,9 +1,15 @@
+import { Link, useLocation } from 'react-router-dom'
+
 interface Props {
   subdomain: string
   connected: boolean
+  isAdmin?: boolean
 }
 
-export function Header({ subdomain, connected }: Props) {
+export function Header({ subdomain, connected, isAdmin }: Props) {
+  const location = useLocation()
+  const onAdmin = location.pathname.startsWith('/admin')
+
   return (
     <header className="h-11 bg-zinc-900 border-b border-zinc-800 px-4 flex items-center gap-3 flex-shrink-0">
       <div className="flex items-center gap-2">
@@ -21,11 +27,27 @@ export function Header({ subdomain, connected }: Props) {
       ) : (
         <span className="text-zinc-600 text-[10px]">no active tunnel</span>
       )}
-      {connected && (
-        <span className="ml-auto text-[9px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded font-medium">
-          connected
-        </span>
-      )}
+      <div className="ml-auto flex items-center gap-2">
+        {isAdmin && (
+          <div className="flex gap-1">
+            <Link
+              to="/"
+              className={`text-[10px] px-2.5 py-1 rounded border ${!onAdmin ? 'text-emerald-400 bg-emerald-950 border-emerald-900' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
+            >
+              Dashboard
+            </Link>
+            <Link
+              to="/admin"
+              className={`text-[10px] px-2.5 py-1 rounded border ${onAdmin ? 'text-emerald-400 bg-emerald-950 border-emerald-900' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
+            >
+              Admin
+            </Link>
+          </div>
+        )}
+        {connected && (
+          <span className="text-[9px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded font-medium">connected</span>
+        )}
+      </div>
     </header>
   )
 }
