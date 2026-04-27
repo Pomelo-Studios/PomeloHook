@@ -1,0 +1,213 @@
+{
+  "main": {
+    "id": "c7cfe1a888eb0c8f",
+    "type": "split",
+    "children": [
+      {
+        "id": "79418e1e66a61ecb",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d9993d4054a76245",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "tr/03 - Veri Akışı.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "03 - Veri Akışı"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "77ce6bc87735f695",
+    "type": "split",
+    "children": [
+      {
+        "id": "97fc350cb402fdd9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "da16f52f7ec38ae9",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "7905930dc243806a",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "f23e8320b03cd094",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "749066d60113dd04",
+    "type": "split",
+    "children": [
+      {
+        "id": "7dc401eb92a3f61f",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d55fbe3d3afdd0f5",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "tr/03 - Veri Akışı.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for 03 - Veri Akışı"
+            }
+          },
+          {
+            "id": "e36a67be8e6935d8",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "tr/03 - Veri Akışı.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from 03 - Veri Akışı"
+            }
+          },
+          {
+            "id": "635cf2697888f8e4",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "6dcfd20a92e9290f",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "4874e6072574087d",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "tr/03 - Veri Akışı.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of 03 - Veri Akışı"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "d9993d4054a76245",
+  "lastOpenFiles": [
+    "tr/02 - Mimari.md",
+    "tr/01 - Proje Genel Bakış.md",
+    "00 - PomeloHook Index.md",
+    "tr/10 - Geliştirme Rehberi.md",
+    "tr/09 - API Referansı.md",
+    "tr/08 - Kritik Kararlar.md",
+    "tr/07 - Veritabanı.md",
+    "tr/06 - Dashboard (TR).md",
+    "tr/05 - CLI (TR).md",
+    "tr/04 - Sunucu.md",
+    "tr/03 - Veri Akışı.md",
+    "tr",
+    "en/10 - Development Guide.md",
+    "en/09 - API Reference.md",
+    "en/08 - Design Decisions.md",
+    "en/07 - Database.md",
+    "en/06 - Dashboard.md",
+    "en/05 - CLI.md",
+    "en/04 - Server.md",
+    "en/03 - Data Flow.md",
+    "en/02 - Architecture.md",
+    "en/01 - Project Overview.md",
+    "en",
+    "01 - Project Overview.md"
+  ]
+}
