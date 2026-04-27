@@ -45,7 +45,7 @@ make build       # go build ./... (static/'teki dosyaları gömer)
 
 ---
 
-## SPA Routing Problemi ve Çözümü
+## SPA Routing Düzeltmesi
 
 React Router, sunucunun yalnızca `/` için değil her path için `index.html` döndürmesini ister. Çözüm olmazsa:
 - `localhost:4040/admin` yenilemede → Go file server 404 döner
@@ -115,7 +115,7 @@ dashboard/src/
 
 ---
 
-## Önemli Tasarım Kararları
+## Tasarım Notları
 
 **Event'ler 500 ile sınırlı** — `EventList` en fazla 500 event render eder. Üstü zaten kullanılamaz hale gelir. Eski event'ler DB'dedir; `pomelo-hook list` veya admin DB panelinden erişilebilir.
 

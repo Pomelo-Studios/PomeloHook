@@ -23,7 +23,7 @@
 
 ---
 
-## Katmanlar
+## İçyapı
 
 ### webhook/ — Giriş Noktası
 
@@ -141,6 +141,7 @@ Caddy (en kolay):
   (otomatik TLS + WebSocket desteği)
 
 nginx (manuel):
+  # sunucu bloğunu, upstream ve SSL direktiflerini kendin ekle
   proxy_http_version 1.1;
   proxy_set_header Upgrade $http_upgrade;
   proxy_set_header Connection "upgrade";
