@@ -66,13 +66,13 @@ func (c *Client) Connect() error {
         conn, _, err := websocket.DefaultDialer.Dial(wsURL, headers)
         if err != nil {
             attempt++
-            if attempt > 5 { return err }        // 5 başarısız denemeden sonra çık
-            wait := time.Duration(1<<attempt) * time.Second  // 2, 4, 8, 16, 32s
+            if attempt > 5 { return err } // 5 başarısız denemeden sonra çık
+            wait := time.Duration(1<<attempt) * time.Second // 2, 4, 8, 16, 32s
             time.Sleep(wait)
             continue
         }
         attempt = 0
-        c.pump(conn)  // bağlantı kopunca döner → döngü devam eder
+        c.pump(conn) // bağlantı kopunca döner → döngü devam eder
     }
 }
 ```

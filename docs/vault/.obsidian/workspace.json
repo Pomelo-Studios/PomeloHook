@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "tr/03 - Veri Akışı.md",
+                "file": "tr/10 - Geliştirme Rehberi.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "03 - Veri Akışı"
+              "title": "10 - Geliştirme Rehberi"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "tr/03 - Veri Akışı.md",
+                "file": "tr/10 - Geliştirme Rehberi.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for 03 - Veri Akışı"
+              "title": "Backlinks for 10 - Geliştirme Rehberi"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "tr/03 - Veri Akışı.md",
+                "file": "tr/10 - Geliştirme Rehberi.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from 03 - Veri Akışı"
+              "title": "Outgoing links from 10 - Geliştirme Rehberi"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "tr/03 - Veri Akışı.md",
+                "file": "tr/10 - Geliştirme Rehberi.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of 03 - Veri Akışı"
+              "title": "Outline of 10 - Geliştirme Rehberi"
             }
           }
         ]
@@ -185,10 +185,6 @@
   },
   "active": "d9993d4054a76245",
   "lastOpenFiles": [
-    "tr/02 - Mimari.md",
-    "tr/01 - Proje Genel Bakış.md",
-    "00 - PomeloHook Index.md",
-    "tr/10 - Geliştirme Rehberi.md",
     "tr/09 - API Referansı.md",
     "tr/08 - Kritik Kararlar.md",
     "tr/07 - Veritabanı.md",
@@ -196,6 +192,10 @@
     "tr/05 - CLI (TR).md",
     "tr/04 - Sunucu.md",
     "tr/03 - Veri Akışı.md",
+    "tr/02 - Mimari.md",
+    "tr/01 - Proje Genel Bakış.md",
+    "00 - PomeloHook Index.md",
+    "tr/10 - Geliştirme Rehberi.md",
     "tr",
     "en/10 - Development Guide.md",
     "en/09 - API Reference.md",
