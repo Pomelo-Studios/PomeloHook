@@ -2,12 +2,12 @@
 
 [[00 - PomeloHook Index|← Index]]
 
-> Everything you need to work on PomeloHook without breaking things.  
+> Build order is strict. Static files are committed. One writer for SQLite. Everything else is explained here.  
 > *Bir şeyleri bozmadan çalışmak için gereken her şey.*
 
 ---
 
-## Build Order (Non-Negotiable)
+## Build Order
 
 ```bash
 make dashboard   # 1. npm run build → copies dist to cli/dashboard/static/
@@ -110,7 +110,7 @@ go test ./...  # fails
 
 ---
 
-## Key Gotchas
+## Gotchas
 
 **1. `vite.config.ts` imports from `vitest/config`**
 ```ts
