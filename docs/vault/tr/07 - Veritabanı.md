@@ -54,7 +54,7 @@ INDEX: idx_events_tunnel_received ON webhook_events(tunnel_id, received_at)
 
 ## Tasarım Kararları
 
-### Neden SQLite?
+### SQLite
 
 **Değerlendirilenler:** PostgreSQL, MySQL, gömülü key-value (bbolt, badger)
 
@@ -66,15 +66,15 @@ INDEX: idx_events_tunnel_received ON webhook_events(tunnel_id, received_at)
 
 **Takas:** Tek yazıcı. `db.SetMaxOpenConns(1)` zorunludur. PomeloHook yüksek yazma hacimli bir sistem değildir.
 
-### Neden TEXT Primary Key, Auto-Increment Değil?
+### TEXT Primary Key, Auto-Increment Değil
 
 Programatik oluşturulan satırlar için UUID (`uuid.NewString()`), elle eklenen satırlar için manuel dizeler (`org_1`, `usr_1`). UUID'ler URL'lerde ve API response'larında güvenle kullanılabilir; satır sayısını veya sıralı ID'leri açığa çıkarmaz.
 
-### Neden Header'lar JSON TEXT Olarak Saklanıyor?
+### Header'lar JSON TEXT Olarak
 
 `http.Header`, `map[string][]string` türündedir. SQLite'ın yerel map tipi yoktur. JSON serializasyonu basittir ve dashboard header'ları olduğu gibi göstermesi gerekir. DB katmanında bireysel header değerlerini sorgulamaya gerek yoktur.
 
-### Neden Column Listelerinde `COALESCE`?
+### Column Listelerinde `COALESCE`
 
 ```go
 const tunnelColumns = `id, type, COALESCE(user_id,''), ...`
@@ -82,7 +82,7 @@ const tunnelColumns = `id, type, COALESCE(user_id,''), ...`
 
 Nullable kolonlar (user_id, org_id, active_user_id) normal taranırsa `sql.NullString` döner. `COALESCE(col,'')` doğrudan `string`'e taranmasını sağlar. Takas: NULL ile boş string arasındaki fark kaybolur — ama bu fark hiç gerekmez.
 
-### Neden `received_at` TEXT (RFC3339) Olarak, DATETIME Değil?
+### `received_at` RFC3339 TEXT Olarak
 
 SQLite zaten datetime'ı text olarak saklar. RFC3339'u açıkça saklamak:
 - SQLite sürücüleri arasında taşınabilir
