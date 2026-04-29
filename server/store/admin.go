@@ -131,33 +131,27 @@ func (s *Store) TunnelBelongsToOrg(id, orgID string) (bool, error) {
 }
 
 func (s *Store) ListTables() ([]TableInfo, error) {
-	rows, err := s.DB.Query(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
+	const q = `
+		SELECT 'organizations', COUNT(*) FROM organizations
+		UNION ALL SELECT 'tunnels',        COUNT(*) FROM tunnels
+		UNION ALL SELECT 'users',          COUNT(*) FROM users
+		UNION ALL SELECT 'webhook_events', COUNT(*) FROM webhook_events
+	`
+	rows, err := s.DB.Query(q)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var names []string
+
+	var tables []TableInfo
 	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
+		var t TableInfo
+		if err := rows.Scan(&t.Name, &t.RowCount); err != nil {
 			return nil, err
 		}
-		names = append(names, name)
+		tables = append(tables, t)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	tables := make([]TableInfo, 0, len(names))
-	for _, name := range names {
-		if !allowedTables[name] {
-			continue
-		}
-		var count int
-		s.DB.QueryRow(fmt.Sprintf(`SELECT COUNT(*) FROM %s`, name)).Scan(&count) //nolint:gosec — name from sqlite_master, filtered by allowedTables
-		tables = append(tables, TableInfo{Name: name, RowCount: count})
-	}
-	return tables, nil
+	return tables, rows.Err()
 }
 
 func (s *Store) GetTableRows(name string, limit, offset int) (*TableResult, error) {
