@@ -44,8 +44,14 @@ func (s *Store) UpdateUser(id, orgID, email, name, role string) (*User, error) {
 }
 
 func (s *Store) DeleteUser(id, orgID string) (deletedKey string, err error) {
-	// Read key before deleting so the caller can invalidate the auth cache
-	err = s.DB.QueryRow(`SELECT api_key FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&deletedKey)
+	tx, err := s.DB.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	// Read key inside the transaction so it's atomic with the DELETE.
+	err = tx.QueryRow(`SELECT api_key FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&deletedKey)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", sql.ErrNoRows
 	}
@@ -53,11 +59,6 @@ func (s *Store) DeleteUser(id, orgID string) (deletedKey string, err error) {
 		return "", err
 	}
 
-	tx, err := s.DB.Begin()
-	if err != nil {
-		return "", err
-	}
-	defer tx.Rollback()
 	if _, err = tx.Exec(`DELETE FROM webhook_events WHERE tunnel_id IN (SELECT id FROM tunnels WHERE user_id=?)`, id); err != nil {
 		return "", err
 	}

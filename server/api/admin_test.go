@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/pomelo-studios/pomelo-hook/server/api"
+	"github.com/pomelo-studios/pomelo-hook/server/auth"
 	"github.com/pomelo-studios/pomelo-hook/server/store"
 	"github.com/pomelo-studios/pomelo-hook/server/tunnel"
 	"github.com/stretchr/testify/require"
@@ -78,6 +79,37 @@ func TestAdminCreateUser(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	require.Equal(t, http.StatusCreated, rec.Code)
+}
+
+func TestUpdateUser_InvalidatesOldKeyNotNewKey(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "upd@b.com", Name: "U", Role: "admin"})
+	oldKey := user.APIKey
+
+	handler := auth.Middleware(db, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+oldKey)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	old, err := db.GetUserByID(user.ID, "org1")
+	require.NoError(t, err)
+	_, err = db.UpdateUser(user.ID, "org1", user.Email, user.Name, "member")
+	require.NoError(t, err)
+	auth.InvalidateAPIKey(old.APIKey)
+
+	db.DeleteUser(user.ID, "org1")
+
+	req2 := httptest.NewRequest(http.MethodGet, "/", nil)
+	req2.Header.Set("Authorization", "Bearer "+oldKey)
+	w2 := httptest.NewRecorder()
+	handler.ServeHTTP(w2, req2)
+	require.Equal(t, http.StatusUnauthorized, w2.Code, "old key must be evicted from cache after update")
 }
 
 func TestAdminRunQuery(t *testing.T) {
