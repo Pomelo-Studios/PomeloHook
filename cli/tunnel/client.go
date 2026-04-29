@@ -24,6 +24,7 @@ type Client struct {
 	tunnelID  string
 	forwarder *forward.Forwarder
 	onEvent   func(result *forward.ForwardResult)
+	sem       chan struct{}
 }
 
 type Options struct {
@@ -41,6 +42,7 @@ func New(opts Options) *Client {
 		tunnelID:  opts.TunnelID,
 		forwarder: forward.New("http://localhost:" + opts.LocalPort),
 		onEvent:   opts.OnEvent,
+		sem:       make(chan struct{}, 8),
 	}
 }
 
@@ -81,7 +83,9 @@ func (c *Client) pump(conn *websocket.Conn) error {
 		if json.Unmarshal(msg, &ack) == nil && ack["status"] == "connected" {
 			continue
 		}
+		c.sem <- struct{}{}
 		go func(payload []byte) {
+			defer func() { <-c.sem }()
 			result, err := c.forwarder.Forward(payload)
 			if err != nil {
 				log.Printf("forward error: %v", err)
