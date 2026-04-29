@@ -17,7 +17,7 @@ func Open(dsn string) (*Store, error) {
 	if dsn == ":memory:" {
 		dsn = "file::memory:?mode=memory&_pragma=foreign_keys(1)"
 	} else {
-		dsn = dsn + "?_pragma=foreign_keys(1)"
+		dsn = dsn + "?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
 	}
 
 	db, err := sql.Open("sqlite", dsn)
