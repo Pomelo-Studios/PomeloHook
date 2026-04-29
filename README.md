@@ -51,7 +51,7 @@ Events are always stored regardless of whether forwarding succeeds — they are 
 | Tool | Version |
 |------|---------|
 | Go   | 1.22+   |
-| Node | 18+     |
+| Node | 22+     |
 | npm  | 9+      |
 
 ---
@@ -300,7 +300,7 @@ cd dashboard && npm run build   # production build → cli/dashboard/static/
 server/      Go relay server (API, WebSocket, SQLite)
 cli/         Go CLI client (tunnel, forwarder, embedded dashboard)
 dashboard/   React + Vite web UI
-docs/        Design spec and implementation plan
+docs/        Architecture, deployment, and API reference
 bin/         Compiled binaries (gitignored)
 ```
 
