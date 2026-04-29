@@ -100,6 +100,28 @@ func TestDeleteTunnel(t *testing.T) {
 	require.Empty(t, tunnels)
 }
 
+func TestListTables_ReturnsCounts(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	tables, err := db.ListTables()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	counts := map[string]int{}
+	for _, tbl := range tables {
+		counts[tbl.Name] = tbl.RowCount
+	}
+
+	if counts["organizations"] < 1 {
+		t.Errorf("expected at least 1 org, got %d", counts["organizations"])
+	}
+	if counts["users"] < 1 {
+		t.Errorf("expected at least 1 user, got %d", counts["users"])
+	}
+}
+
 func TestListTables(t *testing.T) {
 	db, _ := openWithOrg(t)
 	defer db.Close()
