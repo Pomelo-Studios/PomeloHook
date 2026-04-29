@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 
@@ -65,6 +66,7 @@ func handleWSConnect(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 				if !ok {
 					return
 				}
+				conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 				if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil {
 					return
 				}
