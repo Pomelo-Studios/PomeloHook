@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -56,8 +57,9 @@ func (c *Client) Connect() error {
 				return fmt.Errorf("could not connect after 5 attempts: %w", err)
 			}
 			wait := time.Duration(1<<attempt) * time.Second
-			log.Printf("reconnecting in %s...", wait)
-			time.Sleep(wait)
+			jitter := time.Duration(rand.Int63n(int64(wait / 2)))
+			log.Printf("reconnecting in %s...", wait+jitter)
+			time.Sleep(wait + jitter)
 			continue
 		}
 		attempt = 0
