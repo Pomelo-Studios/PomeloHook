@@ -39,6 +39,12 @@ func (s *Store) CreateUser(p CreateUserParams) (*User, error) {
 	return &User{ID: id, OrgID: p.OrgID, Email: p.Email, Name: p.Name, APIKey: key, Role: p.Role}, nil
 }
 
+func (s *Store) GetUserByID(id, orgID string) (*User, error) {
+	row := s.DB.QueryRow(`SELECT id, org_id, email, name, api_key, role FROM users WHERE id=? AND org_id=?`, id, orgID)
+	u := &User{}
+	return u, row.Scan(&u.ID, &u.OrgID, &u.Email, &u.Name, &u.APIKey, &u.Role)
+}
+
 func (s *Store) GetUserByAPIKey(key string) (*User, error) {
 	row := s.DB.QueryRow(`SELECT id, org_id, email, name, api_key, role FROM users WHERE api_key = ?`, key)
 	u := &User{}

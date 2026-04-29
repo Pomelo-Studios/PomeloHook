@@ -70,6 +70,18 @@ func TestDeleteUser(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestDeleteUser_ReturnsKeyFromTransaction(t *testing.T) {
+	db, u := openWithOrg(t)
+	defer db.Close()
+
+	key, err := db.DeleteUser(u.ID, "org1")
+	require.NoError(t, err)
+	require.Equal(t, u.APIKey, key, "returned key must match the key that was active at deletion time")
+
+	_, err = db.GetUserByEmail("a@b.com")
+	require.Error(t, err)
+}
+
 func TestRotateAPIKey_NotFound(t *testing.T) {
 	db, _ := openWithOrg(t)
 	defer db.Close()

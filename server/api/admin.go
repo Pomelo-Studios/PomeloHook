@@ -93,12 +93,17 @@ func handleUpdateAdminUser(s *store.Store) http.HandlerFunc {
 			http.Error(w, "role must be admin or member", http.StatusBadRequest)
 			return
 		}
+		old, err := s.GetUserByID(id, caller.OrgID)
+		if err != nil {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
 		updated, err := s.UpdateUser(id, caller.OrgID, body.Email, body.Name, body.Role)
 		if err != nil {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
-		auth.InvalidateAPIKey(updated.APIKey)
+		auth.InvalidateAPIKey(old.APIKey)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(updated)
 	}

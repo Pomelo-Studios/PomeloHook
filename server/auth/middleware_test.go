@@ -150,6 +150,33 @@ func TestMiddleware_CacheInvalidatedOnRoleChange(t *testing.T) {
 	}
 }
 
+func TestCacheSweep_EvictsExpiredEntries(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "sweep@b.com", Name: "S", Role: "member"})
+
+	handler := auth.Middleware(db, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+user.APIKey)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	auth.ExpireCacheEntry(user.APIKey)
+	auth.SweepExpiredCache()
+
+	db.DeleteUser(user.ID, "org1")
+
+	req2 := httptest.NewRequest(http.MethodGet, "/", nil)
+	req2.Header.Set("Authorization", "Bearer "+user.APIKey)
+	w2 := httptest.NewRecorder()
+	handler.ServeHTTP(w2, req2)
+	require.Equal(t, http.StatusUnauthorized, w2.Code, "swept entry must not serve stale auth")
+}
+
 func TestMiddlewareRejects401WithoutKey(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
