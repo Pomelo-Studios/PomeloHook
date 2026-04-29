@@ -57,7 +57,7 @@ export default function App() {
     api.getEvents(tunnelID, 100).then(setEvents).catch(() => {})
   }, [tunnelID])
 
-  useWSEvents(tunnelID, event => setEvents(prev => [event, ...prev].slice(0, 500)))
+  useWSEvents(tunnelID, event => setEvents(prev => [event, ...prev].slice(0, 100)))
 
   const handleReplay = useCallback(async (eventID: string, targetURL: string) => {
     setReplayError(null)
