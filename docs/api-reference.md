@@ -128,7 +128,7 @@ List events for a tunnel. Default limit: 50.
 Re-send a stored event to a target URL. Executed server-side.
 
 ```json
-{"target": "http://localhost:3000"}
+{"target_url": "http://localhost:3000"}
 ```
 
 Returns:
