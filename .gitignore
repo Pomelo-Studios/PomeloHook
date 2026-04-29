@@ -13,3 +13,5 @@ server/server
 cli/cli
 .worktrees/
 .superpowers/
+docs/superpowers/
+docs/vault/
