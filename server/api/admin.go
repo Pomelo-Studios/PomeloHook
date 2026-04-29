@@ -119,13 +119,14 @@ func handleRotateAPIKey(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		caller := auth.UserFromContext(r.Context())
 		id := r.PathValue("id")
-		key, err := s.RotateAPIKey(id, caller.OrgID)
+		oldKey, newKey, err := s.RotateAPIKey(id, caller.OrgID)
 		if err != nil {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
+		auth.InvalidateAPIKey(oldKey)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"api_key": key})
+		json.NewEncoder(w).Encode(map[string]string{"api_key": newKey})
 	}
 }
 

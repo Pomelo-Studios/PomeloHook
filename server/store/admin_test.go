@@ -40,8 +40,9 @@ func TestRotateAPIKey(t *testing.T) {
 	db, u := openWithOrg(t)
 	defer db.Close()
 
-	newKey, err := db.RotateAPIKey(u.ID, "org1")
+	oldKey, newKey, err := db.RotateAPIKey(u.ID, "org1")
 	require.NoError(t, err)
+	require.Equal(t, u.APIKey, oldKey)
 	require.NotEqual(t, u.APIKey, newKey)
 	require.Contains(t, newKey, "ph_")
 }
