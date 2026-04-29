@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -31,14 +32,15 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limited := io.LimitReader(r.Body, maxWebhookBodyBytes+1)
-	bodyBytes, err := io.ReadAll(limited)
+	r.Body = http.MaxBytesReader(w, r.Body, maxWebhookBodyBytes)
+	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "failed to read request body", http.StatusInternalServerError)
-		return
-	}
-	if int64(len(bodyBytes)) > maxWebhookBodyBytes {
-		http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
 		return
 	}
 	headerJSON, _ := json.Marshal(r.Header)
