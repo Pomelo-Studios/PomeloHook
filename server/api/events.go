@@ -2,10 +2,15 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -13,7 +18,51 @@ import (
 	"github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
-var replayClient = &http.Client{Timeout: 15 * time.Second}
+var replayClient = &http.Client{
+	Timeout: 15 * time.Second,
+	Transport: &http.Transport{
+		DialContext: ssrfSafeDialer,
+	},
+}
+
+// ssrfSafeDialer rejects connections to loopback, private, and link-local addresses.
+func ssrfSafeDialer(ctx context.Context, network, addr string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, fmt.Errorf("ssrf guard: invalid address %q: %w", addr, err)
+	}
+
+	ips, err := net.DefaultResolver.LookupHost(ctx, host)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, ipStr := range ips {
+		ip := net.ParseIP(ipStr)
+		if ip == nil {
+			continue
+		}
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+			return nil, fmt.Errorf("ssrf guard: target %s resolves to non-routable address %s", host, ipStr)
+		}
+	}
+
+	var d net.Dialer
+	return d.DialContext(ctx, network, net.JoinHostPort(ips[0], port))
+}
+
+var errSSRFScheme = errors.New("ssrf guard: only http and https schemes are allowed")
+
+func validateReplayURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return err
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return errSSRFScheme
+	}
+	return nil
+}
 
 func canAccessTunnel(user *store.User, tun *store.Tunnel) bool {
 	return tun.UserID == user.ID || tun.OrgID == user.OrgID
@@ -75,6 +124,11 @@ func handleReplayEvent(s *store.Store) http.HandlerFunc {
 			return
 		}
 
+		if err := validateReplayURL(body.TargetURL); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		resp, ms, err := replayHTTP(event, body.TargetURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadGateway)
@@ -93,6 +147,9 @@ func handleReplayEvent(s *store.Store) http.HandlerFunc {
 }
 
 func replayHTTP(event *store.WebhookEvent, targetURL string) (*http.Response, int64, error) {
+	if err := validateReplayURL(targetURL); err != nil {
+		return nil, 0, err
+	}
 	req, err := http.NewRequest(event.Method, targetURL, bytes.NewBufferString(event.RequestBody))
 	if err != nil {
 		return nil, 0, err
