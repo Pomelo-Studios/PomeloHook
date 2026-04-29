@@ -94,6 +94,9 @@ func migrate(db *sql.DB) error {
 		);
 		CREATE INDEX IF NOT EXISTS idx_events_tunnel_received
 			ON webhook_events (tunnel_id, received_at);
+		CREATE INDEX IF NOT EXISTS idx_tunnels_user_id ON tunnels (user_id);
+		CREATE INDEX IF NOT EXISTS idx_tunnels_org_id  ON tunnels (org_id);
+		CREATE INDEX IF NOT EXISTS idx_tunnels_status   ON tunnels (status);
 	`)
 	if err != nil {
 		return err

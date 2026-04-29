@@ -23,6 +23,27 @@ func TestStore_WALModeEnabled(t *testing.T) {
 	}
 }
 
+func TestStore_TunnelIndexesExist(t *testing.T) {
+	s, err := store.Open(t.TempDir() + "/test.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	wantIndexes := []string{
+		"idx_tunnels_user_id",
+		"idx_tunnels_org_id",
+		"idx_tunnels_status",
+	}
+	for _, idx := range wantIndexes {
+		var name string
+		err := s.DB.QueryRow(`SELECT name FROM sqlite_master WHERE type='index' AND name=?`, idx).Scan(&name)
+		if err != nil {
+			t.Errorf("index %q not found: %v", idx, err)
+		}
+	}
+}
+
 func TestOpenCreatesSchema(t *testing.T) {
 	db, err := store.Open(":memory:")
 	require.NoError(t, err)
