@@ -38,10 +38,14 @@ func main() {
 
 	ticker := time.NewTicker(24 * time.Hour)
 	go func() {
-		for range ticker.C {
+		cleanup := func() {
 			if _, err := db.DeleteEventsOlderThan(cfg.RetentionDays); err != nil {
 				log.Printf("retention cleanup error: %v", err)
 			}
+		}
+		cleanup()
+		for range ticker.C {
+			cleanup()
 		}
 	}()
 
