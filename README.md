@@ -4,7 +4,7 @@
 
 Self-hosted webhook relay and inspection tool. Exposes a public URL, forwards incoming webhooks to a local machine through a WebSocket tunnel, stores every event in SQLite, and provides a web dashboard for inspection and replay.
 
-Think ngrok — but self-hosted, team-aware, and built around persistent event history.
+Think ngrok — but self-hosted, team-aware, and built around persistent event history. No accounts, no rate limits, no data leaving your infrastructure.
 
 ---
 
