@@ -65,19 +65,22 @@ func (s *Store) DeleteUser(id, orgID string) error {
 	return tx.Commit()
 }
 
-func (s *Store) RotateAPIKey(id, orgID string) (string, error) {
-	key, err := generateAPIKey()
-	if err != nil {
-		return "", err
+func (s *Store) RotateAPIKey(id, orgID string) (oldKey, newKey string, err error) {
+	if err = s.DB.QueryRow(`SELECT api_key FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&oldKey); err != nil {
+		return "", "", sql.ErrNoRows
 	}
-	res, err := s.DB.Exec(`UPDATE users SET api_key=? WHERE id=? AND org_id=?`, key, id, orgID)
+	newKey, err = generateAPIKey()
 	if err != nil {
-		return "", err
+		return "", "", err
+	}
+	res, err := s.DB.Exec(`UPDATE users SET api_key=? WHERE id=? AND org_id=?`, newKey, id, orgID)
+	if err != nil {
+		return "", "", err
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
-		return "", sql.ErrNoRows
+		return "", "", sql.ErrNoRows
 	}
-	return key, nil
+	return oldKey, newKey, nil
 }
 
 func (s *Store) ListAllTunnels(orgID string) ([]*Tunnel, error) {
