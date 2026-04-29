@@ -25,6 +25,7 @@ type Client struct {
 	forwarder *forward.Forwarder
 	onEvent   func(result *forward.ForwardResult)
 	sem       chan struct{}
+	rng       *rand.Rand
 }
 
 type Options struct {
@@ -43,6 +44,7 @@ func New(opts Options) *Client {
 		forwarder: forward.New("http://localhost:" + opts.LocalPort),
 		onEvent:   opts.OnEvent,
 		sem:       make(chan struct{}, 8),
+		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -59,7 +61,7 @@ func (c *Client) Connect() error {
 				return fmt.Errorf("could not connect after 5 attempts: %w", err)
 			}
 			wait := time.Duration(1<<attempt) * time.Second
-			jitter := time.Duration(rand.Int63n(int64(wait / 2)))
+			jitter := time.Duration(c.rng.Int63n(int64(wait / 2)))
 			log.Printf("reconnecting in %s...", wait+jitter)
 			time.Sleep(wait + jitter)
 			continue
