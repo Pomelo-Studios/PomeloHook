@@ -15,14 +15,14 @@ External service
       │
       │  POST https://your-server/webhook/{subdomain}
       ▼
-┌─────────────────┐      WebSocket tunnel      ┌─────────────────┐
-│     Server      │  ──────────────────────►  │   CLI client    │
-│  (Go + SQLite)  │  ◄──────────────────────  │  (your machine) │
-└────────┬────────┘                            └────────┬────────┘
-         │                                              │
-         │  stores event                                │  forwards to
-         ▼                                              ▼
-    pomelodata.db                                localhost:{port}
+┌─────────────────┐       WebSocket tunnel      ┌─────────────────┐
+│     Server      │   ──────────────────────►   │   CLI client    │
+│  (Go + SQLite)  │   ◄──────────────────────   │  (your machine) │
+└────────┬────────┘                             └────────┬────────┘
+         │                                               │
+         │  stores event                                 │  forwards to
+         ▼                                               ▼
+    pomelodata.db                                 localhost:{port}
 ```
 
 1. The CLI opens a persistent WebSocket connection to the server.
