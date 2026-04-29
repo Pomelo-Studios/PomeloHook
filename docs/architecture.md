@@ -1,10 +1,6 @@
-# 02 — Architecture / Mimari
+# Architecture
 
-[[00 - PomeloHook Index|← Index]]
-
----
-
-## Structure
+## Module Structure
 
 ```
 PomeloHook/
@@ -13,13 +9,11 @@ PomeloHook/
 └── dashboard/   React + Vite     (compiled and embedded inside the CLI)
 ```
 
-`server/` and `cli/` are independent Go modules (`server/go.mod`, `cli/go.mod`). Dashboard is a separate npm project that gets compiled and embedded into the CLI binary at build time.
-
-*Her biri bağımsız. Dashboard derlenir ve CLI binary'sine gömülür.*
+`server/` and `cli/` are independent Go modules (`server/go.mod`, `cli/go.mod`). The dashboard is a separate npm project that gets compiled and embedded into the CLI binary at build time.
 
 ---
 
-## How Components Communicate
+## Component Communication
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -68,7 +62,7 @@ server/
 ├── main.go          — bootstrap, HTTP mux, retention ticker
 ├── config/          — env vars (PORT, DB_PATH, RETENTION_DAYS)
 ├── api/
-│   ├── router.go    — all route registrations in one place
+│   ├── router.go    — all route registrations
 │   ├── auth.go      — /api/auth/login
 │   ├── events.go    — list + replay
 │   ├── tunnels.go   — create + list
@@ -89,8 +83,6 @@ server/
 └── webhook/
     └── handler.go   — /webhook/{subdomain} entry point
 ```
-
----
 
 ## CLI Internals
 
@@ -116,18 +108,40 @@ cli/
 
 ---
 
-## Why This Separation?
+## Design Decisions
 
-**Server is independently deployable** — just a Go binary + one SQLite file. Docker, systemd, bare metal — doesn't matter. No Node, no npm.
+### 1. Persist Before Forward
 
-**CLI is independently distributable** — single binary with the dashboard inside. The user doesn't need to `npm install` anything.
+`store.SaveEvent()` is called before the event is pushed to the tunnel channel. Always. If the WebSocket write fails or the CLI is disconnected, the event is already in the database and is replayable. The external service always gets `202 Accepted` regardless of local delivery status.
 
-**Dashboard is a separate source project** — written in React, compiled with Vite, then embedded into the CLI. During development you run it at `localhost:5173` with hot reload. In production it comes from inside the binary.
+### 2. In-Memory Tunnel Registry
 
----
+Active connections are tracked in `tunnel.Manager` (in-memory), not the database. The Manager's `CheckAndRegister` must be atomic — polling the DB cannot guarantee this. On server restart, connected CLI clients detect the WS close and reconnect automatically.
 
-## Related Notes
+### 3. Pure-Go SQLite (No CGO)
 
-- Detailed data flow → [[03 - Data Flow]]
-- Server deep dive → [[04 - Server]]
-- CLI deep dive → [[05 - CLI]]
+Uses `modernc.org/sqlite` instead of `mattn/go-sqlite3`. No C compiler required at build time. A single `go build` produces a working binary on any platform Go supports. Slightly slower than CGO, irrelevant at PomeloHook's write volume.
+
+### 4. One Active Forwarder Per Org Tunnel
+
+Only one CLI client can hold an org tunnel at a time. Enforced in `tunnel.Manager`, not the API layer. Two forwarders would deliver duplicate events to the local app. Others see: `"tunnel is currently active by {name}"` but can still browse history and replay.
+
+### 5. Dashboard Embedded in CLI Binary
+
+The React dashboard is compiled and committed as static files, then embedded via `go:embed`. Install is: download one binary, run it. No npm, no Node required on the developer's machine. Build order is strict: `make dashboard` must run before `make build`.
+
+### 6. API Key Auth, Not JWT
+
+Every user has one static API key (`ph_` + 48 hex chars). Simple to implement, simple to rotate via the admin panel, simple to use in CLI config files. PomeloHook's threat model is a known set of developers in a controlled org — JWT complexity adds no meaningful security benefit here.
+
+### 7. Server Returns 202 Immediately
+
+`webhook.Handler` writes `202 Accepted` as soon as the event is saved. It does not wait for CLI delivery. External services (Stripe, GitHub) have short webhook timeouts (5–30s); waiting for CLI round-trip would cause retries.
+
+### 8. Non-Blocking Channel Send
+
+`select { case ch <- payload: default: }` — if the 64-slot channel is full, the event is dropped from forwarding (but is already saved in the DB). Prevents the webhook handler goroutine from blocking under burst load.
+
+### 9. Go 1.22 Pattern Routing
+
+Uses the `"METHOD /path"` syntax and `r.PathValue("id")` from Go 1.22's stdlib `http.ServeMux`. No external router dependency for < 20 routes.

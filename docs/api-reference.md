@@ -1,8 +1,12 @@
-# 09 — API Reference / API Referansı
+# API Reference
 
-[[00 - PomeloHook Index|← Index]]
+Base URL: `https://your-server.com`
 
-> All endpoints. Base URL: `https://your-server.com`. Auth header: `Authorization: Bearer <api_key>`.
+All endpoints except `POST /api/auth/login` and `ANY /webhook/{subdomain}` require:
+
+```
+Authorization: Bearer <api_key>
+```
 
 ---
 
@@ -23,13 +27,9 @@ Content-Type: application/json
 {"api_key": "ph_a1b2c3..."}
 ```
 
-This endpoint is the only way to retrieve a key without direct DB access. It relies on the email being in the DB — it doesn't create users.
-
----
-
 ### `GET /api/me`
 
-Returns the authenticated user. Used by the dashboard to detect auth mode.
+Returns the authenticated user. Returns `401` if not authenticated.
 
 ```json
 {
@@ -41,36 +41,29 @@ Returns the authenticated user. Used by the dashboard to detect auth mode.
 }
 ```
 
-Returns `401` if not authenticated. The dashboard uses this to decide whether to show the login form (server mode) or skip it (CLI mode).
-
 ---
 
 ## Tunnels
 
 ### `POST /api/tunnels`
 
-Create a tunnel, or retrieve an existing one.
+Create a tunnel.
 
 ```json
 {"type": "personal"}
 {"type": "org", "name": "stripe-webhooks"}
 ```
 
-- Personal: creates a new tunnel with a random hex subdomain each time (idempotent-ish — a new record is created per call)
-- Org: creates if name doesn't exist, returns existing if it does
+- **Personal:** creates a new tunnel with a random hex subdomain
+- **Org:** creates if name doesn't exist, returns existing if it does. Returns `409` if the tunnel is currently active.
 
 ```json
 {"ID": "uuid...", "Subdomain": "a1b2", "Type": "personal", "Status": "inactive"}
 ```
 
-Returns `409` if an org tunnel with that name is currently active (already has a live WS connection).
-
 ### `GET /api/tunnels`
 
-List all tunnels visible to the caller.
-
-- Personal tunnel owners see their own tunnels
-- Org members see all org tunnels
+List tunnels visible to the caller. Personal tunnel owners see their own; org members see all org tunnels.
 
 ```json
 [
@@ -85,14 +78,14 @@ List all tunnels visible to the caller.
 
 ### `GET /api/ws?tunnel_id=<id>`
 
-Upgrades to WebSocket. The CLI calls this after creating a tunnel.
+Upgrades to WebSocket. Called by the CLI after creating a tunnel. Returns `409` if the tunnel already has an active connection.
 
-**On connect:** server sends ACK:
+**On connect**, server sends:
 ```json
 {"status": "connected", "tunnel_id": "uuid..."}
 ```
 
-**On webhook arrival:** server pushes:
+**On webhook arrival**, server pushes:
 ```json
 {
   "event_id": "uuid...",
@@ -103,15 +96,13 @@ Upgrades to WebSocket. The CLI calls this after creating a tunnel.
 }
 ```
 
-Returns `409` if the tunnel already has an active connection.
-
 ---
 
 ## Events
 
 ### `GET /api/events?tunnel_id=<id>&limit=<n>`
 
-List events for a tunnel. Default limit: 50. Max enforced by dashboard: 500.
+List events for a tunnel. Default limit: 50.
 
 ```json
 [
@@ -140,12 +131,10 @@ Re-send a stored event to a target URL. Executed server-side.
 {"target": "http://localhost:3000"}
 ```
 
-Returns the response from the target:
+Returns:
 ```json
 {"status": 200, "body": "ok", "ms": 23}
 ```
-
-Sets `replayed_at` on the event record.
 
 ---
 
@@ -187,10 +176,8 @@ All require `role = 'admin'`. Returns `403` otherwise.
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/admin/tunnels` | List all org tunnels |
-| `DELETE` | `/api/admin/tunnels/{id}` | Delete tunnel + all its events |
+| `DELETE` | `/api/admin/tunnels/{id}` | Delete tunnel and all its events |
 | `POST` | `/api/admin/tunnels/{id}/disconnect` | Force-disconnect active connection |
-
-`disconnect` calls `manager.Unregister(id)` + `store.SetTunnelInactive(id)`. The CLI will detect the WS close and attempt reconnect.
 
 ### Database
 
@@ -202,33 +189,24 @@ All require `role = 'admin'`. Returns `403` otherwise.
 
 ---
 
-## Webhook Ingestion (No Auth)
+## Webhook Ingestion
 
 ### `ANY /webhook/{subdomain}`
 
-Receives webhooks. No authentication. Accepts any HTTP method.
+No authentication. Accepts any HTTP method. Returns `202 Accepted` on success, `404` if subdomain is unknown.
 
-Returns `202 Accepted` on success, `404` if the subdomain doesn't map to a known tunnel.
-
-The path after the subdomain is preserved:  
+The full path after the subdomain is preserved:
 `POST /webhook/a1b2/payments/notify` → stored path is `/webhook/a1b2/payments/notify`
 
 ---
 
-## Auth Scoping Rules
+## Auth Scoping
 
 | Caller | Can access |
 |--------|-----------|
-| Any authenticated user | Their own tunnels and events |
+| Authenticated user | Their own tunnels and events |
 | Org member | All org tunnels and events |
-| Admin | `/api/admin/*`, can modify any user/org/tunnel in their org |
+| Admin | `/api/admin/*` — all users/tunnels in their org |
 | No auth | `/api/auth/login` and `/webhook/*` only |
 
-**Scoping note:** Admins operate within their own org. There is no super-admin that spans multiple orgs. Each org is a separate tenant. No cross-org access.
-
----
-
-## Related Notes
-
-- Auth middleware code → [[04 - Server]]
-- Data flow → [[03 - Data Flow]]
+Admins operate within their own org only. No cross-org access.
