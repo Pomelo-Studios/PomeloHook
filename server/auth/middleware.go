@@ -26,6 +26,38 @@ var (
 
 const cacheTTL = 5 * time.Minute
 
+func init() {
+	go func() {
+		for range time.Tick(cacheTTL) {
+			SweepExpiredCache()
+		}
+	}()
+}
+
+// SweepExpiredCache removes all entries whose TTL has elapsed.
+// Exported so tests can trigger a sweep synchronously.
+func SweepExpiredCache() {
+	now := time.Now()
+	cacheMu.Lock()
+	for k, e := range cache {
+		if now.After(e.expiresAt) {
+			delete(cache, k)
+		}
+	}
+	cacheMu.Unlock()
+}
+
+// ExpireCacheEntry backdates a cache entry's TTL so the next sweep removes it.
+// Only used in tests.
+func ExpireCacheEntry(key string) {
+	cacheMu.Lock()
+	if e, ok := cache[key]; ok {
+		e.expiresAt = time.Now().Add(-time.Second)
+		cache[key] = e
+	}
+	cacheMu.Unlock()
+}
+
 // InvalidateAPIKey removes a key from the auth cache. Call after key rotation.
 func InvalidateAPIKey(key string) {
 	cacheMu.Lock()
