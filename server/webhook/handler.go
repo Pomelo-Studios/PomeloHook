@@ -19,6 +19,8 @@ func NewHandler(s *store.Store, m *tunnel.Manager) *Handler {
 	return &Handler{store: s, manager: m}
 }
 
+const maxWebhookBodyBytes = 5 << 20 // 5 MB
+
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/webhook/"), "/", 2)
 	subdomain := parts[0]
@@ -29,9 +31,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bodyBytes, err := io.ReadAll(r.Body)
+	limited := io.LimitReader(r.Body, maxWebhookBodyBytes+1)
+	bodyBytes, err := io.ReadAll(limited)
 	if err != nil {
 		http.Error(w, "failed to read request body", http.StatusInternalServerError)
+		return
+	}
+	if int64(len(bodyBytes)) > maxWebhookBodyBytes {
+		http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
 		return
 	}
 	headerJSON, _ := json.Marshal(r.Header)
