@@ -98,6 +98,7 @@ func handleUpdateAdminUser(s *store.Store) http.HandlerFunc {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
+		auth.InvalidateAPIKey(updated.APIKey)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(updated)
 	}
@@ -107,10 +108,12 @@ func handleDeleteAdminUser(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		caller := auth.UserFromContext(r.Context())
 		id := r.PathValue("id")
-		if err := s.DeleteUser(id, caller.OrgID); err != nil {
+		deletedKey, err := s.DeleteUser(id, caller.OrgID)
+		if err != nil {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
+		auth.InvalidateAPIKey(deletedKey)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

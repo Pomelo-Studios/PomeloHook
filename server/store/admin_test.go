@@ -22,7 +22,7 @@ func TestDeleteUser_NotFound(t *testing.T) {
 	db, _ := openWithOrg(t)
 	defer db.Close()
 
-	err := db.DeleteUser("nonexistent-id", "org1")
+	_, err := db.DeleteUser("nonexistent-id", "org1")
 	if err != sql.ErrNoRows {
 		t.Fatalf("expected ErrNoRows, got %v", err)
 	}
@@ -43,7 +43,7 @@ func TestDeleteUser_WrongOrg(t *testing.T) {
 	defer db.Close()
 	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org2', 'Beta')")
 
-	err := db.DeleteUser(u.ID, "org2")
+	_, err := db.DeleteUser(u.ID, "org2")
 	if err != sql.ErrNoRows {
 		t.Fatalf("expected ErrNoRows for wrong org, got %v", err)
 	}
@@ -64,8 +64,9 @@ func TestDeleteUser(t *testing.T) {
 	db, u := openWithOrg(t)
 	defer db.Close()
 
-	require.NoError(t, db.DeleteUser(u.ID, "org1"))
-	_, err := db.GetUserByEmail("a@b.com")
+	_, err := db.DeleteUser(u.ID, "org1")
+	require.NoError(t, err)
+	_, err = db.GetUserByEmail("a@b.com")
 	require.Error(t, err)
 }
 

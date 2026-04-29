@@ -79,6 +79,77 @@ func TestMiddleware_CacheInvalidatedOnRotate(t *testing.T) {
 	}
 }
 
+func TestMiddleware_CacheInvalidatedOnDelete(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "del@b.com", Name: "D", Role: "member"})
+
+	handler := auth.Middleware(db, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+user.APIKey)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("pre-delete: expected 200, got %d", w.Code)
+	}
+
+	deletedKey, err := db.DeleteUser(user.ID, "org1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	auth.InvalidateAPIKey(deletedKey)
+
+	req2 := httptest.NewRequest(http.MethodGet, "/", nil)
+	req2.Header.Set("Authorization", "Bearer "+user.APIKey)
+	w2 := httptest.NewRecorder()
+	handler.ServeHTTP(w2, req2)
+	if w2.Code != http.StatusUnauthorized {
+		t.Fatalf("post-delete: expected 401, got %d", w2.Code)
+	}
+}
+
+func TestMiddleware_CacheInvalidatedOnRoleChange(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "role@b.com", Name: "R", Role: "admin"})
+
+	adminCheckHandler := auth.Middleware(db, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u := auth.UserFromContext(r.Context())
+		if u.Role != "member" {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+user.APIKey)
+	w := httptest.NewRecorder()
+	adminCheckHandler.ServeHTTP(w, req)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("pre-update: expected 403 (admin), got %d", w.Code)
+	}
+
+	updated, err := db.UpdateUser(user.ID, "org1", user.Email, user.Name, "member")
+	if err != nil {
+		t.Fatal(err)
+	}
+	auth.InvalidateAPIKey(updated.APIKey)
+
+	req2 := httptest.NewRequest(http.MethodGet, "/", nil)
+	req2.Header.Set("Authorization", "Bearer "+user.APIKey)
+	w2 := httptest.NewRecorder()
+	adminCheckHandler.ServeHTTP(w2, req2)
+	if w2.Code != http.StatusOK {
+		t.Fatalf("post-update: expected 200 (member), got %d", w2.Code)
+	}
+}
+
 func TestMiddlewareRejects401WithoutKey(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
