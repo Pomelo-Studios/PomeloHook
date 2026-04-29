@@ -2,6 +2,7 @@
 package store_test
 
 import (
+	"database/sql"
 	"testing"
 
 	"github.com/pomelo-studios/pomelo-hook/server/store"
@@ -14,6 +15,37 @@ func openWithOrg(t *testing.T) (*store.Store, *store.User) {
 	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	u, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "Alice", Role: "admin"})
 	return db, u
+}
+
+func TestDeleteUser_NotFound(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	err := db.DeleteUser("nonexistent-id", "org1")
+	if err != sql.ErrNoRows {
+		t.Fatalf("expected ErrNoRows, got %v", err)
+	}
+}
+
+func TestDeleteTunnel_NotFound(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	err := db.DeleteTunnel("nonexistent-id", "org1")
+	if err != sql.ErrNoRows {
+		t.Fatalf("expected ErrNoRows, got %v", err)
+	}
+}
+
+func TestDeleteUser_WrongOrg(t *testing.T) {
+	db, u := openWithOrg(t)
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org2', 'Beta')")
+
+	err := db.DeleteUser(u.ID, "org2")
+	if err != sql.ErrNoRows {
+		t.Fatalf("expected ErrNoRows for wrong org, got %v", err)
+	}
 }
 
 func TestUpdateUser(t *testing.T) {

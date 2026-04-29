@@ -43,11 +43,6 @@ func (s *Store) UpdateUser(id, orgID, email, name, role string) (*User, error) {
 }
 
 func (s *Store) DeleteUser(id, orgID string) error {
-	// verify target belongs to org before deleting
-	var count int
-	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&count); err != nil || count == 0 {
-		return sql.ErrNoRows
-	}
 	tx, err := s.DB.Begin()
 	if err != nil {
 		return err
@@ -59,8 +54,12 @@ func (s *Store) DeleteUser(id, orgID string) error {
 	if _, err = tx.Exec(`DELETE FROM tunnels WHERE user_id=?`, id); err != nil {
 		return err
 	}
-	if _, err = tx.Exec(`DELETE FROM users WHERE id=?`, id); err != nil {
+	res, err := tx.Exec(`DELETE FROM users WHERE id=? AND org_id=?`, id, orgID)
+	if err != nil {
 		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return sql.ErrNoRows
 	}
 	return tx.Commit()
 }
@@ -104,14 +103,6 @@ func (s *Store) ListAllTunnels(orgID string) ([]*Tunnel, error) {
 }
 
 func (s *Store) DeleteTunnel(id, orgID string) error {
-	// verify tunnel belongs to org before deleting
-	var count int
-	if err := s.DB.QueryRow(
-		`SELECT COUNT(*) FROM tunnels WHERE id=? AND (org_id=? OR user_id IN (SELECT id FROM users WHERE org_id=?))`,
-		id, orgID, orgID,
-	).Scan(&count); err != nil || count == 0 {
-		return sql.ErrNoRows
-	}
 	tx, err := s.DB.Begin()
 	if err != nil {
 		return err
@@ -120,8 +111,12 @@ func (s *Store) DeleteTunnel(id, orgID string) error {
 	if _, err = tx.Exec(`DELETE FROM webhook_events WHERE tunnel_id=?`, id); err != nil {
 		return err
 	}
-	if _, err = tx.Exec(`DELETE FROM tunnels WHERE id=?`, id); err != nil {
+	res, err := tx.Exec(`DELETE FROM tunnels WHERE id=? AND (org_id=? OR user_id IN (SELECT id FROM users WHERE org_id=?))`, id, orgID, orgID)
+	if err != nil {
 		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return sql.ErrNoRows
 	}
 	return tx.Commit()
 }
