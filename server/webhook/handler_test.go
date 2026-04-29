@@ -13,6 +13,23 @@ import (
 	wh "github.com/pomelo-studios/pomelo-hook/server/webhook"
 )
 
+func TestWebhookHandler_BodyTooLarge(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.DB.Exec("INSERT INTO tunnels (id, type, org_id, subdomain) VALUES ('t1','org','org1','bigtest')")
+
+	mgr := tunnel.NewManager()
+	handler := wh.NewHandler(db, mgr)
+
+	bigBody := strings.Repeat("x", 5<<20+1)
+	req := httptest.NewRequest(http.MethodPost, "/webhook/bigtest", strings.NewReader(bigBody))
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
+}
+
 func TestWebhookStoredWhenNoActiveTunnel(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()

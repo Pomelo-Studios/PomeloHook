@@ -2,6 +2,8 @@
 package store_test
 
 import (
+	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/pomelo-studios/pomelo-hook/server/store"
@@ -14,6 +16,37 @@ func openWithOrg(t *testing.T) (*store.Store, *store.User) {
 	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	u, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "Alice", Role: "admin"})
 	return db, u
+}
+
+func TestDeleteUser_NotFound(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	_, err := db.DeleteUser("nonexistent-id", "org1")
+	if err != sql.ErrNoRows {
+		t.Fatalf("expected ErrNoRows, got %v", err)
+	}
+}
+
+func TestDeleteTunnel_NotFound(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	err := db.DeleteTunnel("nonexistent-id", "org1")
+	if err != sql.ErrNoRows {
+		t.Fatalf("expected ErrNoRows, got %v", err)
+	}
+}
+
+func TestDeleteUser_WrongOrg(t *testing.T) {
+	db, u := openWithOrg(t)
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org2', 'Beta')")
+
+	_, err := db.DeleteUser(u.ID, "org2")
+	if err != sql.ErrNoRows {
+		t.Fatalf("expected ErrNoRows for wrong org, got %v", err)
+	}
 }
 
 func TestUpdateUser(t *testing.T) {
@@ -31,17 +64,40 @@ func TestDeleteUser(t *testing.T) {
 	db, u := openWithOrg(t)
 	defer db.Close()
 
-	require.NoError(t, db.DeleteUser(u.ID, "org1"))
-	_, err := db.GetUserByEmail("a@b.com")
+	_, err := db.DeleteUser(u.ID, "org1")
+	require.NoError(t, err)
+	_, err = db.GetUserByEmail("a@b.com")
 	require.Error(t, err)
+}
+
+func TestRotateAPIKey_NotFound(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	_, _, err := db.RotateAPIKey("nonexistent-id", "org1")
+	if !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("expected sql.ErrNoRows, got %v", err)
+	}
+}
+
+func TestRotateAPIKey_WrongOrg(t *testing.T) {
+	db, u := openWithOrg(t)
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org2', 'Beta')")
+
+	_, _, err := db.RotateAPIKey(u.ID, "org2")
+	if !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("expected sql.ErrNoRows for wrong org, got %v", err)
+	}
 }
 
 func TestRotateAPIKey(t *testing.T) {
 	db, u := openWithOrg(t)
 	defer db.Close()
 
-	newKey, err := db.RotateAPIKey(u.ID, "org1")
+	oldKey, newKey, err := db.RotateAPIKey(u.ID, "org1")
 	require.NoError(t, err)
+	require.Equal(t, u.APIKey, oldKey)
 	require.NotEqual(t, u.APIKey, newKey)
 	require.Contains(t, newKey, "ph_")
 }
@@ -65,6 +121,28 @@ func TestDeleteTunnel(t *testing.T) {
 	require.NoError(t, db.DeleteTunnel("t1", "org1"))
 	tunnels, _ := db.ListAllTunnels("org1")
 	require.Empty(t, tunnels)
+}
+
+func TestListTables_ReturnsCounts(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	tables, err := db.ListTables()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	counts := map[string]int{}
+	for _, tbl := range tables {
+		counts[tbl.Name] = tbl.RowCount
+	}
+
+	if counts["organizations"] < 1 {
+		t.Errorf("expected at least 1 org, got %d", counts["organizations"])
+	}
+	if counts["users"] < 1 {
+		t.Errorf("expected at least 1 user, got %d", counts["users"])
+	}
 }
 
 func TestListTables(t *testing.T) {

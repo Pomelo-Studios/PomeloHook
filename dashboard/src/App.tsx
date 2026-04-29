@@ -13,13 +13,19 @@ function useWSEvents(tunnelID: string, onEvent: (e: WebhookEvent) => void) {
     if (!tunnelID) return
     let ws: WebSocket
     let closed = false
+    let delay = 1000
 
     function connect() {
       ws = new WebSocket(`ws://${location.host}/api/events/stream?tunnel_id=${tunnelID}`)
       ws.onmessage = e => {
         try { onEventRef.current(JSON.parse(e.data) as WebhookEvent) } catch {}
       }
-      ws.onclose = () => { if (!closed) setTimeout(connect, 2000) }
+      ws.onopen = () => { delay = 1000 }
+      ws.onclose = () => {
+        if (!closed) {
+          setTimeout(() => { delay = Math.min(delay * 2, 30000); connect() }, delay)
+        }
+      }
       ws.onerror = () => ws.close()
     }
 
@@ -37,14 +43,13 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    api.getMe('').then(me => { if (me.role === 'admin') setIsAdmin(true) }).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    api.getTunnels().then(tunnels => {
-      const active = tunnels.find(t => t.Status === 'active')
-      if (active) { setTunnelID(active.ID); setTunnelSubdomain(active.Subdomain) }
-    }).catch(() => {})
+    Promise.all([api.getMe(''), api.getTunnels()])
+      .then(([me, tunnels]) => {
+        if (me.role === 'admin') setIsAdmin(true)
+        const active = tunnels.find(t => t.Status === 'active')
+        if (active) { setTunnelID(active.ID); setTunnelSubdomain(active.Subdomain) }
+      })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -52,7 +57,7 @@ export default function App() {
     api.getEvents(tunnelID, 100).then(setEvents).catch(() => {})
   }, [tunnelID])
 
-  useWSEvents(tunnelID, event => setEvents(prev => [event, ...prev].slice(0, 500)))
+  useWSEvents(tunnelID, event => setEvents(prev => [event, ...prev].slice(0, 100)))
 
   const handleReplay = useCallback(async (eventID: string, targetURL: string) => {
     setReplayError(null)

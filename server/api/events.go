@@ -13,6 +13,8 @@ import (
 	"github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
+var replayClient = &http.Client{Timeout: 15 * time.Second}
+
 func canAccessTunnel(user *store.User, tun *store.Tunnel) bool {
 	return tun.UserID == user.ID || tun.OrgID == user.OrgID
 }
@@ -97,7 +99,7 @@ func replayHTTP(event *store.WebhookEvent, targetURL string) (*http.Response, in
 	}
 	req.Header.Set("Content-Type", "application/json")
 	start := time.Now()
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := replayClient.Do(req)
 	ms := time.Since(start).Milliseconds()
 	if err != nil {
 		return nil, 0, err

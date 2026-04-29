@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -19,6 +20,8 @@ func NewHandler(s *store.Store, m *tunnel.Manager) *Handler {
 	return &Handler{store: s, manager: m}
 }
 
+const maxWebhookBodyBytes = 5 << 20 // 5 MB
+
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/webhook/"), "/", 2)
 	subdomain := parts[0]
@@ -29,8 +32,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxWebhookBodyBytes)
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "failed to read request body", http.StatusInternalServerError)
 		return
 	}

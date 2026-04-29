@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -12,12 +13,19 @@ import (
 	"github.com/pomelo-studios/pomelo-hook/cli/forward"
 )
 
+var wsDialer = &websocket.Dialer{
+	HandshakeTimeout: 10 * time.Second,
+	Proxy:            http.ProxyFromEnvironment,
+}
+
 type Client struct {
 	serverURL string
 	apiKey    string
 	tunnelID  string
 	forwarder *forward.Forwarder
 	onEvent   func(result *forward.ForwardResult)
+	sem       chan struct{}
+	rng       *rand.Rand
 }
 
 type Options struct {
@@ -35,6 +43,8 @@ func New(opts Options) *Client {
 		tunnelID:  opts.TunnelID,
 		forwarder: forward.New("http://localhost:" + opts.LocalPort),
 		onEvent:   opts.OnEvent,
+		sem:       make(chan struct{}, 8),
+		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -44,15 +54,16 @@ func (c *Client) Connect() error {
 
 	var attempt int
 	for {
-		conn, _, err := websocket.DefaultDialer.Dial(wsURL, headers)
+		conn, _, err := wsDialer.Dial(wsURL, headers)
 		if err != nil {
 			attempt++
 			if attempt > 5 {
 				return fmt.Errorf("could not connect after 5 attempts: %w", err)
 			}
 			wait := time.Duration(1<<attempt) * time.Second
-			log.Printf("reconnecting in %s...", wait)
-			time.Sleep(wait)
+			jitter := time.Duration(c.rng.Int63n(int64(wait / 2)))
+			log.Printf("reconnecting in %s...", wait+jitter)
+			time.Sleep(wait + jitter)
 			continue
 		}
 		attempt = 0
@@ -74,7 +85,9 @@ func (c *Client) pump(conn *websocket.Conn) error {
 		if json.Unmarshal(msg, &ack) == nil && ack["status"] == "connected" {
 			continue
 		}
+		c.sem <- struct{}{}
 		go func(payload []byte) {
+			defer func() { <-c.sem }()
 			result, err := c.forwarder.Forward(payload)
 			if err != nil {
 				log.Printf("forward error: %v", err)
