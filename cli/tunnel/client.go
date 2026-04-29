@@ -12,6 +12,11 @@ import (
 	"github.com/pomelo-studios/pomelo-hook/cli/forward"
 )
 
+var wsDialer = &websocket.Dialer{
+	HandshakeTimeout: 10 * time.Second,
+	Proxy:            http.ProxyFromEnvironment,
+}
+
 type Client struct {
 	serverURL string
 	apiKey    string
@@ -44,7 +49,7 @@ func (c *Client) Connect() error {
 
 	var attempt int
 	for {
-		conn, _, err := websocket.DefaultDialer.Dial(wsURL, headers)
+		conn, _, err := wsDialer.Dial(wsURL, headers)
 		if err != nil {
 			attempt++
 			if attempt > 5 {
