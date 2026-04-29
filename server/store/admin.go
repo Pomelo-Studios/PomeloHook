@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -66,7 +67,10 @@ func (s *Store) DeleteUser(id, orgID string) error {
 
 func (s *Store) RotateAPIKey(id, orgID string) (oldKey, newKey string, err error) {
 	if err = s.DB.QueryRow(`SELECT api_key FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&oldKey); err != nil {
-		return "", "", sql.ErrNoRows
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", "", sql.ErrNoRows
+		}
+		return "", "", err
 	}
 	newKey, err = generateAPIKey()
 	if err != nil {

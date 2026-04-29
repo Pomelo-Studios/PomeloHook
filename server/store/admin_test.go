@@ -3,6 +3,7 @@ package store_test
 
 import (
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/pomelo-studios/pomelo-hook/server/store"
@@ -66,6 +67,27 @@ func TestDeleteUser(t *testing.T) {
 	require.NoError(t, db.DeleteUser(u.ID, "org1"))
 	_, err := db.GetUserByEmail("a@b.com")
 	require.Error(t, err)
+}
+
+func TestRotateAPIKey_NotFound(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	_, _, err := db.RotateAPIKey("nonexistent-id", "org1")
+	if !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("expected sql.ErrNoRows, got %v", err)
+	}
+}
+
+func TestRotateAPIKey_WrongOrg(t *testing.T) {
+	db, u := openWithOrg(t)
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org2', 'Beta')")
+
+	_, _, err := db.RotateAPIKey(u.ID, "org2")
+	if !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("expected sql.ErrNoRows for wrong org, got %v", err)
+	}
 }
 
 func TestRotateAPIKey(t *testing.T) {
