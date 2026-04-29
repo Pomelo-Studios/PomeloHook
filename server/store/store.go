@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -17,7 +18,11 @@ func Open(dsn string) (*Store, error) {
 	if dsn == ":memory:" {
 		dsn = "file::memory:?mode=memory&_pragma=foreign_keys(1)"
 	} else {
-		dsn = dsn + "?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
+		sep := "?"
+		if strings.Contains(dsn, "?") {
+			sep = "&"
+		}
+		dsn = dsn + sep + "_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
 	}
 
 	db, err := sql.Open("sqlite", dsn)

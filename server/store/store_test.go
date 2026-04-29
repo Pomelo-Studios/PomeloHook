@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -51,4 +52,14 @@ func TestOpenCreatesSchema(t *testing.T) {
 
 	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Test Org')")
 	require.NoError(t, err)
+}
+
+func TestOpen_DSNWithExistingQueryParams(t *testing.T) {
+	dir := t.TempDir()
+	dsn := "file:" + filepath.Join(dir, "test.db") + "?cache=shared"
+	db, err := store.Open(dsn)
+	if err != nil {
+		t.Fatalf("open DSN with existing query params: %v", err)
+	}
+	defer db.Close()
 }
