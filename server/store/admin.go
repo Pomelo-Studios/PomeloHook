@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -42,42 +43,56 @@ func (s *Store) UpdateUser(id, orgID, email, name, role string) (*User, error) {
 	return u, row.Scan(&u.ID, &u.OrgID, &u.Email, &u.Name, &u.APIKey, &u.Role)
 }
 
-func (s *Store) DeleteUser(id, orgID string) error {
-	// verify target belongs to org before deleting
-	var count int
-	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&count); err != nil || count == 0 {
-		return sql.ErrNoRows
+func (s *Store) DeleteUser(id, orgID string) (deletedKey string, err error) {
+	// Read key before deleting so the caller can invalidate the auth cache
+	err = s.DB.QueryRow(`SELECT api_key FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&deletedKey)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", sql.ErrNoRows
 	}
-	tx, err := s.DB.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	if _, err = tx.Exec(`DELETE FROM webhook_events WHERE tunnel_id IN (SELECT id FROM tunnels WHERE user_id=?)`, id); err != nil {
-		return err
-	}
-	if _, err = tx.Exec(`DELETE FROM tunnels WHERE user_id=?`, id); err != nil {
-		return err
-	}
-	if _, err = tx.Exec(`DELETE FROM users WHERE id=?`, id); err != nil {
-		return err
-	}
-	return tx.Commit()
-}
-
-func (s *Store) RotateAPIKey(id, orgID string) (string, error) {
-	key, err := generateAPIKey()
 	if err != nil {
 		return "", err
 	}
-	res, err := s.DB.Exec(`UPDATE users SET api_key=? WHERE id=? AND org_id=?`, key, id, orgID)
+
+	tx, err := s.DB.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+	if _, err = tx.Exec(`DELETE FROM webhook_events WHERE tunnel_id IN (SELECT id FROM tunnels WHERE user_id=?)`, id); err != nil {
+		return "", err
+	}
+	if _, err = tx.Exec(`DELETE FROM tunnels WHERE user_id=?`, id); err != nil {
+		return "", err
+	}
+	res, err := tx.Exec(`DELETE FROM users WHERE id=? AND org_id=?`, id, orgID)
 	if err != nil {
 		return "", err
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
 		return "", sql.ErrNoRows
 	}
-	return key, nil
+	return deletedKey, tx.Commit()
+}
+
+func (s *Store) RotateAPIKey(id, orgID string) (oldKey, newKey string, err error) {
+	if err = s.DB.QueryRow(`SELECT api_key FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&oldKey); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", "", sql.ErrNoRows
+		}
+		return "", "", err
+	}
+	newKey, err = generateAPIKey()
+	if err != nil {
+		return "", "", err
+	}
+	res, err := s.DB.Exec(`UPDATE users SET api_key=? WHERE id=? AND org_id=?`, newKey, id, orgID)
+	if err != nil {
+		return "", "", err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return "", "", sql.ErrNoRows
+	}
+	return oldKey, newKey, nil
 }
 
 func (s *Store) ListAllTunnels(orgID string) ([]*Tunnel, error) {
@@ -101,14 +116,6 @@ func (s *Store) ListAllTunnels(orgID string) ([]*Tunnel, error) {
 }
 
 func (s *Store) DeleteTunnel(id, orgID string) error {
-	// verify tunnel belongs to org before deleting
-	var count int
-	if err := s.DB.QueryRow(
-		`SELECT COUNT(*) FROM tunnels WHERE id=? AND (org_id=? OR user_id IN (SELECT id FROM users WHERE org_id=?))`,
-		id, orgID, orgID,
-	).Scan(&count); err != nil || count == 0 {
-		return sql.ErrNoRows
-	}
 	tx, err := s.DB.Begin()
 	if err != nil {
 		return err
@@ -117,8 +124,12 @@ func (s *Store) DeleteTunnel(id, orgID string) error {
 	if _, err = tx.Exec(`DELETE FROM webhook_events WHERE tunnel_id=?`, id); err != nil {
 		return err
 	}
-	if _, err = tx.Exec(`DELETE FROM tunnels WHERE id=?`, id); err != nil {
+	res, err := tx.Exec(`DELETE FROM tunnels WHERE id=? AND (org_id=? OR user_id IN (SELECT id FROM users WHERE org_id=?))`, id, orgID, orgID)
+	if err != nil {
 		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return sql.ErrNoRows
 	}
 	return tx.Commit()
 }
@@ -133,33 +144,27 @@ func (s *Store) TunnelBelongsToOrg(id, orgID string) (bool, error) {
 }
 
 func (s *Store) ListTables() ([]TableInfo, error) {
-	rows, err := s.DB.Query(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
+	const q = `
+		SELECT 'organizations', COUNT(*) FROM organizations
+		UNION ALL SELECT 'tunnels',        COUNT(*) FROM tunnels
+		UNION ALL SELECT 'users',          COUNT(*) FROM users
+		UNION ALL SELECT 'webhook_events', COUNT(*) FROM webhook_events
+	`
+	rows, err := s.DB.Query(q)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var names []string
+
+	var tables []TableInfo
 	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
+		var t TableInfo
+		if err := rows.Scan(&t.Name, &t.RowCount); err != nil {
 			return nil, err
 		}
-		names = append(names, name)
+		tables = append(tables, t)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	tables := make([]TableInfo, 0, len(names))
-	for _, name := range names {
-		if !allowedTables[name] {
-			continue
-		}
-		var count int
-		s.DB.QueryRow(fmt.Sprintf(`SELECT COUNT(*) FROM %s`, name)).Scan(&count) //nolint:gosec — name from sqlite_master, filtered by allowedTables
-		tables = append(tables, TableInfo{Name: name, RowCount: count})
-	}
-	return tables, nil
+	return tables, rows.Err()
 }
 
 func (s *Store) GetTableRows(name string, limit, offset int) (*TableResult, error) {

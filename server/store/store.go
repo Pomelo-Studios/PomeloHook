@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -17,7 +18,11 @@ func Open(dsn string) (*Store, error) {
 	if dsn == ":memory:" {
 		dsn = "file::memory:?mode=memory&_pragma=foreign_keys(1)"
 	} else {
-		dsn = dsn + "?_pragma=foreign_keys(1)"
+		sep := "?"
+		if strings.Contains(dsn, "?") {
+			sep = "&"
+		}
+		dsn = dsn + sep + "_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
 	}
 
 	db, err := sql.Open("sqlite", dsn)
@@ -94,6 +99,9 @@ func migrate(db *sql.DB) error {
 		);
 		CREATE INDEX IF NOT EXISTS idx_events_tunnel_received
 			ON webhook_events (tunnel_id, received_at);
+		CREATE INDEX IF NOT EXISTS idx_tunnels_user_id ON tunnels (user_id);
+		CREATE INDEX IF NOT EXISTS idx_tunnels_org_id  ON tunnels (org_id);
+		CREATE INDEX IF NOT EXISTS idx_tunnels_status   ON tunnels (status);
 	`)
 	if err != nil {
 		return err
