@@ -43,26 +43,35 @@ func (s *Store) UpdateUser(id, orgID, email, name, role string) (*User, error) {
 	return u, row.Scan(&u.ID, &u.OrgID, &u.Email, &u.Name, &u.APIKey, &u.Role)
 }
 
-func (s *Store) DeleteUser(id, orgID string) error {
+func (s *Store) DeleteUser(id, orgID string) (deletedKey string, err error) {
+	// Read key before deleting so the caller can invalidate the auth cache
+	err = s.DB.QueryRow(`SELECT api_key FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&deletedKey)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", sql.ErrNoRows
+	}
+	if err != nil {
+		return "", err
+	}
+
 	tx, err := s.DB.Begin()
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer tx.Rollback()
 	if _, err = tx.Exec(`DELETE FROM webhook_events WHERE tunnel_id IN (SELECT id FROM tunnels WHERE user_id=?)`, id); err != nil {
-		return err
+		return "", err
 	}
 	if _, err = tx.Exec(`DELETE FROM tunnels WHERE user_id=?`, id); err != nil {
-		return err
+		return "", err
 	}
 	res, err := tx.Exec(`DELETE FROM users WHERE id=? AND org_id=?`, id, orgID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
-		return sql.ErrNoRows
+		return "", sql.ErrNoRows
 	}
-	return tx.Commit()
+	return deletedKey, tx.Commit()
 }
 
 func (s *Store) RotateAPIKey(id, orgID string) (oldKey, newKey string, err error) {
