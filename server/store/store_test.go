@@ -7,6 +7,22 @@ import (
 	"github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
+func TestStore_WALModeEnabled(t *testing.T) {
+	s, err := store.Open(t.TempDir() + "/test.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	var mode string
+	if err := s.DB.QueryRow("PRAGMA journal_mode").Scan(&mode); err != nil {
+		t.Fatal(err)
+	}
+	if mode != "wal" {
+		t.Fatalf("expected journal_mode=wal, got %q", mode)
+	}
+}
+
 func TestOpenCreatesSchema(t *testing.T) {
 	db, err := store.Open(":memory:")
 	require.NoError(t, err)
