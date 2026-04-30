@@ -12,6 +12,7 @@ import (
 func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("GET /api/health", handleHealth())
 	mux.HandleFunc("POST /api/auth/login", handleLogin(s))
 	mux.Handle("GET /api/ws", auth.Middleware(s, http.HandlerFunc(handleWSConnect(s, m))))
 	mux.Handle("GET /api/me", auth.Middleware(s, http.HandlerFunc(handleGetMe())))

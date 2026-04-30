@@ -1,0 +1,10 @@
+services:
+  pomelo-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    volumes:
+      - ./data:/data
+      - ./server:/src/server
+      - ./cli:/src/cli
+      - ./dashboard:/app
