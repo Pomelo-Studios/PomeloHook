@@ -30,24 +30,19 @@ var allowedTables = map[string]bool{
 }
 
 var allowedPragmas = map[string]bool{
-	"table_info":       true,
-	"table_xinfo":      true,
-	"index_info":       true,
-	"index_list":       true,
-	"foreign_key_list": true,
-	"database_list":    true,
-	"compile_options":  true,
-	"integrity_check":  true,
-	"quick_check":      true,
+	"table_info":        true,
+	"table_xinfo":       true,
+	"index_info":        true,
+	"index_list":        true,
+	"foreign_key_list":  true,
+	"database_list":     true,
+	"compile_options":   true,
+	"integrity_check":   true,
+	"quick_check":       true,
 	"foreign_key_check": true,
-	"page_count":       true,
-	"page_size":        true,
-	"max_page_count":   true,
-	"freelist_count":   true,
-	"schema_version":   true,
-	"user_version":     true,
-	"data_version":     true,
-	"encoding":         true,
+	"page_count":        true,
+	"freelist_count":    true,
+	"data_version":      true,
 }
 
 func (s *Store) UpdateUser(id, orgID, email, name, role string) (*User, error) {
