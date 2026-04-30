@@ -6,6 +6,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Vers
 
 ---
 
+## [1.11.0] — 2026-04-30
+
+### Added
+- Fan-out org tunnel: multiple CLI subscribers can now receive the same webhook simultaneously
+- WebSocket handler registers and unregisters individual subscribers per connection
+
+### Changed
+- Webhook handler uses `Broadcast` instead of direct `manager.Get` + send
+- `Unregister` now returns `wasLast` boolean; admin disconnect/delete handlers use `UnregisterAll`
+- Removed `owners` field from tunnel manager; webhook marshal errors are now guarded
+
+---
+
 ## [1.8.0] — 2026-04-30
 
 ### Added
