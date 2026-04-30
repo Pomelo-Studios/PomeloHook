@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/pomelo-studios/pomelo-hook/cli/config"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var loginCmd = &cobra.Command{
@@ -28,7 +30,14 @@ func init() {
 }
 
 func runLogin(cmd *cobra.Command, args []string) error {
-	payload, err := json.Marshal(map[string]string{"email": email})
+	fmt.Print("Password: ")
+	passBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		return fmt.Errorf("failed to read password: %w", err)
+	}
+	fmt.Println()
+
+	payload, err := json.Marshal(map[string]string{"email": email, "password": string(passBytes)})
 	if err != nil {
 		return fmt.Errorf("failed to encode request: %w", err)
 	}
@@ -38,7 +47,8 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("login failed: server returned %d", resp.StatusCode)
+		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return fmt.Errorf("login failed: %s", string(msg))
 	}
 	var result struct {
 		APIKey string `json:"api_key"`
