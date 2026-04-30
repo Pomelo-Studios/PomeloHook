@@ -7,7 +7,7 @@ COPY dashboard/ ./
 RUN npm run build
 
 # Stage 2: build Go server binary
-FROM golang:1.22-alpine AS go-builder
+FROM golang:1.26-alpine AS go-builder
 WORKDIR /src
 
 # Copy dashboard build output required by go:embed
