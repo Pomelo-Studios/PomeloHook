@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pomelo-studios/pomelo-hook/server/auth"
@@ -60,6 +61,10 @@ func validateReplayURL(raw string) error {
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return errSSRFScheme
+	}
+	host := strings.ToLower(u.Hostname())
+	if host == "localhost" || strings.HasSuffix(host, ".local") || strings.HasSuffix(host, ".internal") {
+		return fmt.Errorf("ssrf guard: target hostname %q is not allowed", host)
 	}
 	return nil
 }
