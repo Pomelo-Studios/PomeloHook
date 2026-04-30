@@ -18,8 +18,9 @@ type TableResult struct {
 }
 
 type QueryResult struct {
-	Columns []string `json:"columns"`
-	Rows    [][]any  `json:"rows"`
+	Columns  []string `json:"columns"`
+	Rows     [][]any  `json:"rows"`
+	Affected int      `json:"affected"`
 }
 
 var allowedTables = map[string]bool{
@@ -188,8 +189,16 @@ func (s *Store) GetTableRows(name string, limit, offset int) (*TableResult, erro
 
 func (s *Store) RunQuery(query string) (*QueryResult, error) {
 	upper := strings.TrimSpace(strings.ToUpper(query))
-	if !strings.HasPrefix(upper, "SELECT") && !strings.HasPrefix(upper, "EXPLAIN") && !strings.HasPrefix(upper, "PRAGMA") {
-		return nil, fmt.Errorf("only SELECT, EXPLAIN, and PRAGMA queries are allowed")
+	switch {
+	case strings.HasPrefix(upper, "SELECT"), strings.HasPrefix(upper, "EXPLAIN"):
+		// allowed
+	case strings.HasPrefix(upper, "PRAGMA"):
+		rest := strings.TrimSpace(upper[len("PRAGMA"):])
+		if strings.ContainsAny(rest, "=(") {
+			return nil, fmt.Errorf("write PRAGMA statements are not allowed")
+		}
+	default:
+		return nil, fmt.Errorf("only SELECT, EXPLAIN, and read-only PRAGMA queries are allowed")
 	}
 	rows, err := s.DB.Query(query)
 	if err != nil {
