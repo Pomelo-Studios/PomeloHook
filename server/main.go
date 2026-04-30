@@ -39,6 +39,8 @@ func main() {
 	dh := dashboardHandler()
 	mux.Handle("/admin", dh)
 	mux.Handle("/admin/", dh)
+	mux.Handle("/app", dh)
+	mux.Handle("/app/", dh)
 	mux.Handle("/assets/", dh)
 	mux.HandleFunc("/favicon.svg", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
