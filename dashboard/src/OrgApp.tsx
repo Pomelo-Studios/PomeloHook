@@ -14,23 +14,25 @@ export function OrgApp() {
   const { apiKey, isServerMode, loading, login, logout } = useAuth()
   const [tab, setTab] = useState<Tab>('personal')
   const [tunnels, setTunnels] = useState<Tunnel[]>([])
-  const [selectedTunnel, setSelectedTunnel] = useState<Tunnel | null>(null)
+  const [selectedTunnelID, setSelectedTunnelID] = useState<string | null>(null)
   const [events, setEvents] = useState<WebhookEvent[]>([])
   const [selectedEvent, setSelectedEvent] = useState<WebhookEvent | null>(null)
   const [replayError, setReplayError] = useState<string | null>(null)
+
+  const selectedTunnel = tunnels.find(t => t.ID === selectedTunnelID) ?? null
 
   useEffect(() => {
     if (loading || (isServerMode && !apiKey)) return
 
     function fetchTunnels() {
       const req = tab === 'personal'
-        ? api.org.getPersonalTunnels(apiKey)
+        ? api.org.getUserTunnels(apiKey)
         : api.org.getTunnels(apiKey)
       req.then(data => {
         const filtered = tab === 'personal' ? data.filter(t => t.Type === 'personal') : data
         setTunnels(filtered)
-        setSelectedTunnel(prev =>
-          prev ? (filtered.find(t => t.ID === prev.ID) ?? filtered[0] ?? null) : (filtered[0] ?? null)
+        setSelectedTunnelID(prev =>
+          filtered.some(t => t.ID === prev) ? prev : (filtered[0]?.ID ?? null)
         )
       }).catch(() => {})
     }
@@ -41,17 +43,16 @@ export function OrgApp() {
   }, [loading, isServerMode, apiKey, tab])
 
   useEffect(() => {
-    if (!selectedTunnel) { setEvents([]); return }
-    const tunnelID = selectedTunnel.ID
+    if (!selectedTunnelID) { setEvents([]); return }
 
     function fetchEvents() {
-      api.getEvents(tunnelID, 100).then(setEvents).catch(() => {})
+      api.getEvents(selectedTunnelID, 100).then(setEvents).catch(() => {})
     }
 
     fetchEvents()
     const id = setInterval(fetchEvents, 5000)
     return () => clearInterval(id)
-  }, [selectedTunnel?.ID])
+  }, [selectedTunnelID])
 
   const handleReplay = useCallback(async (eventID: string, targetURL: string) => {
     setReplayError(null)
@@ -87,7 +88,7 @@ export function OrgApp() {
           {(['personal', 'org'] as Tab[]).map(t => (
             <button
               key={t}
-              onClick={() => { setTab(t); setSelectedTunnel(null); setSelectedEvent(null) }}
+              onClick={() => { setTab(t); setSelectedTunnelID(null); setSelectedEvent(null) }}
               className="px-3 py-1 rounded text-[11px] font-semibold capitalize transition-colors"
               style={
                 tab === t
@@ -119,8 +120,8 @@ export function OrgApp() {
         >
           <TunnelList
             tunnels={tunnels}
-            selectedID={selectedTunnel?.ID ?? null}
-            onSelect={t => { setSelectedTunnel(t); setSelectedEvent(null) }}
+            selectedID={selectedTunnelID}
+            onSelect={t => { setSelectedTunnelID(t.ID); setSelectedEvent(null) }}
           />
         </div>
 
