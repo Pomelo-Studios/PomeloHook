@@ -228,7 +228,7 @@ func handleDeleteAdminTunnel(s *store.Store, m *tunnel.Manager) http.HandlerFunc
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
-		m.Unregister(id)
+		m.UnregisterAll(id)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
@@ -250,7 +250,7 @@ func handleDisconnectTunnel(s *store.Store, m *tunnel.Manager) http.HandlerFunc 
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		m.Unregister(id)
+		m.UnregisterAll(id)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

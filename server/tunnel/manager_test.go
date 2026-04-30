@@ -1,48 +1,115 @@
 package tunnel_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
 	"github.com/pomelo-studios/pomelo-hook/server/tunnel"
 )
 
-func TestCheckAndRegister(t *testing.T) {
+func TestRegisterReturnsChannel(t *testing.T) {
 	m := tunnel.NewManager()
-	ch := make(chan []byte, 1)
-	err := m.CheckAndRegister("tunnel-1", "user-1", "Alice", ch)
-	require.NoError(t, err)
-	got, ok := m.Get("tunnel-1")
-	require.True(t, ok)
-	require.Equal(t, ch, got)
+	ch := m.Register("tunnel-1", "Alice")
+	require.NotNil(t, ch)
+	require.Equal(t, 1, m.SubCount("tunnel-1"))
 }
 
-func TestCheckAndRegisterConflict(t *testing.T) {
+func TestRegisterTwiceAllowsBoth(t *testing.T) {
 	m := tunnel.NewManager()
-	ch1 := make(chan []byte, 1)
-	ch2 := make(chan []byte, 1)
-	require.NoError(t, m.CheckAndRegister("tunnel-1", "user-1", "Alice", ch1))
-	err := m.CheckAndRegister("tunnel-1", "user-2", "Bob", ch2)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Alice")
+	ch1 := m.Register("tunnel-1", "Alice")
+	ch2 := m.Register("tunnel-1", "Bob")
+	require.NotEqual(t, ch1, ch2)
+	require.Equal(t, 2, m.SubCount("tunnel-1"))
 }
 
-func TestUnregisterClosesChannel(t *testing.T) {
+func TestBroadcastFansOutToAllSubscribers(t *testing.T) {
 	m := tunnel.NewManager()
-	ch := make(chan []byte, 1)
-	require.NoError(t, m.CheckAndRegister("tunnel-1", "user-1", "Alice", ch))
-	m.Unregister("tunnel-1")
-	_, ok := m.Get("tunnel-1")
-	require.False(t, ok)
-	// channel should be closed
-	_, open := <-ch
+	ch1 := m.Register("tunnel-1", "Alice")
+	ch2 := m.Register("tunnel-1", "Bob")
+	ch3 := m.Register("tunnel-1", "Carol")
+
+	m.Broadcast("tunnel-1", []byte("hello"))
+
+	require.Equal(t, []byte("hello"), <-ch1)
+	require.Equal(t, []byte("hello"), <-ch2)
+	require.Equal(t, []byte("hello"), <-ch3)
+}
+
+func TestBroadcastToEmptyListNoPanic(t *testing.T) {
+	m := tunnel.NewManager()
+	require.NotPanics(t, func() {
+		m.Broadcast("no-such-tunnel", []byte("hello"))
+	})
+}
+
+func TestUnregisterRemovesSubscriberAndClosesChannel(t *testing.T) {
+	m := tunnel.NewManager()
+	ch1 := m.Register("tunnel-1", "Alice")
+	ch2 := m.Register("tunnel-1", "Bob")
+
+	m.Unregister("tunnel-1", ch1)
+
+	require.Equal(t, 1, m.SubCount("tunnel-1"))
+	_, open := <-ch1
+	require.False(t, open, "unregistered channel must be closed")
+
+	// Bob's channel still works
+	m.Broadcast("tunnel-1", []byte("ping"))
+	require.Equal(t, []byte("ping"), <-ch2)
+}
+
+func TestUnregisterLastSubscriberDeletesKey(t *testing.T) {
+	m := tunnel.NewManager()
+	ch := m.Register("tunnel-1", "Alice")
+	m.Unregister("tunnel-1", ch)
+	require.Equal(t, 0, m.SubCount("tunnel-1"))
+}
+
+func TestUnregisterAllClosesEveryChannel(t *testing.T) {
+	m := tunnel.NewManager()
+	ch1 := m.Register("tunnel-1", "Alice")
+	ch2 := m.Register("tunnel-1", "Bob")
+
+	m.UnregisterAll("tunnel-1")
+
+	require.Equal(t, 0, m.SubCount("tunnel-1"))
+	_, open := <-ch1
+	require.False(t, open)
+	_, open = <-ch2
 	require.False(t, open)
 }
 
-func TestUnregisterIdempotent(t *testing.T) {
+func TestUnregisterAllNoPanicOnMissingTunnel(t *testing.T) {
 	m := tunnel.NewManager()
-	ch := make(chan []byte, 1)
-	require.NoError(t, m.CheckAndRegister("tunnel-1", "user-1", "Alice", ch))
-	m.Unregister("tunnel-1")
-	require.NotPanics(t, func() { m.Unregister("tunnel-1") })
+	require.NotPanics(t, func() {
+		m.UnregisterAll("no-such-tunnel")
+	})
+}
+
+func TestBroadcastConcurrentSafe(t *testing.T) {
+	m := tunnel.NewManager()
+	const n = 10
+	channels := make([]chan []byte, n)
+	for i := 0; i < n; i++ {
+		channels[i] = m.Register("tunnel-1", "user")
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		m.Broadcast("tunnel-1", []byte("msg"))
+	}()
+	wg.Wait()
+
+	for _, ch := range channels {
+		select {
+		case got := <-ch:
+			require.Equal(t, []byte("msg"), got)
+		default:
+			t.Fatal("expected message in channel but got none")
+		}
+	}
 }
