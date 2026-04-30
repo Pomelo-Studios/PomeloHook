@@ -41,8 +41,7 @@ func handleWSConnect(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 		}
 
 		defer func() {
-			m.Unregister(tunnelID, ch)
-			if m.SubCount(tunnelID) == 0 {
+			if m.Unregister(tunnelID, ch) {
 				if err := s.SetTunnelInactive(tunnelID); err != nil {
 					log.Printf("warn: SetTunnelInactive %s: %v", tunnelID, err)
 				}
