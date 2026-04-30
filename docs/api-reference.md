@@ -10,6 +10,14 @@ Authorization: Bearer <api_key>
 
 ---
 
+## Health
+
+### `GET /api/health`
+
+No auth required. Returns `200 OK` with `{"status": "ok"}` when the server is running. Used by Docker healthcheck and load balancer probes.
+
+---
+
 ## Auth
 
 ### `POST /api/auth/login`
@@ -78,7 +86,7 @@ List tunnels visible to the caller. Personal tunnel owners see their own; org me
 
 ### `GET /api/ws?tunnel_id=<id>`
 
-Upgrades to WebSocket. Called by the CLI after creating a tunnel. Returns `409` if the tunnel already has an active connection.
+Upgrades to WebSocket. Called by the CLI after creating a tunnel. Multiple subscribers on the same tunnel are allowed — each receives its own copy of every webhook payload via fan-out.
 
 The CLI sends its hostname as a `device` query parameter on connect (`?tunnel_id=<id>&device=<hostname>`). The server stores this as `active_device` on the tunnel and clears it on disconnect.
 

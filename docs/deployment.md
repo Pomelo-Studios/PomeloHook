@@ -49,24 +49,58 @@ pomelo-hook-server
 
 The server listens on `:8080` and creates `pomelodata.db` on first run.
 
-### 4. Seed the first org and admin user
+### 4. Initialize your first organization and admin user
+
+Run the interactive init command on first setup:
 
 ```bash
-sqlite3 pomelodata.db <<'SQL'
-INSERT INTO organizations (id, name) VALUES ('org_1', 'My Org');
-INSERT INTO users (id, org_id, email, name, api_key, role)
-VALUES ('usr_1', 'org_1', 'you@example.com', 'Your Name',
-        'ph_' || lower(hex(randomblob(24))), 'admin');
-SQL
+pomelo-hook-server init
 ```
 
-Retrieve your API key:
+It will prompt for:
+- Organization name
+- Admin name and email
+- Admin password (min 8 characters, input hidden)
+
+On success it prints your API key — save it. You can then log in with the CLI:
 
 ```bash
-sqlite3 pomelodata.db "SELECT api_key FROM users WHERE email='you@example.com';"
+pomelo-hook login --server https://your-server.com --email you@example.com
 ```
 
-After this, use the admin panel at `https://your-server.com/admin` to manage all users.
+After this, use the admin panel at `https://your-server.com/admin` to manage additional users.
+
+---
+
+## Docker Deployment
+
+The repo ships a `docker-compose.yml` for production and `docker-compose.dev.yml` for local development with source mounts.
+
+### Production
+
+Copy `.env.example` to `.env` and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+Then start the server:
+
+```bash
+docker compose up -d
+```
+
+The server image is built from `Dockerfile.server` (multi-stage, Go 1.26 Alpine). The container mounts a `./data` directory for the SQLite database.
+
+A health check polls `GET /api/health` every 30 seconds — the container won't be marked healthy until the server responds.
+
+### Local development
+
+```bash
+docker compose -f docker-compose.dev.yml up
+```
+
+Source directories are mounted into the container so you can rebuild without rebuilding the image.
 
 ---
 
@@ -122,11 +156,22 @@ Schema migrations run automatically on startup — no manual SQL required.
 
 ---
 
+## CLI Install
+
+Pre-built binaries are available on the [GitHub Releases](https://github.com/Pomelo-Studios/PomeloHook/releases) page. One-line install:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Pomelo-Studios/PomeloHook/main/install.sh | sh
+```
+
+Supports Linux and macOS on `amd64` and `arm64`.
+
+---
+
 ## Deployment Checklist
 
-- [ ] `make dashboard && make build` — fresh binaries
-- [ ] Server binary copied to VPS
+- [ ] Server running (binary or Docker)
 - [ ] Env vars set (`PORT`, `POMELO_DB_PATH`, `POMELO_RETENTION_DAYS`)
-- [ ] First-run: org + admin user seeded
+- [ ] First-run: `pomelo-hook-server init` completed
 - [ ] Reverse proxy configured with WebSocket passthrough
 - [ ] TLS verified — CLI connects over `wss://`
