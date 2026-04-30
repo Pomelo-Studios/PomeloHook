@@ -37,7 +37,8 @@ jobs:
 
       - name: Build dashboard (required for go:embed)
         run: |
-          cd dashboard && npm ci && npm run build
+          npm --prefix dashboard ci
+          npm --prefix dashboard run build
           mkdir -p cli/dashboard/static server/dashboard/static
           cp -r dashboard/dist/* cli/dashboard/static/
           cp -r dashboard/dist/* server/dashboard/static/
