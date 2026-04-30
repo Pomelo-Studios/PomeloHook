@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -43,6 +44,23 @@ func TestListEventsReturnsEmpty(t *testing.T) {
 	var result []any
 	json.NewDecoder(rec.Body).Decode(&result)
 	require.Empty(t, result)
+}
+
+func TestCreateTunnel_MalformedJSON(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/tunnels", strings.NewReader(`not json`))
+	req.Header.Set("Authorization", "Bearer "+user.APIKey)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func TestListOrgTunnelsEndpoint(t *testing.T) {

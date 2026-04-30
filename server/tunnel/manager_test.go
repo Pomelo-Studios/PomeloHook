@@ -1,6 +1,9 @@
 package tunnel_test
 
 import (
+	"bytes"
+	"log"
+	"os"
 	"sync"
 	"testing"
 
@@ -86,6 +89,26 @@ func TestUnregisterAllNoPanicOnMissingTunnel(t *testing.T) {
 	require.NotPanics(t, func() {
 		m.UnregisterAll("no-such-tunnel")
 	})
+}
+
+func TestBroadcast_LogsWhenBufferFull(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	t.Cleanup(func() { log.SetOutput(os.Stderr) })
+
+	m := tunnel.NewManager()
+	_ = m.Register("t1", "Alice") // buffer capacity = 64, don't drain it
+
+	// Fill the buffer completely
+	for i := 0; i < 64; i++ {
+		m.Broadcast("t1", []byte("msg"))
+	}
+
+	// 65th broadcast hits the full buffer → should log
+	m.Broadcast("t1", []byte("overflow"))
+
+	require.Contains(t, buf.String(), "subscriber buffer full")
+	require.Contains(t, buf.String(), "t1")
 }
 
 func TestBroadcastConcurrentSafe(t *testing.T) {
