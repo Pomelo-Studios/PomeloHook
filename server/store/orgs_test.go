@@ -28,3 +28,17 @@ func TestUpdateOrg(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "Acme Corp", org.Name)
 }
+
+func TestCreateOrg(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+
+	org, err := db.CreateOrg("Test Org")
+	require.NoError(t, err)
+	require.NotEmpty(t, org.ID)
+	require.Equal(t, "Test Org", org.Name)
+
+	fetched, err := db.GetOrg(org.ID)
+	require.NoError(t, err)
+	require.Equal(t, org.ID, fetched.ID)
+}
