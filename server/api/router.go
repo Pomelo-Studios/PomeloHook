@@ -19,6 +19,7 @@ func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
 	mux.Handle("GET /api/events", auth.Middleware(s, http.HandlerFunc(handleListEvents(s))))
 	mux.Handle("POST /api/events/{id}/replay", auth.Middleware(s, http.HandlerFunc(handleReplayEvent(s))))
 	mux.Handle("GET /api/tunnels", auth.Middleware(s, http.HandlerFunc(handleListTunnels(s))))
+	mux.Handle("GET /api/org/tunnels", auth.Middleware(s, http.HandlerFunc(handleListOrgTunnels(s))))
 	mux.Handle("POST /api/tunnels", auth.Middleware(s, http.HandlerFunc(handleCreateTunnel(s))))
 	mux.Handle("GET /api/orgs/users", auth.Middleware(s, http.HandlerFunc(handleListOrgUsers(s))))
 
