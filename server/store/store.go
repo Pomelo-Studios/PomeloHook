@@ -65,13 +65,14 @@ func migrate(db *sql.DB) error {
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
 		CREATE TABLE IF NOT EXISTS users (
-			id         TEXT PRIMARY KEY,
-			org_id     TEXT REFERENCES organizations(id),
-			email      TEXT UNIQUE NOT NULL,
-			name       TEXT NOT NULL,
-			api_key    TEXT UNIQUE NOT NULL,
-			role       TEXT NOT NULL DEFAULT 'member',
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			id            TEXT PRIMARY KEY,
+			org_id        TEXT REFERENCES organizations(id),
+			email         TEXT UNIQUE NOT NULL,
+			name          TEXT NOT NULL,
+			api_key       TEXT UNIQUE NOT NULL,
+			role          TEXT NOT NULL DEFAULT 'member',
+			password_hash TEXT NOT NULL DEFAULT '',
+			created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
 		CREATE TABLE IF NOT EXISTS tunnels (
 			id             TEXT PRIMARY KEY,
@@ -106,6 +107,9 @@ func migrate(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
+
+	// Idempotent: silently ignored on fresh DBs where the column already exists.
+	tx.Exec(`ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''`)
 
 	return tx.Commit()
 }
