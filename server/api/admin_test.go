@@ -19,9 +19,12 @@ import (
 
 func setupAdmin(t *testing.T) (*store.Store, *store.User, http.Handler) {
 	t.Helper()
-	db, _ := store.Open(":memory:")
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
-	admin, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "admin@a.com", Name: "Admin", Role: "admin"})
+	db, err := store.Open(":memory:")
+	require.NoError(t, err)
+	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	require.NoError(t, err)
+	admin, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "admin@a.com", Name: "Admin", Role: "admin"})
+	require.NoError(t, err)
 	mgr := tunnel.NewManager()
 	return db, admin, api.NewRouter(db, mgr)
 }
@@ -84,10 +87,13 @@ func TestAdminCreateUser(t *testing.T) {
 }
 
 func TestUpdateUser_InvalidatesOldKeyNotNewKey(t *testing.T) {
-	db, _ := store.Open(":memory:")
+	db, err := store.Open(":memory:")
+	require.NoError(t, err)
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
-	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "upd@b.com", Name: "U", Role: "admin"})
+	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	require.NoError(t, err)
+	user, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "upd@b.com", Name: "U", Role: "admin"})
+	require.NoError(t, err)
 	oldKey := user.APIKey
 
 	handler := auth.Middleware(db, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

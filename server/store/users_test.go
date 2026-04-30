@@ -10,10 +10,12 @@ import (
 )
 
 func TestCreateAndGetUser(t *testing.T) {
-	db, _ := store.Open(":memory:")
+	db, err := store.Open(":memory:")
+	require.NoError(t, err)
 	defer db.Close()
 
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	require.NoError(t, err)
 
 	user, err := db.CreateUser(store.CreateUserParams{
 		OrgID: "org1",
