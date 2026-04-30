@@ -61,7 +61,7 @@ export const api = {
   },
 
   org: {
-    getPersonalTunnels: (apiKey: string) =>
+    getUserTunnels: (apiKey: string) =>
       request<Tunnel[]>('/api/tunnels', { headers: authHeaders(apiKey) }),
     getTunnels: (apiKey: string) =>
       request<Tunnel[]>('/api/org/tunnels', { headers: authHeaders(apiKey) }),
