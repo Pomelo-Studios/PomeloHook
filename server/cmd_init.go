@@ -22,7 +22,9 @@ func runInit() error {
 	defer db.Close()
 
 	var count int
-	db.DB.QueryRow("SELECT COUNT(*) FROM organizations").Scan(&count) //nolint:errcheck
+	if err := db.DB.QueryRow("SELECT COUNT(*) FROM organizations").Scan(&count); err != nil {
+		return fmt.Errorf("check existing organizations: %w", err)
+	}
 	if count > 0 {
 		return fmt.Errorf("already initialized — use the admin panel to manage users")
 	}
@@ -30,22 +32,28 @@ func runInit() error {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	fmt.Print("Organization name: ")
-	scanner.Scan()
-	orgName := strings.TrimSpace(scanner.Text())
+	orgName, err := scanLine(scanner, "organization name")
+	if err != nil {
+		return err
+	}
 	if orgName == "" {
 		return fmt.Errorf("organization name required")
 	}
 
 	fmt.Print("Admin name: ")
-	scanner.Scan()
-	adminName := strings.TrimSpace(scanner.Text())
+	adminName, err := scanLine(scanner, "admin name")
+	if err != nil {
+		return err
+	}
 	if adminName == "" {
 		return fmt.Errorf("admin name required")
 	}
 
 	fmt.Print("Admin email: ")
-	scanner.Scan()
-	adminEmail := strings.TrimSpace(scanner.Text())
+	adminEmail, err := scanLine(scanner, "admin email")
+	if err != nil {
+		return err
+	}
 	if adminEmail == "" {
 		return fmt.Errorf("admin email required")
 	}
@@ -86,4 +94,14 @@ func runInit() error {
 	fmt.Printf("API Key: %s\n", user.APIKey)
 	fmt.Println("Save this key — it won't be shown again. You can also run: pomelo-hook login")
 	return nil
+}
+
+func scanLine(s *bufio.Scanner, field string) (string, error) {
+	if !s.Scan() {
+		if err := s.Err(); err != nil {
+			return "", fmt.Errorf("read %s: %w", field, err)
+		}
+		return "", fmt.Errorf("read %s: unexpected EOF", field)
+	}
+	return strings.TrimSpace(s.Text()), nil
 }
