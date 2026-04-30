@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/pomelo-studios/pomelo-hook/server/api"
@@ -35,7 +39,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/", router)
-	mux.Handle("/webhook/", webhookHandler)
+	mux.Handle("/webhook/", api.LoggingMiddleware(webhookHandler))
 	dh := dashboardHandler()
 	mux.Handle("/admin", dh)
 	mux.Handle("/admin/", dh)
@@ -59,6 +63,29 @@ func main() {
 		}
 	}()
 
+	srv := &http.Server{
+		Addr:         ":" + cfg.Port,
+		Handler:      mux,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		<-quit
+		log.Println("shutdown signal received")
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		ticker.Stop()
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("shutdown error: %v", err)
+		}
+	}()
+
 	log.Printf("PomeloHook server listening on :%s", cfg.Port)
-	log.Fatal(http.ListenAndServe(":"+cfg.Port, mux))
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatalf("listen: %v", err)
+	}
 }
