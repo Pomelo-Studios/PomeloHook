@@ -118,7 +118,10 @@ func handleReplayEvent(s *store.Store) http.HandlerFunc {
 		var body struct {
 			TargetURL string `json:"target_url"`
 		}
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			return
+		}
 		if body.TargetURL == "" {
 			http.Error(w, "target_url required", http.StatusBadRequest)
 			return

@@ -15,7 +15,10 @@ func handleCreateTunnel(s *store.Store) http.HandlerFunc {
 			Type string `json:"type"`
 			Name string `json:"name"`
 		}
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			return
+		}
 		if body.Type != "personal" && body.Type != "org" {
 			http.Error(w, "type must be personal or org", http.StatusBadRequest)
 			return
