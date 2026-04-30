@@ -64,31 +64,26 @@ func TestOpen_DSNWithExistingQueryParams(t *testing.T) {
 	defer db.Close()
 }
 
-func TestUserHasPasswordHash(t *testing.T) {
-	db, err := store.Open(":memory:")
-	require.NoError(t, err)
-	defer db.Close()
+func TestMigration_IsIdempotent(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "idempotent.db")
 
-	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Test')")
+	db1, err := store.Open(path)
 	require.NoError(t, err)
-	u, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
-	require.NoError(t, err)
+	db1.Close()
 
-	var hash string
-	err = db.DB.QueryRow("SELECT password_hash FROM users WHERE id=?", u.ID).Scan(&hash)
+	// Open the same DB a second time — migration must not error
+	db2, err := store.Open(path)
 	require.NoError(t, err)
-	require.Equal(t, "", hash)
+	db2.Close()
 }
 
-func TestTunnelHasActiveDeviceColumn(t *testing.T) {
+func TestMigration_VersionsAreRecorded(t *testing.T) {
 	db, err := store.Open(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
-	var count int
-	err = db.DB.QueryRow(
-		`SELECT COUNT(*) FROM pragma_table_info('tunnels') WHERE name='active_device'`,
-	).Scan(&count)
+	count, err := db.AppliedMigrationCount()
 	require.NoError(t, err)
-	require.Equal(t, 1, count, "active_device column must exist in tunnels table")
+	require.Greater(t, count, 0, "at least one migration must have been recorded")
 }
