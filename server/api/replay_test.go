@@ -38,3 +38,31 @@ func TestReplayHTTP_RejectsNonHTTP(t *testing.T) {
 		t.Fatal("expected error for non-http scheme, got nil")
 	}
 }
+
+func TestValidateReplayURL_BlocksLocalhost(t *testing.T) {
+	err := validateReplayURL("http://localhost/webhook")
+	if err == nil {
+		t.Fatal("expected error for localhost URL, got nil")
+	}
+}
+
+func TestValidateReplayURL_BlocksLocalDomain(t *testing.T) {
+	err := validateReplayURL("http://myservice.local/hook")
+	if err == nil {
+		t.Fatal("expected error for .local domain, got nil")
+	}
+}
+
+func TestValidateReplayURL_BlocksInternalDomain(t *testing.T) {
+	err := validateReplayURL("http://service.internal/api")
+	if err == nil {
+		t.Fatal("expected error for .internal domain, got nil")
+	}
+}
+
+func TestValidateReplayURL_AllowsPublicDomain(t *testing.T) {
+	err := validateReplayURL("https://example.com/webhook")
+	if err != nil {
+		t.Fatalf("expected no error for public domain, got: %v", err)
+	}
+}
