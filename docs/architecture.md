@@ -116,15 +116,15 @@ cli/
 
 ### 2. In-Memory Tunnel Registry
 
-Active connections are tracked in `tunnel.Manager` (in-memory), not the database. The Manager's `CheckAndRegister` must be atomic — polling the DB cannot guarantee this. On server restart, connected CLI clients detect the WS close and reconnect automatically.
+Active connections are tracked in `tunnel.Manager` (in-memory), not the database. The Manager maintains a per-tunnel subscriber list — `Register` adds a channel, `Unregister` removes it and returns whether it was the last one, `UnregisterAll` drops every subscriber at once (used on admin disconnect/delete). On server restart, connected CLI clients detect the WS close and reconnect automatically.
 
 ### 3. Pure-Go SQLite (No CGO)
 
 Uses `modernc.org/sqlite` instead of `mattn/go-sqlite3`. No C compiler required at build time. A single `go build` produces a working binary on any platform Go supports. Slightly slower than CGO, irrelevant at PomeloHook's write volume.
 
-### 4. One Active Forwarder Per Org Tunnel
+### 4. Fan-Out for Org Tunnels
 
-Only one CLI client can hold an org tunnel at a time. Enforced in `tunnel.Manager`, not the API layer. Two forwarders would deliver duplicate events to the local app. Others see: `"tunnel is currently active by {name}"` but can still browse history and replay.
+Multiple CLI subscribers can hold the same org tunnel simultaneously. `tunnel.Manager` maintains a list of subscriber channels per tunnel ID; `webhook.Handler` calls `Broadcast` to deliver the event payload to every connected subscriber. Each subscriber receives its own copy — no channel is shared. This allows multiple developers or CI processes to receive the same webhook stream at once.
 
 ### 5. Dashboard Embedded in CLI Binary
 
@@ -138,9 +138,9 @@ Every user has one static API key (`ph_` + 48 hex chars). Simple to implement, s
 
 `webhook.Handler` writes `202 Accepted` as soon as the event is saved. It does not wait for CLI delivery. External services (Stripe, GitHub) have short webhook timeouts (5–30s); waiting for CLI round-trip would cause retries.
 
-### 8. Non-Blocking Channel Send
+### 8. Non-Blocking Broadcast
 
-`select { case ch <- payload: default: }` — if the 64-slot channel is full, the event is dropped from forwarding (but is already saved in the DB). Prevents the webhook handler goroutine from blocking under burst load.
+`Broadcast` iterates every subscriber and does a non-blocking send on each channel: `select { case ch <- payload: default: }`. If a single subscriber's 64-slot buffer is full, that subscriber drops the message — others are unaffected. Prevents the webhook handler goroutine from blocking under burst load or a slow CLI.
 
 ### 9. Go 1.22 Pattern Routing
 
