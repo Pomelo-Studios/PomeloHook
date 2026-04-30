@@ -41,5 +41,5 @@ func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
 	mux.Handle("GET /api/admin/db/tables/{name}", admin(http.HandlerFunc(handleGetTableRows(s))))
 	mux.Handle("POST /api/admin/db/query", admin(http.HandlerFunc(handleRunQuery(s))))
 
-	return mux
+	return LoggingMiddleware(mux)
 }
