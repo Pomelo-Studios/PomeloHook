@@ -29,6 +29,27 @@ var allowedTables = map[string]bool{
 	"webhook_events": true,
 }
 
+var allowedPragmas = map[string]bool{
+	"table_info":       true,
+	"table_xinfo":      true,
+	"index_info":       true,
+	"index_list":       true,
+	"foreign_key_list": true,
+	"database_list":    true,
+	"compile_options":  true,
+	"integrity_check":  true,
+	"quick_check":      true,
+	"foreign_key_check": true,
+	"page_count":       true,
+	"page_size":        true,
+	"max_page_count":   true,
+	"freelist_count":   true,
+	"schema_version":   true,
+	"user_version":     true,
+	"data_version":     true,
+	"encoding":         true,
+}
+
 func (s *Store) UpdateUser(id, orgID, email, name, role string) (*User, error) {
 	res, err := s.DB.Exec(`UPDATE users SET email=?, name=?, role=? WHERE id=? AND org_id=?`, email, name, role, id, orgID)
 	if err != nil {
@@ -189,12 +210,18 @@ func (s *Store) GetTableRows(name string, limit, offset int) (*TableResult, erro
 func (s *Store) RunQuery(query string) (*QueryResult, error) {
 	upper := strings.TrimSpace(strings.ToUpper(query))
 	switch {
-	case strings.HasPrefix(upper, "SELECT"), strings.HasPrefix(upper, "EXPLAIN"):
+	case strings.HasPrefix(upper, "SELECT"), strings.HasPrefix(upper, "EXPLAIN"), strings.HasPrefix(upper, "WITH"):
 		// allowed
 	case strings.HasPrefix(upper, "PRAGMA"):
+		// Extract pragma name: strip "PRAGMA", spaces, then stop at first '(' or '='
 		rest := strings.TrimSpace(upper[len("PRAGMA"):])
-		if strings.Contains(rest, "=") || strings.Contains(rest, "(") {
-			return nil, fmt.Errorf("only read-only PRAGMA statements without arguments are allowed")
+		pragmaName := rest
+		if idx := strings.IndexAny(rest, "=("); idx >= 0 {
+			pragmaName = rest[:idx]
+		}
+		pragmaName = strings.ToLower(strings.TrimSpace(pragmaName))
+		if !allowedPragmas[pragmaName] {
+			return nil, fmt.Errorf("only whitelisted read-only PRAGMA statements are allowed")
 		}
 	default:
 		return nil, fmt.Errorf("only SELECT, EXPLAIN, and read-only PRAGMA queries are allowed")
