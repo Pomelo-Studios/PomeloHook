@@ -3,32 +3,30 @@ package tunnel
 import "sync"
 
 type Manager struct {
-	mu     sync.Mutex
-	conns  map[string][]chan []byte
-	owners map[string][]string
+	mu    sync.Mutex
+	conns map[string][]chan []byte
 }
 
 func NewManager() *Manager {
 	return &Manager{
-		conns:  make(map[string][]chan []byte),
-		owners: make(map[string][]string),
+		conns: make(map[string][]chan []byte),
 	}
 }
 
 // Register adds a new subscriber for tunnelID and returns its dedicated channel.
 // Always succeeds — multiple subscribers on the same tunnel are allowed.
-func (m *Manager) Register(tunnelID, userName string) chan []byte {
+func (m *Manager) Register(tunnelID, _ string) chan []byte {
 	ch := make(chan []byte, 64)
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.conns[tunnelID] = append(m.conns[tunnelID], ch)
-	m.owners[tunnelID] = append(m.owners[tunnelID], userName)
 	return ch
 }
 
 // Unregister removes and closes the specific channel from tunnelID's subscriber list.
-// Safe to call on an already-removed channel (no-op).
-func (m *Manager) Unregister(tunnelID string, ch chan []byte) {
+// Returns true if this was the last subscriber (determined atomically under the lock).
+// Safe to call on an already-removed channel (no-op, returns false).
+func (m *Manager) Unregister(tunnelID string, ch chan []byte) (wasLast bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	chans := m.conns[tunnelID]
@@ -36,14 +34,14 @@ func (m *Manager) Unregister(tunnelID string, ch chan []byte) {
 		if c == ch {
 			close(c)
 			m.conns[tunnelID] = append(chans[:i], chans[i+1:]...)
-			m.owners[tunnelID] = append(m.owners[tunnelID][:i], m.owners[tunnelID][i+1:]...)
 			break
 		}
 	}
 	if len(m.conns[tunnelID]) == 0 {
 		delete(m.conns, tunnelID)
-		delete(m.owners, tunnelID)
+		return true
 	}
+	return false
 }
 
 // UnregisterAll closes and removes every subscriber for tunnelID.
@@ -55,7 +53,6 @@ func (m *Manager) UnregisterAll(tunnelID string) {
 		close(ch)
 	}
 	delete(m.conns, tunnelID)
-	delete(m.owners, tunnelID)
 }
 
 // Broadcast sends payload to all subscribers of tunnelID.
