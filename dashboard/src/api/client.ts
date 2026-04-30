@@ -59,4 +59,11 @@ export const api = {
     runQuery: (apiKey: string, sql: string) =>
       request<QueryResult>('/api/admin/db/query', { method: 'POST', headers: authHeaders(apiKey), body: JSON.stringify({ sql }) }),
   },
+
+  org: {
+    getPersonalTunnels: (apiKey: string) =>
+      request<Tunnel[]>('/api/tunnels', { headers: authHeaders(apiKey) }),
+    getTunnels: (apiKey: string) =>
+      request<Tunnel[]>('/api/org/tunnels', { headers: authHeaders(apiKey) }),
+  },
 }

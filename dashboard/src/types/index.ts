@@ -19,6 +19,7 @@ export interface Tunnel {
   Subdomain: string
   Status: string
   ActiveUserID: string
+  ActiveDevice: string
 }
 
 export type Role = 'admin' | 'member'
