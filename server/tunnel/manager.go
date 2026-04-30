@@ -1,6 +1,9 @@
 package tunnel
 
-import "sync"
+import (
+	"log"
+	"sync"
+)
 
 type Manager struct {
 	mu    sync.Mutex
@@ -64,6 +67,7 @@ func (m *Manager) Broadcast(tunnelID string, payload []byte) {
 		select {
 		case ch <- payload:
 		default:
+			log.Printf("tunnel %s: subscriber buffer full, event dropped", tunnelID)
 		}
 	}
 }
