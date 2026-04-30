@@ -1,0 +1,19 @@
+services:
+  pomelo-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    ports:
+      - "${POMELO_PORT:-8080}:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      POMELO_DB_PATH: /data/pomelodata.db
+      POMELO_BASE_DOMAIN: ${POMELO_BASE_DOMAIN}
+      POMELO_PORT: "8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
