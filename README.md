@@ -198,6 +198,16 @@ The dashboard is embedded in the CLI binary and requires no separate install.
 
 ---
 
+## Org Dashboard
+
+The org dashboard is served at `https://your-server.com/app` and is embedded in the server binary.
+
+- **Tunnel list** — sidebar showing all org tunnels with live active/inactive status and the hostname of the connected device
+- **Event detail** — full request/response detail for the selected tunnel's events
+- Requires authentication; any org member can access it
+
+---
+
 ## Admin Panel
 
 The admin panel is served at `https://your-server.com/admin` and is embedded in the server binary. Only users with `role='admin'` can access it.
@@ -205,7 +215,7 @@ The admin panel is served at `https://your-server.com/admin` and is embedded in 
 ### Accessing the panel
 
 1. Navigate to `https://your-server.com/admin`
-2. Enter your email address — the server returns your API key
+2. Enter your email and password — set via `pomelo-hook-server init` or the **Users → Set Password** admin action
 3. The session is stored in `sessionStorage` (cleared on tab close)
 
 When accessing the panel through the CLI dashboard (`http://localhost:4040/admin`), authentication is handled automatically via the CLI's API key.
@@ -235,6 +245,7 @@ All endpoints except `POST /api/auth/login` require `Authorization: Bearer <api_
 | GET    | `/api/events?tunnel_id=<id>`  | List events (default limit: 50)    |
 | POST   | `/api/events/{id}/replay`     | Replay event to a target URL       |
 | GET    | `/api/orgs/users`             | List org users                     |
+| GET    | `/api/org/tunnels`            | List all org tunnels with live status and active device |
 
 Admin endpoints (require `role='admin'`):
 
@@ -245,6 +256,7 @@ Admin endpoints (require `role='admin'`):
 | PUT    | `/api/admin/users/{id}`               | Update user (email, name, role)        |
 | DELETE | `/api/admin/users/{id}`               | Delete a user                          |
 | POST   | `/api/admin/users/{id}/rotate-key`    | Rotate a user's API key                |
+| POST   | `/api/admin/users/{id}/set-password`  | Set a user's password                  |
 | GET    | `/api/admin/orgs`                     | Get the organization                   |
 | PUT    | `/api/admin/orgs`                     | Update org name                        |
 | GET    | `/api/admin/tunnels`                  | List all org tunnels                   |

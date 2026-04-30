@@ -14,13 +14,13 @@ Authorization: Bearer <api_key>
 
 ### `POST /api/auth/login`
 
-No auth required. Returns the API key for an email address.
+No auth required. Returns the API key for the given email/password pair.
 
 ```http
 POST /api/auth/login
 Content-Type: application/json
 
-{"email": "alice@acme.com"}
+{"email": "alice@acme.com", "password": "hunter2"}
 ```
 
 ```json
@@ -79,6 +79,8 @@ List tunnels visible to the caller. Personal tunnel owners see their own; org me
 ### `GET /api/ws?tunnel_id=<id>`
 
 Upgrades to WebSocket. Called by the CLI after creating a tunnel. Returns `409` if the tunnel already has an active connection.
+
+The CLI sends its hostname as a `device` query parameter on connect (`?tunnel_id=<id>&device=<hostname>`). The server stores this as `active_device` on the tunnel and clears it on disconnect.
 
 **On connect**, server sends:
 ```json
@@ -148,6 +150,23 @@ List all users in the caller's org.
 [{"ID": "...", "Email": "...", "Name": "...", "Role": "member"}]
 ```
 
+### `GET /api/org/tunnels`
+
+List all org tunnels with live status and active device. Available to any org member.
+
+```json
+[
+  {
+    "ID": "uuid...",
+    "Type": "org",
+    "Subdomain": "stripe-webhooks",
+    "Status": "active",
+    "ActiveUserID": "usr_2",
+    "ActiveDevice": "alice-macbook"
+  }
+]
+```
+
 ---
 
 ## Admin Endpoints
@@ -163,6 +182,7 @@ All require `role = 'admin'`. Returns `403` otherwise.
 | `PUT` | `/api/admin/users/{id}` | Update: `{email?, name?, role?}` |
 | `DELETE` | `/api/admin/users/{id}` | Delete user |
 | `POST` | `/api/admin/users/{id}/rotate-key` | Generate and return new API key |
+| `POST` | `/api/admin/users/{id}/set-password` | Set a user's password: `{"password": "..."}` |
 
 ### Organization
 
@@ -207,6 +227,6 @@ The full path after the subdomain is preserved:
 | Authenticated user | Their own tunnels and events |
 | Org member | All org tunnels and events |
 | Admin | `/api/admin/*` — all users/tunnels in their org |
-| No auth | `/api/auth/login` and `/webhook/*` only |
+| No auth | `POST /api/auth/login` (email + password) and `/webhook/*` only |
 
 Admins operate within their own org only. No cross-org access.
