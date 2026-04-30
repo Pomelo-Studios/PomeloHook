@@ -199,11 +199,11 @@ func TestRunQuerySelect(t *testing.T) {
 	require.Len(t, result.Rows, 1)
 }
 
-func TestRunQueryWrite(t *testing.T) {
+func TestRunQueryWriteRejected(t *testing.T) {
 	db, _ := openWithOrg(t)
 	defer db.Close()
 
-	result, err := db.RunQuery("INSERT INTO organizations (id, name) VALUES ('org2', 'Beta')")
-	require.NoError(t, err)
-	require.Equal(t, int64(1), result.Affected)
+	_, err := db.RunQuery("INSERT INTO organizations (id, name) VALUES ('org2', 'Beta')")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "only SELECT")
 }

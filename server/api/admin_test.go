@@ -205,3 +205,25 @@ func TestAdminRunQuery(t *testing.T) {
 	router.ServeHTTP(rec, req)
 	require.Equal(t, http.StatusOK, rec.Code)
 }
+
+func TestAdminRunQueryWriteRejected(t *testing.T) {
+	db, admin, router := setupAdmin(t)
+	defer db.Close()
+	body, _ := json.Marshal(map[string]string{"sql": "INSERT INTO organizations (id, name) VALUES ('x', 'X')"})
+	req := httptest.NewRequest("POST", "/api/admin/db/query", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+admin.APIKey)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestAdminRunQuerySelectAllowed(t *testing.T) {
+	db, admin, router := setupAdmin(t)
+	defer db.Close()
+	body, _ := json.Marshal(map[string]string{"sql": "SELECT id FROM organizations"})
+	req := httptest.NewRequest("POST", "/api/admin/db/query", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+admin.APIKey)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+}
