@@ -148,20 +148,29 @@ func TestLoginSuccess(t *testing.T) {
 	db, _, _ := setupAdmin(t)
 	defer db.Close()
 
-	hash, _ := bcrypt.GenerateFromPassword([]byte("correctpass"), bcrypt.DefaultCost)
-	admin, _ := db.GetUserByEmail("admin@a.com")
-	db.SetPasswordHash(admin.ID, admin.OrgID, string(hash))
+	hash, err := bcrypt.GenerateFromPassword([]byte("correctpass"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+
+	admin, err := db.GetUserByEmail("admin@a.com")
+	require.NoError(t, err)
+
+	err = db.SetPasswordHash(admin.ID, admin.OrgID, string(hash))
+	require.NoError(t, err)
 
 	mgr := tunnel.NewManager()
 	router := api.NewRouter(db, mgr)
 
-	body, _ := json.Marshal(map[string]string{"email": "admin@a.com", "password": "correctpass"})
+	body, err := json.Marshal(map[string]string{"email": "admin@a.com", "password": "correctpass"})
+	require.NoError(t, err)
+
 	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	require.Equal(t, http.StatusOK, rec.Code)
+
 	var resp map[string]string
-	json.NewDecoder(rec.Body).Decode(&resp)
+	err = json.NewDecoder(rec.Body).Decode(&resp)
+	require.NoError(t, err)
 	require.NotEmpty(t, resp["api_key"])
 }
 
@@ -169,16 +178,20 @@ func TestAdminSetUserPassword(t *testing.T) {
 	db, admin, router := setupAdmin(t)
 	defer db.Close()
 
-	member, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "m@a.com", Name: "M", Role: "member"})
+	member, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "m@a.com", Name: "M", Role: "member"})
+	require.NoError(t, err)
 
-	body, _ := json.Marshal(map[string]string{"password": "newpassword123"})
+	body, err := json.Marshal(map[string]string{"password": "newpassword123"})
+	require.NoError(t, err)
+
 	req := httptest.NewRequest("POST", "/api/admin/users/"+member.ID+"/set-password", bytes.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+admin.APIKey)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	require.Equal(t, http.StatusNoContent, rec.Code)
 
-	updated, _ := db.GetUserByID(member.ID, "org1")
+	updated, err := db.GetUserByID(member.ID, "org1")
+	require.NoError(t, err)
 	require.NotEmpty(t, updated.PasswordHash)
 	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(updated.PasswordHash), []byte("newpassword123")))
 }
