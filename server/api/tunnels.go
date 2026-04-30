@@ -56,3 +56,24 @@ func handleListTunnels(s *store.Store) http.HandlerFunc {
 		json.NewEncoder(w).Encode(tunnels)
 	}
 }
+
+func handleListOrgTunnels(s *store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := auth.UserFromContext(r.Context())
+		if user.OrgID == "" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode([]*store.Tunnel{})
+			return
+		}
+		tunnels, err := s.ListOrgTunnels(user.OrgID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if tunnels == nil {
+			tunnels = []*store.Tunnel{}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(tunnels)
+	}
+}

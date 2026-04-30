@@ -44,3 +44,26 @@ func TestListEventsReturnsEmpty(t *testing.T) {
 	json.NewDecoder(rec.Body).Decode(&result)
 	require.Empty(t, result)
 }
+
+func TestListOrgTunnelsEndpoint(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
+	db.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: "org1", Name: "payment-wh"})
+	db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	req := httptest.NewRequest("GET", "/api/org/tunnels", nil)
+	req.Header.Set("Authorization", "Bearer "+user.APIKey)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var result2 []map[string]any
+	json.NewDecoder(rec.Body).Decode(&result2)
+	require.Len(t, result2, 1)
+	require.Equal(t, "org", result2[0]["Type"])
+}
