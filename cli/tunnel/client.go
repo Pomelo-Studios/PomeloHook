@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -22,6 +23,7 @@ type Client struct {
 	serverURL string
 	apiKey    string
 	tunnelID  string
+	device    string
 	forwarder *forward.Forwarder
 	onEvent   func(result *forward.ForwardResult)
 	sem       chan struct{}
@@ -33,6 +35,7 @@ type Options struct {
 	APIKey    string
 	TunnelID  string
 	LocalPort string
+	Device    string
 	OnEvent   func(*forward.ForwardResult)
 }
 
@@ -41,6 +44,7 @@ func New(opts Options) *Client {
 		serverURL: opts.ServerURL,
 		apiKey:    opts.APIKey,
 		tunnelID:  opts.TunnelID,
+		device:    opts.Device,
 		forwarder: forward.New("http://localhost:" + opts.LocalPort),
 		onEvent:   opts.OnEvent,
 		sem:       make(chan struct{}, 8),
@@ -50,6 +54,9 @@ func New(opts Options) *Client {
 
 func (c *Client) Connect() error {
 	wsURL := strings.Replace(c.serverURL, "http", "ws", 1) + "/api/ws?tunnel_id=" + c.tunnelID
+	if c.device != "" {
+		wsURL += "&device=" + url.QueryEscape(c.device)
+	}
 	headers := http.Header{"Authorization": {"Bearer " + c.apiKey}}
 
 	var attempt int
