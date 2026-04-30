@@ -6,7 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Vers
 
 ---
 
-## [Unreleased]
+## [1.8.0] — 2026-04-30
 
 ### Added
 - Org dashboard at `/app` route — three-column layout with TunnelList sidebar
@@ -37,9 +37,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Vers
 - `pomelo-hook-server init` subcommand for first-run setup (creates org, admin user, API key interactively)
 - `CreateOrg` store method
 - `password_hash` column on `users` table with `SetPasswordHash` store method
-- `POST /api/admin/users/{id}/set-password` endpoint
+- `POST /api/admin/users/{id}/set-password` endpoint — admins can set passwords for any org user
 - bcrypt password verification on login
 - Password prompt in CLI `login` command
+
+### Changed
+- Login endpoint (`POST /api/auth/login`) now requires `{"email": "...", "password": "..."}` — plain-email auth removed
 
 ### Fixed
 - Restrict admin `RunQuery` to read-only `SELECT` / `EXPLAIN` / `PRAGMA`; allow `WITH` CTEs
