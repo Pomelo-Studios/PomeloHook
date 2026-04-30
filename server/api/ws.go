@@ -39,7 +39,8 @@ func handleWSConnect(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 			return
 		}
 
-		s.SetTunnelActive(tunnelID, user.ID)
+		device := r.URL.Query().Get("device")
+		s.SetTunnelActive(tunnelID, user.ID, device)
 
 		defer func() {
 			m.Unregister(tunnelID)

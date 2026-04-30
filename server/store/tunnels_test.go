@@ -34,10 +34,61 @@ func TestOrgTunnelConflict(t *testing.T) {
 		Name:  "stripe",
 	})
 
-	err := db.SetTunnelActive(tunnel.ID, user.ID)
+	err := db.SetTunnelActive(tunnel.ID, user.ID, "")
 	require.NoError(t, err)
 
 	active, err := db.GetActiveTunnelUser(tunnel.ID)
 	require.NoError(t, err)
 	require.Equal(t, user.ID, active)
+}
+
+func TestSetTunnelActiveStoresDevice(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
+	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
+
+	err := db.SetTunnelActive(tun.ID, user.ID, "MONSTER-2352")
+	require.NoError(t, err)
+
+	got, err := db.GetTunnelByID(tun.ID)
+	require.NoError(t, err)
+	require.Equal(t, "active", got.Status)
+	require.Equal(t, "MONSTER-2352", got.ActiveDevice)
+}
+
+func TestSetTunnelInactiveClearsDevice(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
+	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
+
+	db.SetTunnelActive(tun.ID, user.ID, "MONSTER-2352")
+	err := db.SetTunnelInactive(tun.ID)
+	require.NoError(t, err)
+
+	got, err := db.GetTunnelByID(tun.ID)
+	require.NoError(t, err)
+	require.Equal(t, "inactive", got.Status)
+	require.Equal(t, "", got.ActiveDevice)
+}
+
+func TestListOrgTunnels(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
+
+	db.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: "org1", Name: "payment-wh"})
+	db.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: "org1", Name: "order-wh"})
+	db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID}) // must not appear
+
+	tunnels, err := db.ListOrgTunnels("org1")
+	require.NoError(t, err)
+	require.Len(t, tunnels, 2)
+	for _, tunnel := range tunnels {
+		require.Equal(t, "org", tunnel.Type)
+	}
 }
