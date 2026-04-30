@@ -81,33 +81,26 @@ The server listens on port `8080` by default.
 | `POMELO_DB_PATH`       | `pomelodata.db`  | Path to the SQLite database file     |
 | `POMELO_RETENTION_DAYS`| `30`             | Days before events are auto-deleted  |
 
-### 3. Seed your first organization and admin user
+### 3. Initialize your first organization and admin user
 
-The admin panel handles user management after the initial bootstrap. Seed one organization and one admin user directly into SQLite on first run:
-
-```bash
-sqlite3 pomelodata.db <<'SQL'
-INSERT INTO organizations (id, name) VALUES ('org_1', 'Acme');
-
-INSERT INTO users (id, org_id, email, name, api_key, role)
-VALUES (
-  'usr_1',
-  'org_1',
-  'alice@acme.com',
-  'Alice',
-  'ph_' || lower(hex(randomblob(24))),
-  'admin'
-);
-SQL
-```
-
-Retrieve Alice's API key:
+Run the interactive init command on first setup:
 
 ```bash
-sqlite3 pomelodata.db "SELECT api_key FROM users WHERE email='alice@acme.com';"
+./bin/pomelo-hook-server init
 ```
 
-After this, use the admin panel at `https://your-server.com/admin` to manage additional users.
+It will prompt for:
+- Organization name
+- Admin name and email
+- Admin password (min 8 characters, input hidden)
+
+On success it prints your API key — save it. You can then log in with the CLI:
+
+```bash
+pomelo-hook login --server https://your-server.com --email you@example.com
+```
+
+After this, use the admin panel at `https://your-server.com/admin` to manage additional users and set their passwords via the **Users → Set Password** action.
 
 ---
 

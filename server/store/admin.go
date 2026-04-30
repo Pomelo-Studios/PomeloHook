@@ -18,9 +18,8 @@ type TableResult struct {
 }
 
 type QueryResult struct {
-	Columns  []string `json:"columns"`
-	Rows     [][]any  `json:"rows"`
-	Affected int64    `json:"affected"`
+	Columns []string `json:"columns"`
+	Rows    [][]any  `json:"rows"`
 }
 
 var allowedTables = map[string]bool{
@@ -28,6 +27,27 @@ var allowedTables = map[string]bool{
 	"users":          true,
 	"tunnels":        true,
 	"webhook_events": true,
+}
+
+var allowedPragmas = map[string]bool{
+	"table_info":       true,
+	"table_xinfo":      true,
+	"index_info":       true,
+	"index_list":       true,
+	"foreign_key_list": true,
+	"database_list":    true,
+	"compile_options":  true,
+	"integrity_check":  true,
+	"quick_check":      true,
+	"foreign_key_check": true,
+	"page_count":       true,
+	"page_size":        true,
+	"max_page_count":   true,
+	"freelist_count":   true,
+	"schema_version":   true,
+	"user_version":     true,
+	"data_version":     true,
+	"encoding":         true,
 }
 
 func (s *Store) UpdateUser(id, orgID, email, name, role string) (*User, error) {
@@ -189,21 +209,29 @@ func (s *Store) GetTableRows(name string, limit, offset int) (*TableResult, erro
 
 func (s *Store) RunQuery(query string) (*QueryResult, error) {
 	upper := strings.TrimSpace(strings.ToUpper(query))
-	isRead := strings.HasPrefix(upper, "SELECT") || strings.HasPrefix(upper, "EXPLAIN") || strings.HasPrefix(upper, "PRAGMA")
-	if isRead {
-		rows, err := s.DB.Query(query)
-		if err != nil {
-			return nil, err
+	switch {
+	case strings.HasPrefix(upper, "SELECT"), strings.HasPrefix(upper, "EXPLAIN"), strings.HasPrefix(upper, "WITH"):
+		// allowed
+	case strings.HasPrefix(upper, "PRAGMA"):
+		// Extract pragma name: strip "PRAGMA", spaces, then stop at first '(' or '='
+		rest := strings.TrimSpace(upper[len("PRAGMA"):])
+		pragmaName := rest
+		if idx := strings.IndexAny(rest, "=("); idx >= 0 {
+			pragmaName = rest[:idx]
 		}
-		defer rows.Close()
-		return scanQueryRows(rows)
+		pragmaName = strings.ToLower(strings.TrimSpace(pragmaName))
+		if !allowedPragmas[pragmaName] {
+			return nil, fmt.Errorf("only whitelisted read-only PRAGMA statements are allowed")
+		}
+	default:
+		return nil, fmt.Errorf("only SELECT, EXPLAIN, and read-only PRAGMA queries are allowed")
 	}
-	res, err := s.DB.Exec(query)
+	rows, err := s.DB.Query(query)
 	if err != nil {
 		return nil, err
 	}
-	affected, _ := res.RowsAffected()
-	return &QueryResult{Affected: affected}, nil
+	defer rows.Close()
+	return scanQueryRows(rows)
 }
 
 func scanQueryRows(rows *sql.Rows) (*QueryResult, error) {

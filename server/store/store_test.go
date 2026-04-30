@@ -63,3 +63,19 @@ func TestOpen_DSNWithExistingQueryParams(t *testing.T) {
 	}
 	defer db.Close()
 }
+
+func TestUserHasPasswordHash(t *testing.T) {
+	db, err := store.Open(":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+
+	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Test')")
+	require.NoError(t, err)
+	u, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
+	require.NoError(t, err)
+
+	var hash string
+	err = db.DB.QueryRow("SELECT password_hash FROM users WHERE id=?", u.ID).Scan(&hash)
+	require.NoError(t, err)
+	require.Equal(t, "", hash)
+}

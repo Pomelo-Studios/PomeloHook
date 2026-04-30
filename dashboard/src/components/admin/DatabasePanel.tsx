@@ -208,7 +208,7 @@ export function DatabasePanel({ apiKey }: Props) {
                   </tbody>
                 </table>
               ) : (
-                <div className="p-4 text-xs" style={{ color: 'var(--text-secondary)' }}>{queryResult.affected} row(s) affected</div>
+                <div className="p-4 text-xs" style={{ color: 'var(--text-secondary)' }}>No results</div>
               )
             )}
           </div>

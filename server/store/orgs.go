@@ -1,11 +1,24 @@
 package store
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"github.com/google/uuid"
+)
 
 type Org struct {
 	ID        string
 	Name      string
 	CreatedAt string
+}
+
+func (s *Store) CreateOrg(name string) (*Org, error) {
+	id := "org_" + uuid.NewString()
+	_, err := s.DB.Exec(`INSERT INTO organizations (id, name) VALUES (?, ?)`, id, name)
+	if err != nil {
+		return nil, err
+	}
+	return &Org{ID: id, Name: name}, nil
 }
 
 func (s *Store) GetOrg(orgID string) (*Org, error) {

@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/pomelo-studios/pomelo-hook/server/api"
 	"github.com/pomelo-studios/pomelo-hook/server/auth"
 	"github.com/pomelo-studios/pomelo-hook/server/store"
@@ -17,9 +19,12 @@ import (
 
 func setupAdmin(t *testing.T) (*store.Store, *store.User, http.Handler) {
 	t.Helper()
-	db, _ := store.Open(":memory:")
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
-	admin, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "admin@a.com", Name: "Admin", Role: "admin"})
+	db, err := store.Open(":memory:")
+	require.NoError(t, err)
+	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	require.NoError(t, err)
+	admin, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "admin@a.com", Name: "Admin", Role: "admin"})
+	require.NoError(t, err)
 	mgr := tunnel.NewManager()
 	return db, admin, api.NewRouter(db, mgr)
 }
@@ -82,10 +87,13 @@ func TestAdminCreateUser(t *testing.T) {
 }
 
 func TestUpdateUser_InvalidatesOldKeyNotNewKey(t *testing.T) {
-	db, _ := store.Open(":memory:")
+	db, err := store.Open(":memory:")
+	require.NoError(t, err)
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
-	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "upd@b.com", Name: "U", Role: "admin"})
+	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	require.NoError(t, err)
+	user, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "upd@b.com", Name: "U", Role: "admin"})
+	require.NoError(t, err)
 	oldKey := user.APIKey
 
 	handler := auth.Middleware(db, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +120,123 @@ func TestUpdateUser_InvalidatesOldKeyNotNewKey(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, w2.Code, "old key must be evicted from cache after update")
 }
 
+func TestLoginRequiresPassword(t *testing.T) {
+	db, _, router := setupAdmin(t)
+	defer db.Close()
+	body, _ := json.Marshal(map[string]string{"email": "admin@a.com"})
+	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestLoginWrongPassword(t *testing.T) {
+	db, _, router := setupAdmin(t)
+	defer db.Close()
+	body, _ := json.Marshal(map[string]string{"email": "admin@a.com", "password": "wrongpass"})
+	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestLoginNoPasswordSet(t *testing.T) {
+	db, _, router := setupAdmin(t)
+	defer db.Close()
+	body, _ := json.Marshal(map[string]string{"email": "admin@a.com", "password": "anypassword"})
+	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestLoginSuccess(t *testing.T) {
+	db, _, _ := setupAdmin(t)
+	defer db.Close()
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("correctpass"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+
+	admin, err := db.GetUserByEmail("admin@a.com")
+	require.NoError(t, err)
+
+	err = db.SetPasswordHash(admin.ID, admin.OrgID, string(hash))
+	require.NoError(t, err)
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	body, err := json.Marshal(map[string]string{"email": "admin@a.com", "password": "correctpass"})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var resp map[string]string
+	err = json.NewDecoder(rec.Body).Decode(&resp)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp["api_key"])
+}
+
+func TestAdminSetUserPassword(t *testing.T) {
+	db, admin, router := setupAdmin(t)
+	defer db.Close()
+
+	member, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "m@a.com", Name: "M", Role: "member"})
+	require.NoError(t, err)
+
+	body, err := json.Marshal(map[string]string{"password": "newpassword123"})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("POST", "/api/admin/users/"+member.ID+"/set-password", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+admin.APIKey)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusNoContent, rec.Code)
+
+	updated, err := db.GetUserByID(member.ID, "org1")
+	require.NoError(t, err)
+	require.NotEmpty(t, updated.PasswordHash)
+	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(updated.PasswordHash), []byte("newpassword123")))
+}
+
+func TestAdminSetUserPasswordTooShort(t *testing.T) {
+	db, admin, router := setupAdmin(t)
+	defer db.Close()
+	member, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "m2@a.com", Name: "M2", Role: "member"})
+	body, _ := json.Marshal(map[string]string{"password": "short"})
+	req := httptest.NewRequest("POST", "/api/admin/users/"+member.ID+"/set-password", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+admin.APIKey)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
 func TestAdminRunQuery(t *testing.T) {
+	db, admin, router := setupAdmin(t)
+	defer db.Close()
+	body, _ := json.Marshal(map[string]string{"sql": "SELECT id FROM organizations"})
+	req := httptest.NewRequest("POST", "/api/admin/db/query", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+admin.APIKey)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestAdminRunQueryWriteRejected(t *testing.T) {
+	db, admin, router := setupAdmin(t)
+	defer db.Close()
+	body, _ := json.Marshal(map[string]string{"sql": "INSERT INTO organizations (id, name) VALUES ('x', 'X')"})
+	req := httptest.NewRequest("POST", "/api/admin/db/query", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+admin.APIKey)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestAdminRunQuerySelectAllowed(t *testing.T) {
 	db, admin, router := setupAdmin(t)
 	defer db.Close()
 	body, _ := json.Marshal(map[string]string{"sql": "SELECT id FROM organizations"})
