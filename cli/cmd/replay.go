@@ -20,7 +20,8 @@ var replayCmd = &cobra.Command{
 var replayTarget string
 
 func init() {
-	replayCmd.Flags().StringVar(&replayTarget, "to", "http://localhost:3000", "Target URL for replay")
+	replayCmd.Flags().StringVar(&replayTarget, "to", "", "Target URL to replay the event to (required)")
+	_ = replayCmd.MarkFlagRequired("to")
 }
 
 func runReplay(cmd *cobra.Command, args []string) error {
