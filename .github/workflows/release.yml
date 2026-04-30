@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and release CLI binaries
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build dashboard (required for go:embed)
+        run: |
+          npm --prefix dashboard ci
+          npm --prefix dashboard run build
+          mkdir -p cli/dashboard/static server/dashboard/static
+          cp -r dashboard/dist/* cli/dashboard/static/
+          cp -r dashboard/dist/* server/dashboard/static/
+
+      - name: Set up Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Build CLI binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          SUFFIX=""
+          if [ "${{ matrix.goos }}" = "windows" ]; then SUFFIX=".exe"; fi
+          OUTNAME="pomelo-hook-${{ matrix.goos }}-${{ matrix.goarch }}${SUFFIX}"
+          cd cli && go build -o "../bin/${OUTNAME}" .
+
+      - name: Upload binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pomelo-hook-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: bin/pomelo-hook-*
+
+  publish:
+    name: Publish GitHub Release
+    needs: release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: bin
+          merge-multiple: true
+
+      - name: Create GitHub Release and upload binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --generate-notes \
+            bin/pomelo-hook-*
