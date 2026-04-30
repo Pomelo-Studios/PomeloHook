@@ -7,6 +7,10 @@ build/
 .next/
 .DS_Store
 *.db
+*.db-shm
+*.db-wal
+data/
+OPTIMIZATIONS.md
 bin/
 server/server
 cli/cli
