@@ -108,8 +108,11 @@ func migrate(db *sql.DB) error {
 		return err
 	}
 
-	// Idempotent: silently ignored on fresh DBs where the column already exists.
-	tx.Exec(`ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''`)
+	if _, err := tx.Exec(`ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''`); err != nil {
+		if !strings.Contains(err.Error(), "duplicate column name") {
+			return fmt.Errorf("migrate password_hash column: %w", err)
+		}
+	}
 
 	return tx.Commit()
 }
