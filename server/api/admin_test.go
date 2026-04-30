@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/pomelo-studios/pomelo-hook/server/api"
 	"github.com/pomelo-studios/pomelo-hook/server/auth"
 	"github.com/pomelo-studios/pomelo-hook/server/store"
@@ -110,6 +112,57 @@ func TestUpdateUser_InvalidatesOldKeyNotNewKey(t *testing.T) {
 	w2 := httptest.NewRecorder()
 	handler.ServeHTTP(w2, req2)
 	require.Equal(t, http.StatusUnauthorized, w2.Code, "old key must be evicted from cache after update")
+}
+
+func TestLoginRequiresPassword(t *testing.T) {
+	db, _, router := setupAdmin(t)
+	defer db.Close()
+	body, _ := json.Marshal(map[string]string{"email": "admin@a.com"})
+	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestLoginWrongPassword(t *testing.T) {
+	db, _, router := setupAdmin(t)
+	defer db.Close()
+	body, _ := json.Marshal(map[string]string{"email": "admin@a.com", "password": "wrongpass"})
+	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestLoginNoPasswordSet(t *testing.T) {
+	db, _, router := setupAdmin(t)
+	defer db.Close()
+	body, _ := json.Marshal(map[string]string{"email": "admin@a.com", "password": "anypassword"})
+	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestLoginSuccess(t *testing.T) {
+	db, _, _ := setupAdmin(t)
+	defer db.Close()
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte("correctpass"), bcrypt.DefaultCost)
+	admin, _ := db.GetUserByEmail("admin@a.com")
+	db.SetPasswordHash(admin.ID, admin.OrgID, string(hash))
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	body, _ := json.Marshal(map[string]string{"email": "admin@a.com", "password": "correctpass"})
+	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+	var resp map[string]string
+	json.NewDecoder(rec.Body).Decode(&resp)
+	require.NotEmpty(t, resp["api_key"])
 }
 
 func TestAdminRunQuery(t *testing.T) {
