@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/pomelo-studios/pomelo-hook/server/api"
@@ -13,6 +14,13 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "init" {
+		if err := runInit(); err != nil {
+			log.Fatalf("init: %v", err)
+		}
+		return
+	}
+
 	cfg := config.Load()
 
 	db, err := store.Open(cfg.DBPath)
