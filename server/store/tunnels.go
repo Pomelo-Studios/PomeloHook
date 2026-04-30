@@ -14,6 +14,7 @@ type Tunnel struct {
 	OrgID        string
 	Subdomain    string
 	ActiveUserID string
+	ActiveDevice string
 	Status       string
 }
 
@@ -24,11 +25,11 @@ type CreateTunnelParams struct {
 	Name   string // optional, used as subdomain for org tunnels
 }
 
-const tunnelColumns = `id, type, COALESCE(user_id,''), COALESCE(org_id,''), subdomain, COALESCE(active_user_id,''), status`
+const tunnelColumns = `id, type, COALESCE(user_id,''), COALESCE(org_id,''), subdomain, COALESCE(active_user_id,''), COALESCE(active_device,''), status`
 
 func scanTunnel(row rowScanner) (*Tunnel, error) {
 	t := &Tunnel{}
-	return t, row.Scan(&t.ID, &t.Type, &t.UserID, &t.OrgID, &t.Subdomain, &t.ActiveUserID, &t.Status)
+	return t, row.Scan(&t.ID, &t.Type, &t.UserID, &t.OrgID, &t.Subdomain, &t.ActiveUserID, &t.ActiveDevice, &t.Status)
 }
 
 func randomHex(n int) (string, error) {
@@ -69,13 +70,19 @@ func (s *Store) GetTunnelByID(id string) (*Tunnel, error) {
 	return scanTunnel(row)
 }
 
-func (s *Store) SetTunnelActive(tunnelID, userID string) error {
-	_, err := s.DB.Exec(`UPDATE tunnels SET active_user_id=?, status='active' WHERE id=?`, userID, tunnelID)
+func (s *Store) SetTunnelActive(tunnelID, userID, device string) error {
+	_, err := s.DB.Exec(
+		`UPDATE tunnels SET active_user_id=?, active_device=?, status='active' WHERE id=?`,
+		userID, nilIfEmpty(device), tunnelID,
+	)
 	return err
 }
 
 func (s *Store) SetTunnelInactive(tunnelID string) error {
-	_, err := s.DB.Exec(`UPDATE tunnels SET active_user_id=NULL, status='inactive' WHERE id=?`, tunnelID)
+	_, err := s.DB.Exec(
+		`UPDATE tunnels SET active_user_id=NULL, active_device=NULL, status='inactive' WHERE id=?`,
+		tunnelID,
+	)
 	return err
 }
 
@@ -106,6 +113,26 @@ func (s *Store) ListTunnelsForUser(userID, orgID string) ([]*Tunnel, error) {
 		return nil, err
 	}
 	return tunnels, nil
+}
+
+func (s *Store) ListOrgTunnels(orgID string) ([]*Tunnel, error) {
+	rows, err := s.DB.Query(
+		`SELECT `+tunnelColumns+` FROM tunnels WHERE org_id=? AND type='org'`,
+		orgID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var tunnels []*Tunnel
+	for rows.Next() {
+		t, err := scanTunnel(rows)
+		if err != nil {
+			return nil, err
+		}
+		tunnels = append(tunnels, t)
+	}
+	return tunnels, rows.Err()
 }
 
 func nilIfEmpty(s string) any {
