@@ -30,6 +30,26 @@ func TestWebhookHandler_BodyTooLarge(t *testing.T) {
 	require.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
 }
 
+func TestWebhookHandler_RateLimitExceeded(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.DB.Exec("INSERT INTO tunnels (id, type, org_id, subdomain) VALUES ('t1','org','org1','ratelimited')")
+
+	mgr := tunnel.NewManager()
+	handler := wh.NewHandler(db, mgr)
+
+	var lastCode int
+	for i := 0; i < 11; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/webhook/ratelimited", strings.NewReader(`{}`))
+		req.RemoteAddr = "1.2.3.4:9999"
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		lastCode = w.Code
+	}
+	require.Equal(t, http.StatusTooManyRequests, lastCode)
+}
+
 func TestWebhookStoredWhenNoActiveTunnel(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
