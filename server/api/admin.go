@@ -2,7 +2,9 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -157,7 +159,11 @@ func handleSetUserPassword(s *store.Store) http.HandlerFunc {
 			return
 		}
 		if err := s.SetPasswordHash(id, caller.OrgID, string(hash)); err != nil {
-			http.Error(w, "not found", http.StatusNotFound)
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "not found", http.StatusNotFound)
+			} else {
+				http.Error(w, "internal error", http.StatusInternalServerError)
+			}
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
