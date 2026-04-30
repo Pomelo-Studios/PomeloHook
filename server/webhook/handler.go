@@ -26,14 +26,22 @@ func NewHandler(s *store.Store, m *tunnel.Manager) *Handler {
 	}
 }
 
+// Close stops the background cleanup goroutine of the rate limiter.
+func (h *Handler) Close() {
+	h.limiter.Close()
+}
+
 const maxWebhookBodyBytes = 5 << 20 // 5 MB
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/webhook/"), "/", 2)
 	subdomain := parts[0]
 
-	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-	if !h.limiter.Allow(ip) {
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil || ip == "" {
+		ip = r.RemoteAddr
+	}
+	if ip != "" && !h.limiter.Allow(ip) {
 		http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
 		return
 	}

@@ -9,35 +9,30 @@ import (
 )
 
 func TestRateLimiterStore_AllowsUnderLimit(t *testing.T) {
-	store := wh.NewRateLimiterStore()
+	s := wh.NewRateLimiterStore()
+	defer s.Close()
 
-	allowed := store.Allow("1.2.3.4")
-	require.True(t, allowed)
+	require.True(t, s.Allow("1.2.3.4"))
 }
 
 func TestRateLimiterStore_DeniesOverBurst(t *testing.T) {
-	store := wh.NewRateLimiterStore()
+	s := wh.NewRateLimiterStore()
+	defer s.Close()
 	ip := "5.6.7.8"
 
-	allowed := 0
-	denied := 0
-	for i := 0; i < 20; i++ {
-		if store.Allow(ip) {
-			allowed++
-		} else {
-			denied++
-		}
+	for i := 0; i < 10; i++ {
+		require.True(t, s.Allow(ip), "request %d within burst should be allowed", i+1)
 	}
-	require.Equal(t, 10, allowed, "burst capacity should be exactly 10")
-	require.Equal(t, 10, denied, "requests beyond burst should be denied")
+	require.False(t, s.Allow(ip), "request beyond burst should be denied")
 }
 
 func TestRateLimiterStore_DifferentIPsAreIndependent(t *testing.T) {
-	store := wh.NewRateLimiterStore()
+	s := wh.NewRateLimiterStore()
+	defer s.Close()
 
 	for i := 0; i < 10; i++ {
-		store.Allow("10.0.0.1")
+		s.Allow("10.0.0.1")
 	}
 
-	require.True(t, store.Allow("10.0.0.2"))
+	require.True(t, s.Allow("10.0.0.2"))
 }

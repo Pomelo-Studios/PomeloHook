@@ -22,13 +22,22 @@ type ipLimiter struct {
 type RateLimiterStore struct {
 	mu       sync.Mutex
 	limiters map[string]*ipLimiter
+	stop     chan struct{}
 }
 
 // NewRateLimiterStore creates a store and starts a background cleanup goroutine.
 func NewRateLimiterStore() *RateLimiterStore {
-	s := &RateLimiterStore{limiters: make(map[string]*ipLimiter)}
+	s := &RateLimiterStore{
+		limiters: make(map[string]*ipLimiter),
+		stop:     make(chan struct{}),
+	}
 	go s.cleanup()
 	return s
+}
+
+// Close stops the background cleanup goroutine.
+func (s *RateLimiterStore) Close() {
+	close(s.stop)
 }
 
 // Allow reports whether the given IP is within its rate limit.
@@ -49,13 +58,20 @@ func (s *RateLimiterStore) get(ip string) *rate.Limiter {
 }
 
 func (s *RateLimiterStore) cleanup() {
-	for range time.Tick(limiterTTL) {
-		s.mu.Lock()
-		for ip, v := range s.limiters {
-			if time.Since(v.lastSeen) > limiterTTL {
-				delete(s.limiters, ip)
+	ticker := time.NewTicker(limiterTTL)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			s.mu.Lock()
+			for ip, v := range s.limiters {
+				if time.Since(v.lastSeen) > limiterTTL {
+					delete(s.limiters, ip)
+				}
 			}
+			s.mu.Unlock()
+		case <-s.stop:
+			return
 		}
-		s.mu.Unlock()
 	}
 }
