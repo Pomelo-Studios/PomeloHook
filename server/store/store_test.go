@@ -79,3 +79,16 @@ func TestUserHasPasswordHash(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "", hash)
 }
+
+func TestTunnelHasActiveDeviceColumn(t *testing.T) {
+	db, err := store.Open(":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+
+	var count int
+	err = db.DB.QueryRow(
+		`SELECT COUNT(*) FROM pragma_table_info('tunnels') WHERE name='active_device'`,
+	).Scan(&count)
+	require.NoError(t, err)
+	require.Equal(t, 1, count, "active_device column must exist in tunnels table")
+}

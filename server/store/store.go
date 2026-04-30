@@ -81,6 +81,7 @@ func migrate(db *sql.DB) error {
 			org_id         TEXT REFERENCES organizations(id),
 			subdomain      TEXT UNIQUE NOT NULL,
 			active_user_id TEXT REFERENCES users(id),
+			active_device  TEXT,
 			status         TEXT NOT NULL DEFAULT 'inactive',
 			created_at     DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
@@ -115,6 +116,16 @@ func migrate(db *sql.DB) error {
 	if colCount == 0 {
 		if _, err := tx.Exec(`ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''`); err != nil {
 			return fmt.Errorf("migrate password_hash column: %w", err)
+		}
+	}
+
+	var deviceColCount int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('tunnels') WHERE name='active_device'`).Scan(&deviceColCount); err != nil {
+		return fmt.Errorf("check active_device column: %w", err)
+	}
+	if deviceColCount == 0 {
+		if _, err := tx.Exec(`ALTER TABLE tunnels ADD COLUMN active_device TEXT`); err != nil {
+			return fmt.Errorf("migrate active_device column: %w", err)
 		}
 	}
 
