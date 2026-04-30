@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/pomelo-studios/pomelo-hook/cli/config"
@@ -51,11 +52,13 @@ func runConnect(cmd *cobra.Command, args []string) error {
 
 	dashboard.Serve(newLocalAPIProxy(cfg.ServerURL, cfg.APIKey))
 
+	hostname, _ := os.Hostname()
 	client := tunnel.New(tunnel.Options{
 		ServerURL: cfg.ServerURL,
 		APIKey:    cfg.APIKey,
 		TunnelID:  tunnelID,
 		LocalPort: localPort,
+		Device:    hostname,
 		OnEvent: func(r *forward.ForwardResult) {
 			log.Printf("→ %s [%d] %dms", r.EventID, r.StatusCode, r.MS)
 		},
