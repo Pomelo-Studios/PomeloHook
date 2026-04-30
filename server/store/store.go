@@ -108,8 +108,12 @@ func migrate(db *sql.DB) error {
 		return err
 	}
 
-	if _, err := tx.Exec(`ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''`); err != nil {
-		if !strings.Contains(err.Error(), "duplicate column name") {
+	var colCount int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('users') WHERE name='password_hash'`).Scan(&colCount); err != nil {
+		return fmt.Errorf("check password_hash column: %w", err)
+	}
+	if colCount == 0 {
+		if _, err := tx.Exec(`ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''`); err != nil {
 			return fmt.Errorf("migrate password_hash column: %w", err)
 		}
 	}

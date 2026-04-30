@@ -149,7 +149,11 @@ func handleSetUserPassword(s *store.Store) http.HandlerFunc {
 		var body struct {
 			Password string `json:"password"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body.Password) < 8 {
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "invalid body", http.StatusBadRequest)
+			return
+		}
+		if len(body.Password) < 8 {
 			http.Error(w, "password must be at least 8 characters", http.StatusBadRequest)
 			return
 		}
