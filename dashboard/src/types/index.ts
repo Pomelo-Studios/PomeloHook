@@ -17,7 +17,7 @@ export interface Tunnel {
   ID: string
   Type: 'personal' | 'org'
   Subdomain: string
-  Status: string
+  Status: 'active' | 'inactive'
   ActiveUserID: string
   ActiveDevice: string
 }
