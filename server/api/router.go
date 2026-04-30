@@ -29,6 +29,7 @@ func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
 	mux.Handle("PUT /api/admin/users/{id}", admin(http.HandlerFunc(handleUpdateAdminUser(s))))
 	mux.Handle("DELETE /api/admin/users/{id}", admin(http.HandlerFunc(handleDeleteAdminUser(s))))
 	mux.Handle("POST /api/admin/users/{id}/rotate-key", admin(http.HandlerFunc(handleRotateAPIKey(s))))
+	mux.Handle("POST /api/admin/users/{id}/set-password", admin(http.HandlerFunc(handleSetUserPassword(s))))
 	mux.Handle("GET /api/admin/orgs", admin(http.HandlerFunc(handleGetAdminOrg(s))))
 	mux.Handle("PUT /api/admin/orgs", admin(http.HandlerFunc(handleUpdateAdminOrg(s))))
 	mux.Handle("GET /api/admin/tunnels", admin(http.HandlerFunc(handleListAdminTunnels(s))))
