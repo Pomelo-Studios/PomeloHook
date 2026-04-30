@@ -40,11 +40,15 @@ func handleWSConnect(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 		}
 
 		device := r.URL.Query().Get("device")
-		s.SetTunnelActive(tunnelID, user.ID, device)
+		if err := s.SetTunnelActive(tunnelID, user.ID, device); err != nil {
+			log.Printf("warn: SetTunnelActive %s: %v", tunnelID, err)
+		}
 
 		defer func() {
 			m.Unregister(tunnelID)
-			s.SetTunnelInactive(tunnelID)
+			if err := s.SetTunnelInactive(tunnelID); err != nil {
+				log.Printf("warn: SetTunnelInactive %s: %v", tunnelID, err)
+			}
 			conn.Close()
 		}()
 
