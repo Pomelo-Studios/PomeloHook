@@ -57,20 +57,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ch, ok := h.manager.Get(tun.ID)
-	if ok {
-		payload, _ := json.Marshal(map[string]any{
-			"event_id": event.ID,
-			"method":   r.Method,
-			"path":     r.URL.Path,
-			"headers":  string(headerJSON),
-			"body":     string(bodyBytes),
-		})
-		select {
-		case ch <- payload:
-		default:
-		}
-	}
+	payload, _ := json.Marshal(map[string]any{
+		"event_id": event.ID,
+		"method":   r.Method,
+		"path":     r.URL.Path,
+		"headers":  string(headerJSON),
+		"body":     string(bodyBytes),
+	})
+	h.manager.Broadcast(tun.ID, payload)
 
 	w.WriteHeader(http.StatusAccepted)
 }
