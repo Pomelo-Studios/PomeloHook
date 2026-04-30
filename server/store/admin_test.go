@@ -207,3 +207,51 @@ func TestRunQueryWriteRejected(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "only SELECT")
 }
+
+func TestRunQueryPragmaTableInfo(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	result, err := db.RunQuery("PRAGMA table_info(users)")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotEmpty(t, result.Columns)
+}
+
+func TestRunQueryPragmaPageCount(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	result, err := db.RunQuery("PRAGMA page_count")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+}
+
+func TestRunQueryPragmaWriteRejected(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	_, err := db.RunQuery("PRAGMA journal_mode=WAL")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "whitelisted read-only")
+}
+
+func TestRunQueryPragmaWriteWithParensRejected(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	_, err := db.RunQuery("PRAGMA journal_mode(WAL)")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "whitelisted read-only")
+}
+
+func TestRunQueryWithCTE(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+
+	result, err := db.RunQuery("WITH t AS (SELECT id FROM organizations) SELECT * FROM t")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, []string{"id"}, result.Columns)
+	require.Len(t, result.Rows, 1)
+}
