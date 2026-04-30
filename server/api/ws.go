@@ -26,15 +26,11 @@ func handleWSConnect(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 			return
 		}
 
-		ch := make(chan []byte, 64)
-		if err := m.CheckAndRegister(tunnelID, user.ID, user.Name, ch); err != nil {
-			http.Error(w, err.Error(), http.StatusConflict)
-			return
-		}
+		ch := m.Register(tunnelID, user.Name)
 
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			m.Unregister(tunnelID)
+			m.Unregister(tunnelID, ch)
 			log.Printf("ws upgrade error: %v", err)
 			return
 		}
@@ -45,9 +41,11 @@ func handleWSConnect(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 		}
 
 		defer func() {
-			m.Unregister(tunnelID)
-			if err := s.SetTunnelInactive(tunnelID); err != nil {
-				log.Printf("warn: SetTunnelInactive %s: %v", tunnelID, err)
+			m.Unregister(tunnelID, ch)
+			if m.SubCount(tunnelID) == 0 {
+				if err := s.SetTunnelInactive(tunnelID); err != nil {
+					log.Printf("warn: SetTunnelInactive %s: %v", tunnelID, err)
+				}
 			}
 			conn.Close()
 		}()
