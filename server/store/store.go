@@ -65,13 +65,14 @@ func migrate(db *sql.DB) error {
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
 		CREATE TABLE IF NOT EXISTS users (
-			id         TEXT PRIMARY KEY,
-			org_id     TEXT REFERENCES organizations(id),
-			email      TEXT UNIQUE NOT NULL,
-			name       TEXT NOT NULL,
-			api_key    TEXT UNIQUE NOT NULL,
-			role       TEXT NOT NULL DEFAULT 'member',
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			id            TEXT PRIMARY KEY,
+			org_id        TEXT REFERENCES organizations(id),
+			email         TEXT UNIQUE NOT NULL,
+			name          TEXT NOT NULL,
+			api_key       TEXT UNIQUE NOT NULL,
+			role          TEXT NOT NULL DEFAULT 'member',
+			password_hash TEXT NOT NULL DEFAULT '',
+			created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
 		CREATE TABLE IF NOT EXISTS tunnels (
 			id             TEXT PRIMARY KEY,
@@ -105,6 +106,16 @@ func migrate(db *sql.DB) error {
 	`)
 	if err != nil {
 		return err
+	}
+
+	var colCount int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('users') WHERE name='password_hash'`).Scan(&colCount); err != nil {
+		return fmt.Errorf("check password_hash column: %w", err)
+	}
+	if colCount == 0 {
+		if _, err := tx.Exec(`ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''`); err != nil {
+			return fmt.Errorf("migrate password_hash column: %w", err)
+		}
 	}
 
 	return tx.Commit()
