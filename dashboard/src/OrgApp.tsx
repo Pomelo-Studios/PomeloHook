@@ -45,8 +45,9 @@ export function OrgApp() {
   useEffect(() => {
     if (!selectedTunnelID) { setEvents([]); return }
 
+    const tunnelID = selectedTunnelID
     function fetchEvents() {
-      api.getEvents(selectedTunnelID, 100).then(setEvents).catch(() => {})
+      api.getEvents(tunnelID, 100).then(setEvents).catch(() => {})
     }
 
     fetchEvents()
