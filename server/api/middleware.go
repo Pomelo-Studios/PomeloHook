@@ -20,7 +20,12 @@ func (rw *responseWriter) WriteHeader(code int) {
 
 // Hijack delegates to the underlying ResponseWriter so WebSocket upgrades work through the middleware.
 func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return rw.ResponseWriter.(http.Hijacker).Hijack()
+	hj, ok := rw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, http.ErrNotSupported
+	}
+	rw.status = http.StatusSwitchingProtocols
+	return hj.Hijack()
 }
 
 // LoggingMiddleware logs METHOD, path, status code, duration, and remote addr for every request.
