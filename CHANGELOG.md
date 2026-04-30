@@ -6,6 +6,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Vers
 
 ---
 
+## [1.12.0] — 2026-04-30
+
+### Added
+- Logging middleware on all API routes — every request logs method, path, status, and duration
+- Per-IP rate limiting on the webhook endpoint (60 req/min, burst 10)
+- Graceful shutdown with 30-second drain period — in-flight requests complete before exit
+- HTTP read/write/idle timeouts to prevent slow-client attacks
+- `db.Close()` via `defer` on server shutdown
+
+### Fixed
+- Rate limiter and middleware cleanup following PR review feedback
+
+### Internal
+- Add `golang.org/x/time` dependency for token-bucket rate limiter
+
+---
+
 ## [1.11.0] — 2026-04-30
 
 ### Added
