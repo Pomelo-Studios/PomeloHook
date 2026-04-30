@@ -24,15 +24,15 @@ func handleLogin(s *store.Store) http.HandlerFunc {
 			http.Error(w, "invalid credentials", http.StatusUnauthorized)
 			return
 		}
-		if user.Role != "admin" {
-			http.Error(w, "forbidden", http.StatusForbidden)
-			return
-		}
 		if user.PasswordHash == "" {
 			http.Error(w, "password not set — ask your admin to set one via the admin panel", http.StatusUnauthorized)
 			return
 		}
 		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(body.Password)); err != nil {
+			http.Error(w, "invalid credentials", http.StatusUnauthorized)
+			return
+		}
+		if user.Role != "admin" {
 			http.Error(w, "invalid credentials", http.StatusUnauthorized)
 			return
 		}

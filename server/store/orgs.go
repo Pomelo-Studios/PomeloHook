@@ -13,7 +13,7 @@ type Org struct {
 }
 
 func (s *Store) CreateOrg(name string) (*Org, error) {
-	id := "org_" + uuid.NewString()[:8]
+	id := "org_" + uuid.NewString()
 	_, err := s.DB.Exec(`INSERT INTO organizations (id, name) VALUES (?, ?)`, id, name)
 	if err != nil {
 		return nil, err
