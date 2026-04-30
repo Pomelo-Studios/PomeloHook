@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/pomelo-studios/pomelo-hook/server/auth"
 	"github.com/pomelo-studios/pomelo-hook/server/store"
 	"github.com/pomelo-studios/pomelo-hook/server/tunnel"
@@ -135,6 +137,30 @@ func handleRotateAPIKey(s *store.Store) http.HandlerFunc {
 		auth.InvalidateAPIKey(oldKey)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"api_key": newKey})
+	}
+}
+
+func handleSetUserPassword(s *store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		caller := auth.UserFromContext(r.Context())
+		id := r.PathValue("id")
+		var body struct {
+			Password string `json:"password"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body.Password) < 8 {
+			http.Error(w, "password must be at least 8 characters", http.StatusBadRequest)
+			return
+		}
+		hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if err := s.SetPasswordHash(id, caller.OrgID, string(hash)); err != nil {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

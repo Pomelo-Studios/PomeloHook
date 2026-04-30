@@ -165,6 +165,36 @@ func TestLoginSuccess(t *testing.T) {
 	require.NotEmpty(t, resp["api_key"])
 }
 
+func TestAdminSetUserPassword(t *testing.T) {
+	db, admin, router := setupAdmin(t)
+	defer db.Close()
+
+	member, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "m@a.com", Name: "M", Role: "member"})
+
+	body, _ := json.Marshal(map[string]string{"password": "newpassword123"})
+	req := httptest.NewRequest("POST", "/api/admin/users/"+member.ID+"/set-password", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+admin.APIKey)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusNoContent, rec.Code)
+
+	updated, _ := db.GetUserByID(member.ID, "org1")
+	require.NotEmpty(t, updated.PasswordHash)
+	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(updated.PasswordHash), []byte("newpassword123")))
+}
+
+func TestAdminSetUserPasswordTooShort(t *testing.T) {
+	db, admin, router := setupAdmin(t)
+	defer db.Close()
+	member, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "m2@a.com", Name: "M2", Role: "member"})
+	body, _ := json.Marshal(map[string]string{"password": "short"})
+	req := httptest.NewRequest("POST", "/api/admin/users/"+member.ID+"/set-password", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+admin.APIKey)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
 func TestAdminRunQuery(t *testing.T) {
 	db, admin, router := setupAdmin(t)
 	defer db.Close()
