@@ -193,8 +193,8 @@ func (s *Store) RunQuery(query string) (*QueryResult, error) {
 		// allowed
 	case strings.HasPrefix(upper, "PRAGMA"):
 		rest := strings.TrimSpace(upper[len("PRAGMA"):])
-		if strings.Contains(rest, "=") {
-			return nil, fmt.Errorf("write PRAGMA statements are not allowed")
+		if strings.Contains(rest, "=") || strings.Contains(rest, "(") {
+			return nil, fmt.Errorf("only read-only PRAGMA statements without arguments are allowed")
 		}
 	default:
 		return nil, fmt.Errorf("only SELECT, EXPLAIN, and read-only PRAGMA queries are allowed")

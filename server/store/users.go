@@ -91,7 +91,11 @@ func (s *Store) SetPasswordHash(id, orgID, hash string) error {
 	if err != nil {
 		return err
 	}
-	if n, _ := res.RowsAffected(); n == 0 {
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
 		return sql.ErrNoRows
 	}
 	return nil
