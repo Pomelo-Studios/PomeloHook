@@ -15,7 +15,7 @@ type User struct {
 	Name         string
 	APIKey       string
 	Role         string
-	PasswordHash string
+	PasswordHash string `json:"-"`
 }
 
 type CreateUserParams struct {
