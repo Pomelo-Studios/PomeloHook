@@ -1,0 +1,35 @@
+# Stage 1: build dashboard
+FROM node:22-alpine AS dashboard-builder
+WORKDIR /app
+COPY dashboard/package.json dashboard/package-lock.json ./
+RUN npm ci
+COPY dashboard/ ./
+RUN npm run build
+
+# Stage 2: build Go server binary
+FROM golang:1.22-alpine AS go-builder
+WORKDIR /src
+
+# Copy dashboard build output required by go:embed
+COPY --from=dashboard-builder /app/dist/ /src/server/dashboard/static/
+COPY --from=dashboard-builder /app/dist/ /src/cli/dashboard/static/
+
+# Copy Go modules and download dependencies first (layer cache)
+COPY server/go.mod server/go.sum ./server/
+COPY cli/go.mod cli/go.sum ./cli/
+RUN cd server && go mod download
+RUN cd cli && go mod download
+
+# Copy source
+COPY server/ ./server/
+COPY cli/ ./cli/
+
+RUN cd server && go build -o /out/pomelo-hook-server .
+
+# Stage 3: minimal runtime image
+FROM alpine:3.19
+RUN apk add --no-cache ca-certificates wget
+WORKDIR /app
+COPY --from=go-builder /out/pomelo-hook-server .
+EXPOSE 8080
+ENTRYPOINT ["./pomelo-hook-server"]
