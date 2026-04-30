@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 
@@ -14,10 +15,15 @@ import (
 type Handler struct {
 	store   *store.Store
 	manager *tunnel.Manager
+	limiter *RateLimiterStore
 }
 
 func NewHandler(s *store.Store, m *tunnel.Manager) *Handler {
-	return &Handler{store: s, manager: m}
+	return &Handler{
+		store:   s,
+		manager: m,
+		limiter: NewRateLimiterStore(),
+	}
 }
 
 const maxWebhookBodyBytes = 5 << 20 // 5 MB
@@ -25,6 +31,12 @@ const maxWebhookBodyBytes = 5 << 20 // 5 MB
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/webhook/"), "/", 2)
 	subdomain := parts[0]
+
+	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if !h.limiter.Allow(ip) {
+		http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
 
 	tun, err := h.store.GetTunnelBySubdomain(subdomain)
 	if err != nil {
