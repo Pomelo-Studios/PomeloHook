@@ -37,7 +37,7 @@ Events are always stored regardless of whether forwarding succeeds — they are 
 ## Features
 
 - **Personal tunnels** — each user gets their own subdomain, private to them
-- **Org tunnels** — shared across the org, one active forwarder at a time
+- **Org tunnels** — shared across the org, multiple subscribers receive the same webhook simultaneously
 - **30-day retention** — events auto-deleted after 30 days (configurable)
 - **Replay** — resend any stored event to any URL from the CLI or dashboard
 - **Local dashboard** — embedded in the CLI binary, no separate install
@@ -108,6 +108,14 @@ After this, use the admin panel at `https://your-server.com/admin` to manage add
 
 ### Install
 
+One-line install (Linux and macOS, `amd64`/`arm64`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Pomelo-Studios/PomeloHook/main/install.sh | sh
+```
+
+Or build from source:
+
 ```bash
 make build
 # binary at ./bin/pomelo-hook
@@ -154,7 +162,7 @@ Press Ctrl+C to stop
 pomelo-hook connect --org --tunnel my-team-tunnel --port 3000
 ```
 
-Only one person can hold an active org tunnel at a time. If another session is already connected, the command exits with an error.
+Multiple team members or CI processes can subscribe to the same org tunnel at once — each receives its own copy of every incoming webhook.
 
 ---
 
@@ -237,6 +245,7 @@ All endpoints except `POST /api/auth/login` require `Authorization: Bearer <api_
 
 | Method | Path                          | Description                        |
 |--------|-------------------------------|------------------------------------|
+| GET    | `/api/health`                 | Health check (no auth)             |
 | POST   | `/api/auth/login`             | Return API key for an email        |
 | GET    | `/api/me`                     | Return the authenticated user      |
 | POST   | `/api/tunnels`                | Create a personal or org tunnel    |
