@@ -65,5 +65,4 @@ export interface TableResult {
 export interface QueryResult {
   columns: string[]
   rows: unknown[][]
-  affected: number
 }

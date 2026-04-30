@@ -18,9 +18,8 @@ type TableResult struct {
 }
 
 type QueryResult struct {
-	Columns  []string `json:"columns"`
-	Rows     [][]any  `json:"rows"`
-	Affected int      `json:"affected"`
+	Columns []string `json:"columns"`
+	Rows    [][]any  `json:"rows"`
 }
 
 var allowedTables = map[string]bool{
@@ -194,7 +193,7 @@ func (s *Store) RunQuery(query string) (*QueryResult, error) {
 		// allowed
 	case strings.HasPrefix(upper, "PRAGMA"):
 		rest := strings.TrimSpace(upper[len("PRAGMA"):])
-		if strings.ContainsAny(rest, "=(") {
+		if strings.Contains(rest, "=") {
 			return nil, fmt.Errorf("write PRAGMA statements are not allowed")
 		}
 	default:

@@ -28,8 +28,8 @@ export const api = {
     }),
   getMe: (apiKey: string) =>
     request<Me>('/api/me', { headers: authHeaders(apiKey) }),
-  login: (email: string) =>
-    request<{ api_key: string }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email }) }),
+  login: (email: string, password: string) =>
+    request<{ api_key: string }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
 
   admin: {
     listUsers: (apiKey: string) =>

@@ -8,6 +8,7 @@ interface Props {
 
 export function LoginForm({ onLogin }: Props) {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -16,7 +17,7 @@ export function LoginForm({ onLogin }: Props) {
     setError('')
     setLoading(true)
     try {
-      const data = await api.login(email)
+      const data = await api.login(email, password)
       onLogin(data.api_key)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
@@ -40,6 +41,15 @@ export function LoginForm({ onLogin }: Props) {
             placeholder="Email"
             value={email}
             onChange={e => setEmail(e.target.value)}
+            required
+            className="rounded-lg px-3 py-2 text-xs font-mono outline-none"
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
             required
             className="rounded-lg px-3 py-2 text-xs font-mono outline-none"
             style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
