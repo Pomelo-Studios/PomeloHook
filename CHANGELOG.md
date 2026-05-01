@@ -6,6 +6,27 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Vers
 
 ---
 
+## [1.14.1] — 2026-05-01
+
+### Fixed
+- Truncate response body to 512 KB before marking as forwarded, preventing 413 errors on large payloads
+- Distinguish DB errors in tunnel idempotency check; gate X-Forwarded-For header behind `TRUST_PROXY` env var
+- Return 409 (Conflict) instead of 404 when `RotateAPIKey` encounters a CAS conflict
+- Fix tunnel JSON tag in list output, apply timeout to API client, cap backoff, and drain response bodies properly
+- Use correct `RemoteAddr` in rate-limit test; return 413 for oversized request bodies
+- Replace `time.Tick` with stoppable ticker to prevent goroutine leak in tests
+- Remove hard CLI exit after 5 retries; use timeout client in replay; lowercase JSON tags on `Tunnel`
+- Call `webhookHandler.Close` on shutdown; add 1 MB body limit to API routes
+- Deduplicate personal tunnels — return existing tunnel instead of creating new one
+- Call `MarkEventForwarded` after CLI forward to fix broken audit trail
+- Replay forwards original request headers, including signature headers
+- Make `RotateAPIKey` atomic with a transaction and CAS update
+- Rate-limit login endpoint to 5 attempts per IP per minute
+- Enforce tunnel ownership check on WebSocket upgrade
+- Prevent empty `org_id` from granting cross-user tunnel access
+
+---
+
 ## [1.14.0] — 2026-05-01
 
 ### Fixed
