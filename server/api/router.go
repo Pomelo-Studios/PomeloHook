@@ -9,7 +9,7 @@ import (
 	"github.com/pomelo-studios/pomelo-hook/server/tunnel"
 )
 
-const maxAPIBodyBytes = 1 << 20 // 1 MB for all authenticated API endpoints
+const maxAPIBodyBytes = 1 << 20 // 1 MB body limit applied to all API endpoints
 
 func limitBody(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -60,17 +62,21 @@ func (l *loginRateLimiter) allowed(ip string) bool {
 	return true
 }
 
+// clientIP mirrors webhook.realIP: XFF/X-Real-IP only honored when POMELO_TRUST_PROXY=true.
 func clientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		return strings.TrimSpace(strings.SplitN(xff, ",", 2)[0])
-	}
-	if ra := r.RemoteAddr; ra != "" {
-		if idx := strings.LastIndex(ra, ":"); idx != -1 {
-			return ra[:idx]
+	if os.Getenv("POMELO_TRUST_PROXY") == "true" {
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			return strings.TrimSpace(strings.SplitN(xff, ",", 2)[0])
 		}
-		return ra
+		if xri := r.Header.Get("X-Real-IP"); xri != "" {
+			return strings.TrimSpace(xri)
+		}
 	}
-	return "unknown"
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil || ip == "" {
+		return r.RemoteAddr
+	}
+	return ip
 }
 
 func handleLogin(s *store.Store) http.HandlerFunc {
