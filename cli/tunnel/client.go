@@ -84,10 +84,16 @@ func (c *Client) Connect() error {
 	}
 }
 
+const maxForwardedBodyBytes = 512 * 1024
+
 func (c *Client) markForwarded(result *forward.ForwardResult) {
+	body := result.Body
+	if len(body) > maxForwardedBodyBytes {
+		body = body[:maxForwardedBodyBytes]
+	}
 	payload, err := json.Marshal(map[string]any{
 		"response_status": result.StatusCode,
-		"response_body":   result.Body,
+		"response_body":   body,
 		"response_ms":     result.MS,
 	})
 	if err != nil {
