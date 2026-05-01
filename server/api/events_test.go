@@ -85,3 +85,31 @@ func TestListOrgTunnelsEndpoint(t *testing.T) {
 	require.Len(t, result2, 1)
 	require.Equal(t, "org", result2[0]["Type"])
 }
+
+func TestHandleListEvents_LimitCappedAt500(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
+	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: "org1", Name: "test-wh"})
+
+	// Insert 10 events
+	for i := 0; i < 10; i++ {
+		db.SaveEvent(store.SaveEventParams{TunnelID: tun.ID, Method: "POST", Path: "/", Headers: "{}", RequestBody: ""})
+	}
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	// Request with a huge limit (5 million) - should be capped at 500 in the handler
+	req := httptest.NewRequest("GET", "/api/events?tunnel_id="+tun.ID+"&limit=5000000", nil)
+	req.Header.Set("Authorization", "Bearer "+user.APIKey)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var events []map[string]any
+	json.NewDecoder(rec.Body).Decode(&events)
+	// We inserted 10 events, so we get 10. But internally the limit was capped at 500.
+	require.Len(t, events, 10)
+}
