@@ -16,13 +16,13 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: MakeCheckOrigin(),
+	CheckOrigin: makeCheckOrigin(),
 }
 
-// MakeCheckOrigin returns a CheckOrigin function based on POMELO_ALLOWED_ORIGINS.
+// makeCheckOrigin returns a CheckOrigin function based on POMELO_ALLOWED_ORIGINS.
 // If the env var is not set, all origins are allowed (with a warning).
 // If set, only listed comma-separated origins are accepted.
-func MakeCheckOrigin() func(r *http.Request) bool {
+func makeCheckOrigin() func(r *http.Request) bool {
 	raw := os.Getenv("POMELO_ALLOWED_ORIGINS")
 	if raw == "" {
 		log.Println("warn: POMELO_ALLOWED_ORIGINS not set — WebSocket accepts any origin")
