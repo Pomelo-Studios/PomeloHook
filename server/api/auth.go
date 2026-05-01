@@ -10,6 +10,15 @@ import (
 	"github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
+func hashPassword(w http.ResponseWriter, plain string) (string, bool) {
+	h, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return "", false
+	}
+	return string(h), true
+}
+
 func handleLogin(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
@@ -77,21 +86,15 @@ func handleChangePassword(s *store.Store) http.HandlerFunc {
 			http.Error(w, "new password must be at least 8 characters", http.StatusBadRequest)
 			return
 		}
-		fullUser, err := s.GetUserByID(user.ID, user.OrgID)
-		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
-		}
-		if fullUser.PasswordHash == "" || bcrypt.CompareHashAndPassword([]byte(fullUser.PasswordHash), []byte(body.CurrentPassword)) != nil {
+		if user.PasswordHash == "" || bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(body.CurrentPassword)) != nil {
 			http.Error(w, "current password is incorrect", http.StatusUnauthorized)
 			return
 		}
-		hash, err := bcrypt.GenerateFromPassword([]byte(body.NewPassword), bcrypt.DefaultCost)
-		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
+		hash, ok := hashPassword(w, body.NewPassword)
+		if !ok {
 			return
 		}
-		if err := s.SetPasswordHash(user.ID, user.OrgID, string(hash)); err != nil {
+		if err := s.SetPasswordHash(user.ID, user.OrgID, hash); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}

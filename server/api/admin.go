@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/pomelo-studios/pomelo-hook/server/auth"
 	"github.com/pomelo-studios/pomelo-hook/server/store"
 	"github.com/pomelo-studios/pomelo-hook/server/tunnel"
@@ -152,12 +150,11 @@ func handleSetUserPassword(s *store.Store) http.HandlerFunc {
 			http.Error(w, "password must be at least 8 characters", http.StatusBadRequest)
 			return
 		}
-		hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
-		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
+		hash, ok := hashPassword(w, body.Password)
+		if !ok {
 			return
 		}
-		if err := s.SetPasswordHash(id, caller.OrgID, string(hash)); err != nil {
+		if err := s.SetPasswordHash(id, caller.OrgID, hash); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				http.Error(w, "not found", http.StatusNotFound)
 			} else {

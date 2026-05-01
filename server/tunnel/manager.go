@@ -18,8 +18,7 @@ func NewManager() *Manager {
 	}
 }
 
-// Register adds a new subscriber for tunnelID and returns its dedicated channel.
-// Always succeeds — multiple subscribers on the same tunnel are allowed.
+// Multiple subscribers on the same tunnel are allowed.
 func (m *Manager) Register(tunnelID, _ string) chan []byte {
 	ch := make(chan []byte, 64)
 	m.mu.Lock()
@@ -28,7 +27,6 @@ func (m *Manager) Register(tunnelID, _ string) chan []byte {
 	return ch
 }
 
-// Unregister removes and closes the specific channel from tunnelID's subscriber list.
 // Returns true if this was the last subscriber (determined atomically under the lock).
 // Safe to call on an already-removed channel (no-op, returns false).
 func (m *Manager) Unregister(tunnelID string, ch chan []byte) (wasLast bool) {
@@ -49,7 +47,6 @@ func (m *Manager) Unregister(tunnelID string, ch chan []byte) (wasLast bool) {
 	return false
 }
 
-// UnregisterAll closes and removes every subscriber for tunnelID.
 // Used by admin disconnect/delete operations.
 func (m *Manager) UnregisterAll(tunnelID string) {
 	m.mu.Lock()
@@ -60,7 +57,6 @@ func (m *Manager) UnregisterAll(tunnelID string) {
 	delete(m.conns, tunnelID)
 }
 
-// Broadcast sends payload to all subscribers of tunnelID.
 // Non-blocking per subscriber: drops the message if a channel's buffer is full.
 func (m *Manager) Broadcast(tunnelID string, payload []byte) {
 	m.mu.Lock()
@@ -74,15 +70,18 @@ func (m *Manager) Broadcast(tunnelID string, payload []byte) {
 	}
 }
 
-// SubCount returns the number of active subscribers for tunnelID.
 func (m *Manager) SubCount(tunnelID string) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return len(m.conns[tunnelID])
 }
 
-// RegisterStream adds a new browser WebSocket event subscriber for tunnelID
-// and returns its dedicated channel.
+func (m *Manager) StreamCount(tunnelID string) int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.streams[tunnelID])
+}
+
 func (m *Manager) RegisterStream(tunnelID string) chan []byte {
 	ch := make(chan []byte, 64)
 	m.mu.Lock()
@@ -91,8 +90,7 @@ func (m *Manager) RegisterStream(tunnelID string) chan []byte {
 	return ch
 }
 
-// UnregisterStream removes and closes the specific stream channel from tunnelID's
-// subscriber list. Safe to call on an already-removed channel (no-op).
+// Safe to call on an already-removed channel (no-op).
 func (m *Manager) UnregisterStream(tunnelID string, ch chan []byte) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -109,7 +107,6 @@ func (m *Manager) UnregisterStream(tunnelID string, ch chan []byte) {
 	}
 }
 
-// BroadcastEvent sends eventJSON to all browser stream subscribers of tunnelID.
 // Non-blocking per subscriber: drops the message if a channel's buffer is full.
 func (m *Manager) BroadcastEvent(tunnelID string, eventJSON []byte) {
 	m.mu.Lock()

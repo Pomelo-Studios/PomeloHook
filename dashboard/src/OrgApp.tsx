@@ -6,7 +6,7 @@ import { TunnelList } from './components/TunnelList'
 import { LoginForm } from './components/admin/LoginForm'
 import { useAuth } from './hooks/useAuth'
 import { api } from './api/client'
-import type { WebhookEvent, Tunnel, OrgMember } from './types'
+import type { WebhookEvent, Tunnel, OrgMember, Me } from './types'
 
 type Tab = 'personal' | 'org' | 'members' | 'profile'
 
@@ -49,7 +49,7 @@ export function OrgApp() {
   const [selectedEvent, setSelectedEvent] = useState<WebhookEvent | null>(null)
   const [replayError, setReplayError] = useState<string | null>(null)
   const [members, setMembers] = useState<OrgMember[]>([])
-  const [me, setMe] = useState<{ name: string; email: string; role: string; api_key: string } | null>(null)
+  const [me, setMe] = useState<Me | null>(null)
   const [creating, setCreating] = useState(false)
 
   const selectedTunnel = tunnels.find(t => t.ID === selectedTunnelID) ?? null
@@ -92,7 +92,12 @@ export function OrgApp() {
 
     const tunnelID = selectedTunnelID
     function fetchEvents() {
-      api.getEvents(tunnelID, 100, apiKey).then(setEvents).catch(() => {})
+      api.getEvents(tunnelID, 100, apiKey).then(next =>
+        setEvents(prev => {
+          if (prev.length === next.length && prev.every((e, i) => e.ID === next[i].ID)) return prev
+          return next
+        })
+      ).catch(() => {})
     }
 
     fetchEvents()
@@ -121,8 +126,9 @@ export function OrgApp() {
       const tun = await api.org.createPersonalTunnel(apiKey)
       setTunnels(prev => [...prev, tun])
       setSelectedTunnelID(tun.ID)
-    } catch {}
-    finally { setCreating(false) }
+    } catch (err) {
+      setReplayError(err instanceof Error ? err.message : 'Failed to create tunnel')
+    } finally { setCreating(false) }
   }
 
   if (loading) {
@@ -285,14 +291,26 @@ export function OrgApp() {
   )
 }
 
+const profileInputStyle: React.CSSProperties = {
+  background: 'var(--surface)', border: '1px solid var(--border)',
+  borderRadius: 6, padding: '6px 10px', fontSize: 12, color: 'var(--text-primary)', width: '100%',
+}
+const profileLabelStyle: React.CSSProperties = {
+  fontSize: 10, fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 1,
+}
+const profileBtnStyle: React.CSSProperties = {
+  background: '#FF6B6B', color: '#fff', border: 'none', borderRadius: 6,
+  padding: '6px 14px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+}
+
 function ProfilePanel({
   apiKey,
   me,
   onUpdated,
 }: {
   apiKey: string
-  me: { name: string; email: string; role: string; api_key: string } | null
-  onUpdated: (u: { name: string; email: string; role: string; api_key: string }) => void
+  me: Me | null
+  onUpdated: (u: Me) => void
 }) {
   const [name, setName] = useState(me?.name ?? '')
   const [email, setEmail] = useState(me?.email ?? '')
@@ -308,7 +326,7 @@ function ProfilePanel({
     e.preventDefault()
     try {
       const updated = await api.updateMe(apiKey, name, email)
-      onUpdated({ ...updated, api_key: me?.api_key ?? '' })
+      onUpdated({ ...updated, api_key: me?.api_key ?? '', org_id: me?.org_id ?? '' })
       setProfileMsg('Saved.')
       setTimeout(() => setProfileMsg(''), 2000)
     } catch {
@@ -328,31 +346,21 @@ function ProfilePanel({
     }
   }
 
-  const inputStyle = {
-    background: 'var(--surface)', border: '1px solid var(--border)',
-    borderRadius: 6, padding: '6px 10px', fontSize: 12, color: 'var(--text-primary)', width: '100%',
-  }
-  const labelStyle = { fontSize: 10, fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase' as const, letterSpacing: 1 }
-  const btnStyle = {
-    background: '#FF6B6B', color: '#fff', border: 'none', borderRadius: 6,
-    padding: '6px 14px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-  }
-
   return (
     <div className="flex flex-col gap-8">
       <div>
         <h3 className="text-[13px] font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Profile</h3>
         <form onSubmit={handleProfileSave} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
-            <label style={labelStyle}>Name</label>
-            <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} required />
+            <label style={profileLabelStyle}>Name</label>
+            <input style={profileInputStyle} value={name} onChange={e => setName(e.target.value)} required />
           </div>
           <div className="flex flex-col gap-1">
-            <label style={labelStyle}>Email</label>
-            <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+            <label style={profileLabelStyle}>Email</label>
+            <input style={profileInputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} required />
           </div>
           <div className="flex items-center gap-3">
-            <button type="submit" style={btnStyle}>Save</button>
+            <button type="submit" style={profileBtnStyle}>Save</button>
             {profileMsg && <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{profileMsg}</span>}
           </div>
         </form>
@@ -377,15 +385,15 @@ function ProfilePanel({
         <h3 className="text-[13px] font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Change Password</h3>
         <form onSubmit={handlePasswordChange} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
-            <label style={labelStyle}>Current password</label>
-            <input style={inputStyle} type="password" value={currentPwd} onChange={e => setCurrentPwd(e.target.value)} required />
+            <label style={profileLabelStyle}>Current password</label>
+            <input style={profileInputStyle} type="password" value={currentPwd} onChange={e => setCurrentPwd(e.target.value)} required />
           </div>
           <div className="flex flex-col gap-1">
-            <label style={labelStyle}>New password (min 8 chars)</label>
-            <input style={inputStyle} type="password" value={newPwd} onChange={e => setNewPwd(e.target.value)} minLength={8} required />
+            <label style={profileLabelStyle}>New password (min 8 chars)</label>
+            <input style={profileInputStyle} type="password" value={newPwd} onChange={e => setNewPwd(e.target.value)} minLength={8} required />
           </div>
           <div className="flex items-center gap-3">
-            <button type="submit" style={btnStyle}>Change Password</button>
+            <button type="submit" style={profileBtnStyle}>Change Password</button>
             {pwdMsg && <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{pwdMsg}</span>}
           </div>
         </form>
