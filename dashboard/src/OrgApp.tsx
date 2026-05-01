@@ -50,6 +50,7 @@ export function OrgApp() {
   const [replayError, setReplayError] = useState<string | null>(null)
   const [members, setMembers] = useState<OrgMember[]>([])
   const [me, setMe] = useState<{ name: string; email: string; role: string; api_key: string } | null>(null)
+  const [creating, setCreating] = useState(false)
 
   const selectedTunnel = tunnels.find(t => t.ID === selectedTunnelID) ?? null
 
@@ -113,6 +114,16 @@ export function OrgApp() {
       setReplayError(err instanceof Error ? err.message : 'Replay failed')
     }
   }, [apiKey])
+
+  async function handleCreateTunnel() {
+    setCreating(true)
+    try {
+      const tun = await api.org.createPersonalTunnel(apiKey)
+      setTunnels(prev => [...prev, tun])
+      setSelectedTunnelID(tun.ID)
+    } catch {}
+    finally { setCreating(false) }
+  }
 
   if (loading) {
     return (
@@ -224,6 +235,18 @@ export function OrgApp() {
               selectedID={selectedTunnelID}
               onSelect={t => { setSelectedTunnelID(t.ID); setSelectedEvent(null) }}
             />
+            {tab === 'personal' && tunnels.length === 0 && (
+              <div className="px-4 py-4">
+                <button
+                  onClick={handleCreateTunnel}
+                  disabled={creating}
+                  className="w-full py-2 rounded text-[11px] font-semibold transition-colors"
+                  style={{ background: 'rgba(255,107,107,0.13)', color: '#FF6B6B', border: '1px solid rgba(255,107,107,0.3)' }}
+                >
+                  {creating ? 'Creating…' : '+ New Tunnel'}
+                </button>
+              </div>
+            )}
           </div>
 
           <div
