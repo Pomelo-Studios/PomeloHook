@@ -37,6 +37,17 @@ func writeJSON(w http.ResponseWriter, v any) {
 	}
 }
 
+// writeJSONStatus sets Content-Type, writes status, then encodes v.
+// Use this instead of calling w.WriteHeader before writeJSON, because WriteHeader
+// commits headers — any Header().Set after it is ignored.
+func writeJSONStatus(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("writeJSON: %v", err)
+	}
+}
+
 // LoggingMiddleware logs METHOD, path, status code, duration, and remote addr for every request.
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
