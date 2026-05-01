@@ -27,6 +27,17 @@ func handleCreateTunnel(s *store.Store) http.HandlerFunc {
 			http.Error(w, "only admins can create org tunnels", http.StatusForbidden)
 			return
 		}
+		if body.Type == "personal" {
+			existing, err := s.GetPersonalTunnel(user.ID)
+			if err != nil {
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
+			if existing != nil {
+				writeJSON(w, existing)
+				return
+			}
+		}
 		params := store.CreateTunnelParams{Type: body.Type, Name: body.Name}
 		if body.Type == "personal" {
 			params.UserID = user.ID

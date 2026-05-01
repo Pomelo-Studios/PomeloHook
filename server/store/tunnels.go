@@ -2,6 +2,7 @@ package store
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 
 	"github.com/google/uuid"
@@ -58,6 +59,16 @@ func (s *Store) CreateTunnel(p CreateTunnelParams) (*Tunnel, error) {
 		return nil, err
 	}
 	return &Tunnel{ID: id, Type: p.Type, UserID: p.UserID, OrgID: p.OrgID, Subdomain: subdomain, Status: "inactive"}, nil
+}
+
+func (s *Store) GetPersonalTunnel(userID string) (*Tunnel, error) {
+	row := s.db.QueryRow(
+		`SELECT `+tunnelColumns+` FROM tunnels WHERE user_id=? AND type='personal' LIMIT 1`, userID)
+	t, err := scanTunnel(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return t, err
 }
 
 func (s *Store) GetTunnelBySubdomain(subdomain string) (*Tunnel, error) {
