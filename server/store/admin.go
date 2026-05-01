@@ -51,20 +51,20 @@ var allowedPragmas = map[string]bool{
 }
 
 func (s *Store) UpdateUser(id, orgID, email, name, role string) (*User, error) {
-	res, err := s.DB.Exec(`UPDATE users SET email=?, name=?, role=? WHERE id=? AND org_id=?`, email, name, role, id, orgID)
+	res, err := s.db.Exec(`UPDATE users SET email=?, name=?, role=? WHERE id=? AND org_id=?`, email, name, role, id, orgID)
 	if err != nil {
 		return nil, err
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
 		return nil, sql.ErrNoRows
 	}
-	row := s.DB.QueryRow(`SELECT id, org_id, email, name, api_key, role FROM users WHERE id=?`, id)
+	row := s.db.QueryRow(`SELECT id, org_id, email, name, api_key, role FROM users WHERE id=?`, id)
 	u := &User{}
 	return u, row.Scan(&u.ID, &u.OrgID, &u.Email, &u.Name, &u.APIKey, &u.Role)
 }
 
 func (s *Store) DeleteUser(id, orgID string) (deletedKey string, err error) {
-	tx, err := s.DB.Begin()
+	tx, err := s.db.Begin()
 	if err != nil {
 		return "", err
 	}
@@ -96,7 +96,7 @@ func (s *Store) DeleteUser(id, orgID string) (deletedKey string, err error) {
 }
 
 func (s *Store) RotateAPIKey(id, orgID string) (oldKey, newKey string, err error) {
-	if err = s.DB.QueryRow(`SELECT api_key FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&oldKey); err != nil {
+	if err = s.db.QueryRow(`SELECT api_key FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&oldKey); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", "", sql.ErrNoRows
 		}
@@ -106,7 +106,7 @@ func (s *Store) RotateAPIKey(id, orgID string) (oldKey, newKey string, err error
 	if err != nil {
 		return "", "", err
 	}
-	res, err := s.DB.Exec(`UPDATE users SET api_key=? WHERE id=? AND org_id=?`, newKey, id, orgID)
+	res, err := s.db.Exec(`UPDATE users SET api_key=? WHERE id=? AND org_id=?`, newKey, id, orgID)
 	if err != nil {
 		return "", "", err
 	}
@@ -117,7 +117,7 @@ func (s *Store) RotateAPIKey(id, orgID string) (oldKey, newKey string, err error
 }
 
 func (s *Store) ListAllTunnels(orgID string) ([]*Tunnel, error) {
-	rows, err := s.DB.Query(
+	rows, err := s.db.Query(
 		`SELECT `+tunnelColumns+` FROM tunnels WHERE org_id=? OR user_id IN (SELECT id FROM users WHERE org_id=?)`,
 		orgID, orgID,
 	)
@@ -137,7 +137,7 @@ func (s *Store) ListAllTunnels(orgID string) ([]*Tunnel, error) {
 }
 
 func (s *Store) DeleteTunnel(id, orgID string) error {
-	tx, err := s.DB.Begin()
+	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (s *Store) DeleteTunnel(id, orgID string) error {
 
 func (s *Store) TunnelBelongsToOrg(id, orgID string) (bool, error) {
 	var count int
-	err := s.DB.QueryRow(
+	err := s.db.QueryRow(
 		`SELECT COUNT(*) FROM tunnels WHERE id=? AND (org_id=? OR user_id IN (SELECT id FROM users WHERE org_id=?))`,
 		id, orgID, orgID,
 	).Scan(&count)
@@ -171,7 +171,7 @@ func (s *Store) ListTables() ([]TableInfo, error) {
 		UNION ALL SELECT 'users',          COUNT(*) FROM users
 		UNION ALL SELECT 'webhook_events', COUNT(*) FROM webhook_events
 	`
-	rows, err := s.DB.Query(q)
+	rows, err := s.db.Query(q)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +195,7 @@ func (s *Store) GetTableRows(name string, limit, offset int) (*TableResult, erro
 	if limit <= 0 || limit > 200 {
 		limit = 200
 	}
-	rows, err := s.DB.Query(fmt.Sprintf(`SELECT * FROM %s LIMIT ? OFFSET ?`, name), limit, offset) //nolint:gosec — name whitelisted
+	rows, err := s.db.Query(fmt.Sprintf(`SELECT * FROM %s LIMIT ? OFFSET ?`, name), limit, offset) //nolint:gosec — name whitelisted
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func (s *Store) RunQuery(query string) (*QueryResult, error) {
 	default:
 		return nil, fmt.Errorf("only SELECT, EXPLAIN, and read-only PRAGMA queries are allowed")
 	}
-	rows, err := s.DB.Query(query)
+	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, err
 	}

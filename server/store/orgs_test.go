@@ -13,7 +13,7 @@ func TestGetOrg(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	err = db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	require.NoError(t, err)
 
 	org, err := db.GetOrg("org1")
@@ -27,7 +27,7 @@ func TestUpdateOrg(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	err = db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	require.NoError(t, err)
 
 	org, err := db.UpdateOrg("org1", "Acme Corp")

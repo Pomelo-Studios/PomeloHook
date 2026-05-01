@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -14,7 +17,34 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin: makeCheckOrigin(),
+}
+
+// makeCheckOrigin returns a CheckOrigin function based on POMELO_ALLOWED_ORIGINS.
+// If the env var is not set, all origins are allowed (warning deferred to first upgrade).
+// If set, only listed comma-separated origins are accepted; empty Origin is always allowed
+// so non-browser clients (e.g., the CLI) are not blocked.
+func makeCheckOrigin() func(r *http.Request) bool {
+	raw := os.Getenv("POMELO_ALLOWED_ORIGINS")
+	if raw == "" {
+		var once sync.Once
+		return func(r *http.Request) bool {
+			once.Do(func() {
+				log.Println("warn: POMELO_ALLOWED_ORIGINS not set — WebSocket accepts any origin")
+			})
+			return true
+		}
+	}
+	allowed := map[string]bool{}
+	for _, o := range strings.Split(raw, ",") {
+		if trimmed := strings.TrimSpace(o); trimmed != "" {
+			allowed[trimmed] = true
+		}
+	}
+	return func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		return origin == "" || allowed[origin]
+	}
 }
 
 func handleWSConnect(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
