@@ -30,6 +30,16 @@ export const api = {
     }),
   getMe: (apiKey: string) =>
     request<Me>('/api/me', { headers: authHeaders(apiKey) }),
+  updateMe: (apiKey: string, name: string, email: string) =>
+    request<{ id: string; email: string; name: string; role: string }>(
+      '/api/me',
+      { method: 'PUT', headers: authHeaders(apiKey), body: JSON.stringify({ name, email }) }
+    ),
+  changePassword: (apiKey: string, currentPassword: string, newPassword: string) =>
+    request<void>(
+      '/api/me/password',
+      { method: 'POST', headers: authHeaders(apiKey), body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }) }
+    ),
   login: (email: string, password: string) =>
     request<{ api_key: string }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
 
