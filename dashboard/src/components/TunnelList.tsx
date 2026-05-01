@@ -1,3 +1,5 @@
+import { Copy, Check } from 'lucide-react'
+import { useState } from 'react'
 import type { Tunnel } from '../types'
 
 interface Props {
@@ -6,7 +8,30 @@ interface Props {
   onSelect: (tunnel: Tunnel) => void
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation()
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+  return (
+    <button
+      onClick={handleCopy}
+      className="p-[2px] rounded opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
+      style={{ color: 'var(--text-dim)' }}
+      title="Copy webhook URL"
+    >
+      {copied ? <Check size={10} strokeWidth={2.5} /> : <Copy size={10} strokeWidth={2} />}
+    </button>
+  )
+}
+
 export function TunnelList({ tunnels, selectedID, onSelect }: Props) {
+  const origin = window.location.origin
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div
@@ -24,9 +49,15 @@ export function TunnelList({ tunnels, selectedID, onSelect }: Props) {
         </span>
       </div>
       <div className="flex-1 overflow-y-auto">
+        {tunnels.length === 0 && (
+          <div className="px-4 py-6 text-[11px] text-center" style={{ color: 'var(--text-dim)' }}>
+            No tunnels
+          </div>
+        )}
         {tunnels.map(tunnel => {
           const selected = tunnel.ID === selectedID
           const isActive = tunnel.Status === 'active'
+          const webhookURL = `${origin}/webhook/${tunnel.Subdomain}`
           return (
             <button
               key={tunnel.ID}
@@ -49,10 +80,20 @@ export function TunnelList({ tunnels, selectedID, onSelect }: Props) {
                 >
                   {tunnel.Subdomain}
                 </span>
+                <CopyButton text={webhookURL} />
               </div>
               {isActive && tunnel.ActiveDevice && (
                 <div className="font-mono text-[9px] pl-[12px]" style={{ color: 'var(--text-dim)' }}>
                   {tunnel.ActiveDevice}
+                </div>
+              )}
+              {selected && (
+                <div
+                  className="font-mono text-[9px] pl-[12px] truncate"
+                  style={{ color: 'var(--text-dim)' }}
+                  title={webhookURL}
+                >
+                  {webhookURL}
                 </div>
               )}
             </button>
