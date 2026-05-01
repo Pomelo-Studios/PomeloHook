@@ -8,14 +8,14 @@ import (
 )
 
 type Tunnel struct {
-	ID           string
-	Type         string
-	UserID       string
-	OrgID        string
-	Subdomain    string
-	ActiveUserID string
-	ActiveDevice string
-	Status       string
+	ID           string `json:"id"`
+	Type         string `json:"type"`
+	UserID       string `json:"user_id"`
+	OrgID        string `json:"org_id"`
+	Subdomain    string `json:"subdomain"`
+	ActiveUserID string `json:"active_user_id"`
+	ActiveDevice string `json:"active_device"`
+	Status       string `json:"status"`
 }
 
 type CreateTunnelParams struct {
