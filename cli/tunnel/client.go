@@ -19,6 +19,8 @@ var wsDialer = &websocket.Dialer{
 	Proxy:            http.ProxyFromEnvironment,
 }
 
+var markForwardedClient = &http.Client{Timeout: 5 * time.Second}
+
 type Client struct {
 	serverURL string
 	apiKey    string
@@ -94,7 +96,7 @@ func (c *Client) markForwarded(result *forward.ForwardResult) {
 	}
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := (&http.Client{Timeout: 5 * time.Second}).Do(req)
+	resp, err := markForwardedClient.Do(req)
 	if err != nil {
 		log.Printf("mark forwarded %s: %v", result.EventID, err)
 		return
