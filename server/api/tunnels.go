@@ -40,7 +40,7 @@ func handleCreateTunnel(s *store.Store) http.HandlerFunc {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(tun)
+		writeJSON(w, tun)
 	}
 }
 
@@ -55,8 +55,7 @@ func handleListTunnels(s *store.Store) http.HandlerFunc {
 		if tunnels == nil {
 			tunnels = []*store.Tunnel{}
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(tunnels)
+		writeJSON(w, tunnels)
 	}
 }
 
@@ -64,8 +63,7 @@ func handleListOrgTunnels(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := auth.UserFromContext(r.Context())
 		if user.OrgID == "" {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode([]*store.Tunnel{})
+			writeJSON(w, []*store.Tunnel{})
 			return
 		}
 		tunnels, err := s.ListOrgTunnels(user.OrgID)
@@ -76,7 +74,6 @@ func handleListOrgTunnels(s *store.Store) http.HandlerFunc {
 		if tunnels == nil {
 			tunnels = []*store.Tunnel{}
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(tunnels)
+		writeJSON(w, tunnels)
 	}
 }
