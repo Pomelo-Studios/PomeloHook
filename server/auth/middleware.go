@@ -28,6 +28,7 @@ const cacheTTL = 5 * time.Minute
 
 var sweepStop = make(chan struct{})
 var sweepTicker *time.Ticker
+var sweepStopOnce sync.Once
 
 func init() {
 	sweepTicker = time.NewTicker(cacheTTL)
@@ -45,8 +46,10 @@ func init() {
 
 // StopSweepTicker stops the background cache-sweep goroutine. Only used in tests.
 func StopSweepTicker() {
-	sweepTicker.Stop()
-	close(sweepStop)
+	sweepStopOnce.Do(func() {
+		sweepTicker.Stop()
+		close(sweepStop)
+	})
 }
 
 // SweepExpiredCache removes all entries whose TTL has elapsed.

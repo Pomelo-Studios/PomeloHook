@@ -26,7 +26,22 @@ type loginBucket struct {
 }
 
 func newLoginRateLimiter() *loginRateLimiter {
-	return &loginRateLimiter{buckets: map[string]*loginBucket{}}
+	l := &loginRateLimiter{buckets: map[string]*loginBucket{}}
+	go func() {
+		t := time.NewTicker(loginWindow)
+		defer t.Stop()
+		for range t.C {
+			l.mu.Lock()
+			now := time.Now()
+			for ip, b := range l.buckets {
+				if now.After(b.resetAt) {
+					delete(l.buckets, ip)
+				}
+			}
+			l.mu.Unlock()
+		}
+	}()
+	return l
 }
 
 func (l *loginRateLimiter) allowed(ip string) bool {
