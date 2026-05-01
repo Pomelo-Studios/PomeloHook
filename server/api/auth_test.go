@@ -22,16 +22,18 @@ func TestLoginRateLimit(t *testing.T) {
 	mgr := tunnel.NewManager()
 	router := api.NewRouter(db, mgr)
 
-	// The rate limit window is per-IP. httptest sets RemoteAddr = "192.0.2.1:1234" by default.
-	// Make 6 requests — the 6th must return 429.
+	// Make 6 requests from the same IP — the 6th must return 429.
+	const testIP = "203.0.113.1:9999"
 	for i := 0; i < 5; i++ {
 		req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewBufferString(`{"email":"admin@b.com","password":"wrong"}`))
+		req.RemoteAddr = testIP
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, req)
 		require.Equal(t, http.StatusUnauthorized, rec.Code)
 	}
 
 	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewBufferString(`{"email":"admin@b.com","password":"wrong"}`))
+	req.RemoteAddr = testIP
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	require.Equal(t, http.StatusTooManyRequests, rec.Code)
