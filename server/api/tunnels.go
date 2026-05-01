@@ -30,6 +30,12 @@ func handleCreateTunnel(s *store.Store) http.HandlerFunc {
 		params := store.CreateTunnelParams{Type: body.Type, Name: body.Name}
 		if body.Type == "personal" {
 			params.UserID = user.ID
+			// Return existing personal tunnel if one already exists.
+			existing, err := s.GetPersonalTunnelForUser(user.ID)
+			if err == nil {
+				writeJSON(w, existing)
+				return
+			}
 		} else {
 			params.OrgID = user.OrgID
 		}

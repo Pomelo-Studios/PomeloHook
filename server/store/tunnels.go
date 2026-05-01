@@ -60,6 +60,11 @@ func (s *Store) CreateTunnel(p CreateTunnelParams) (*Tunnel, error) {
 	return &Tunnel{ID: id, Type: p.Type, UserID: p.UserID, OrgID: p.OrgID, Subdomain: subdomain, Status: "inactive"}, nil
 }
 
+func (s *Store) GetPersonalTunnelForUser(userID string) (*Tunnel, error) {
+	row := s.db.QueryRow(`SELECT `+tunnelColumns+` FROM tunnels WHERE type='personal' AND user_id=? LIMIT 1`, userID)
+	return scanTunnel(row)
+}
+
 func (s *Store) GetTunnelBySubdomain(subdomain string) (*Tunnel, error) {
 	row := s.db.QueryRow(`SELECT `+tunnelColumns+` FROM tunnels WHERE subdomain = ?`, subdomain)
 	return scanTunnel(row)
