@@ -35,7 +35,8 @@ func makeCheckOrigin() func(r *http.Request) bool {
 		}
 	}
 	return func(r *http.Request) bool {
-		return allowed[r.Header.Get("Origin")]
+		origin := r.Header.Get("Origin")
+		return origin == "" || allowed[origin]
 	}
 }
 
