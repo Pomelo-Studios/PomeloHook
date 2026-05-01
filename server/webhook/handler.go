@@ -33,14 +33,28 @@ func (h *Handler) Close() {
 
 const maxWebhookBodyBytes = 5 << 20 // 5 MB
 
+func realIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if idx := strings.IndexByte(xff, ','); idx != -1 {
+			return strings.TrimSpace(xff[:idx])
+		}
+		return strings.TrimSpace(xff)
+	}
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return strings.TrimSpace(xri)
+	}
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil || ip == "" {
+		return r.RemoteAddr
+	}
+	return ip
+}
+
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/webhook/"), "/", 2)
 	subdomain := parts[0]
 
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil || ip == "" {
-		ip = r.RemoteAddr
-	}
+	ip := realIP(r)
 	if ip != "" && !h.limiter.Allow(ip) {
 		http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
 		return
