@@ -17,13 +17,15 @@ function authHeaders(apiKey: string): Record<string, string> {
 }
 
 export const api = {
-  getEvents: (tunnelID: string, limit = 50) =>
-    request<WebhookEvent[]>(`/api/events?tunnel_id=${tunnelID}&limit=${limit}`),
+  getEvents: (tunnelID: string, limit = 50, apiKey = '') =>
+    request<WebhookEvent[]>(`/api/events?tunnel_id=${tunnelID}&limit=${limit}`,
+      { headers: apiKey ? authHeaders(apiKey) : {} }),
   getTunnels: () =>
     request<Tunnel[]>('/api/tunnels'),
-  replay: (eventID: string, targetURL: string) =>
+  replay: (eventID: string, targetURL: string, apiKey = '') =>
     request<{ status_code: number; response_ms: number }>(`/api/events/${eventID}/replay`, {
       method: 'POST',
+      headers: apiKey ? authHeaders(apiKey) : {},
       body: JSON.stringify({ target_url: targetURL }),
     }),
   getMe: (apiKey: string) =>
