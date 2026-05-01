@@ -63,7 +63,7 @@ func scanEvent(row rowScanner) (*WebhookEvent, error) {
 func (s *Store) SaveEvent(p SaveEventParams) (*WebhookEvent, error) {
 	id := uuid.NewString()
 	now := time.Now().UTC()
-	_, err := s.DB.Exec(
+	_, err := s.db.Exec(
 		`INSERT INTO webhook_events (id, tunnel_id, received_at, method, path, headers, request_body) VALUES (?,?,?,?,?,?,?)`,
 		id, p.TunnelID, now.Format(time.RFC3339), p.Method, p.Path, p.Headers, p.RequestBody,
 	)
@@ -77,7 +77,7 @@ func (s *Store) SaveEvent(p SaveEventParams) (*WebhookEvent, error) {
 }
 
 func (s *Store) GetEvent(id string) (*WebhookEvent, error) {
-	row := s.DB.QueryRow(`SELECT `+eventColumns+` FROM webhook_events WHERE id=?`, id)
+	row := s.db.QueryRow(`SELECT `+eventColumns+` FROM webhook_events WHERE id=?`, id)
 	e, err := scanEvent(row)
 	if err == sql.ErrNoRows {
 		return nil, err
@@ -86,7 +86,7 @@ func (s *Store) GetEvent(id string) (*WebhookEvent, error) {
 }
 
 func (s *Store) ListEvents(tunnelID string, limit int) ([]*WebhookEvent, error) {
-	rows, err := s.DB.Query(
+	rows, err := s.db.Query(
 		`SELECT `+eventColumns+` FROM webhook_events WHERE tunnel_id=? ORDER BY received_at DESC LIMIT ?`,
 		tunnelID, limit,
 	)
@@ -109,7 +109,7 @@ func (s *Store) ListEvents(tunnelID string, limit int) ([]*WebhookEvent, error) 
 }
 
 func (s *Store) MarkEventForwarded(id string, status int, body string, ms int64) error {
-	_, err := s.DB.Exec(
+	_, err := s.db.Exec(
 		`UPDATE webhook_events SET forwarded=TRUE, response_status=?, response_body=?, response_ms=? WHERE id=?`,
 		status, body, ms, id,
 	)
@@ -118,13 +118,13 @@ func (s *Store) MarkEventForwarded(id string, status int, body string, ms int64)
 
 func (s *Store) MarkEventReplayed(id string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
-	_, err := s.DB.Exec(`UPDATE webhook_events SET replayed_at=? WHERE id=?`, now, id)
+	_, err := s.db.Exec(`UPDATE webhook_events SET replayed_at=? WHERE id=?`, now, id)
 	return err
 }
 
 func (s *Store) DeleteEventsOlderThan(days int) (int64, error) {
 	cutoff := time.Now().UTC().AddDate(0, 0, -days).Format(time.RFC3339)
-	res, err := s.DB.Exec(`DELETE FROM webhook_events WHERE received_at < ?`, cutoff)
+	res, err := s.db.Exec(`DELETE FROM webhook_events WHERE received_at < ?`, cutoff)
 	if err != nil {
 		return 0, err
 	}

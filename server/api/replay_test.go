@@ -66,3 +66,10 @@ func TestValidateReplayURL_AllowsPublicDomain(t *testing.T) {
 		t.Fatalf("expected no error for public domain, got: %v", err)
 	}
 }
+
+func TestValidateReplayURL_BlocksLocalhostSSRF(t *testing.T) {
+	err := validateReplayURL("http://localhost/hook")
+	if err == nil {
+		t.Fatal("validateReplayURL must block localhost")
+	}
+}

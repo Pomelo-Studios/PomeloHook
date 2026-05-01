@@ -13,7 +13,7 @@ import (
 func TestMiddleware_CachesAPIKey(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "cache@b.com", Name: "C", Role: "member"})
 
 	handler := auth.Middleware(db, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +39,7 @@ func TestMiddleware_CachesAPIKey(t *testing.T) {
 func TestMiddleware_CacheInvalidatedOnRotate(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "rotate@b.com", Name: "R", Role: "member"})
 	oldKey := user.APIKey
 
@@ -82,7 +82,7 @@ func TestMiddleware_CacheInvalidatedOnRotate(t *testing.T) {
 func TestMiddleware_CacheInvalidatedOnDelete(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "del@b.com", Name: "D", Role: "member"})
 
 	handler := auth.Middleware(db, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +115,7 @@ func TestMiddleware_CacheInvalidatedOnDelete(t *testing.T) {
 func TestMiddleware_CacheInvalidatedOnRoleChange(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "role@b.com", Name: "R", Role: "admin"})
 
 	adminCheckHandler := auth.Middleware(db, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +153,7 @@ func TestMiddleware_CacheInvalidatedOnRoleChange(t *testing.T) {
 func TestCacheSweep_EvictsExpiredEntries(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "sweep@b.com", Name: "S", Role: "member"})
 
 	handler := auth.Middleware(db, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -194,7 +194,7 @@ func TestMiddlewareRejects401WithoutKey(t *testing.T) {
 func TestMiddlewareAllowsValidKey(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 
 	handler := auth.Middleware(db, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

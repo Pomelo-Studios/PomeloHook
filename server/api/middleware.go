@@ -2,6 +2,7 @@ package api
 
 import (
 	"bufio"
+	"encoding/json"
 	"log"
 	"net"
 	"net/http"
@@ -26,6 +27,25 @@ func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	}
 	rw.status = http.StatusSwitchingProtocols
 	return hj.Hijack()
+}
+
+// writeJSON sets Content-Type to application/json and encodes v to w. Encode errors are logged.
+func writeJSON(w http.ResponseWriter, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("writeJSON: %v", err)
+	}
+}
+
+// writeJSONStatus sets Content-Type, writes status, then encodes v.
+// Use this instead of calling w.WriteHeader before writeJSON, because WriteHeader
+// commits headers — any Header().Set after it is ignored.
+func writeJSONStatus(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("writeJSONStatus: %v", err)
+	}
 }
 
 // LoggingMiddleware logs METHOD, path, status code, duration, and remote addr for every request.

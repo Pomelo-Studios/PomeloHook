@@ -50,7 +50,7 @@ func (s *Store) CreateTunnel(p CreateTunnelParams) (*Tunnel, error) {
 			return nil, err
 		}
 	}
-	_, err := s.DB.Exec(
+	_, err := s.db.Exec(
 		`INSERT INTO tunnels (id, type, user_id, org_id, subdomain) VALUES (?,?,?,?,?)`,
 		id, p.Type, nilIfEmpty(p.UserID), nilIfEmpty(p.OrgID), subdomain,
 	)
@@ -61,17 +61,17 @@ func (s *Store) CreateTunnel(p CreateTunnelParams) (*Tunnel, error) {
 }
 
 func (s *Store) GetTunnelBySubdomain(subdomain string) (*Tunnel, error) {
-	row := s.DB.QueryRow(`SELECT `+tunnelColumns+` FROM tunnels WHERE subdomain = ?`, subdomain)
+	row := s.db.QueryRow(`SELECT `+tunnelColumns+` FROM tunnels WHERE subdomain = ?`, subdomain)
 	return scanTunnel(row)
 }
 
 func (s *Store) GetTunnelByID(id string) (*Tunnel, error) {
-	row := s.DB.QueryRow(`SELECT `+tunnelColumns+` FROM tunnels WHERE id = ?`, id)
+	row := s.db.QueryRow(`SELECT `+tunnelColumns+` FROM tunnels WHERE id = ?`, id)
 	return scanTunnel(row)
 }
 
 func (s *Store) SetTunnelActive(tunnelID, userID, device string) error {
-	_, err := s.DB.Exec(
+	_, err := s.db.Exec(
 		`UPDATE tunnels SET active_user_id=?, active_device=?, status='active' WHERE id=?`,
 		userID, nilIfEmpty(device), tunnelID,
 	)
@@ -79,7 +79,7 @@ func (s *Store) SetTunnelActive(tunnelID, userID, device string) error {
 }
 
 func (s *Store) SetTunnelInactive(tunnelID string) error {
-	_, err := s.DB.Exec(
+	_, err := s.db.Exec(
 		`UPDATE tunnels SET active_user_id=NULL, active_device=NULL, status='inactive' WHERE id=?`,
 		tunnelID,
 	)
@@ -88,12 +88,12 @@ func (s *Store) SetTunnelInactive(tunnelID string) error {
 
 func (s *Store) GetActiveTunnelUser(tunnelID string) (string, error) {
 	var userID string
-	err := s.DB.QueryRow(`SELECT COALESCE(active_user_id,'') FROM tunnels WHERE id=?`, tunnelID).Scan(&userID)
+	err := s.db.QueryRow(`SELECT COALESCE(active_user_id,'') FROM tunnels WHERE id=?`, tunnelID).Scan(&userID)
 	return userID, err
 }
 
 func (s *Store) ListTunnelsForUser(userID, orgID string) ([]*Tunnel, error) {
-	rows, err := s.DB.Query(
+	rows, err := s.db.Query(
 		`SELECT `+tunnelColumns+` FROM tunnels WHERE user_id=? OR org_id=?`,
 		userID, orgID,
 	)
@@ -116,7 +116,7 @@ func (s *Store) ListTunnelsForUser(userID, orgID string) ([]*Tunnel, error) {
 }
 
 func (s *Store) ListOrgTunnels(orgID string) ([]*Tunnel, error) {
-	rows, err := s.DB.Query(
+	rows, err := s.db.Query(
 		`SELECT `+tunnelColumns+` FROM tunnels WHERE org_id=? AND type='org'`,
 		orgID,
 	)

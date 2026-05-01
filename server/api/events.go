@@ -73,15 +73,20 @@ func canAccessTunnel(user *store.User, tun *store.Tunnel) bool {
 	return tun.UserID == user.ID || tun.OrgID == user.OrgID
 }
 
+const maxListLimit = 500
+
 func handleListEvents(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := auth.UserFromContext(r.Context())
 		tunnelID := r.URL.Query().Get("tunnel_id")
 		limit := 50
 		if l := r.URL.Query().Get("limit"); l != "" {
-			if n, err := strconv.Atoi(l); err == nil {
+			if n, err := strconv.Atoi(l); err == nil && n > 0 {
 				limit = n
 			}
+		}
+		if limit > maxListLimit {
+			limit = maxListLimit
 		}
 
 		tun, err := s.GetTunnelByID(tunnelID)
@@ -98,8 +103,7 @@ func handleListEvents(s *store.Store) http.HandlerFunc {
 		if events == nil {
 			events = []*store.WebhookEvent{}
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(events)
+		writeJSON(w, events)
 	}
 }
 
@@ -146,8 +150,7 @@ func handleReplayEvent(s *store.Store) http.HandlerFunc {
 			log.Printf("mark event %s replayed: %v", eventID, err)
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		writeJSON(w, map[string]any{
 			"status_code": resp.StatusCode,
 			"response_ms": ms,
 		})
@@ -155,9 +158,6 @@ func handleReplayEvent(s *store.Store) http.HandlerFunc {
 }
 
 func replayHTTP(event *store.WebhookEvent, targetURL string) (*http.Response, int64, error) {
-	if err := validateReplayURL(targetURL); err != nil {
-		return nil, 0, err
-	}
 	req, err := http.NewRequest(event.Method, targetURL, bytes.NewBufferString(event.RequestBody))
 	if err != nil {
 		return nil, 0, err

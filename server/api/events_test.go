@@ -29,9 +29,9 @@ func TestListEventsRequiresAuth(t *testing.T) {
 func TestListEventsReturnsEmpty(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
-	db.DB.Exec("INSERT INTO tunnels (id, type, org_id, subdomain) VALUES ('t1','org','org1','stripe')")
+	db.ExecRaw("INSERT INTO tunnels (id, type, org_id, subdomain) VALUES ('t1','org','org1','stripe')")
 	mgr := tunnel.NewManager()
 	router := api.NewRouter(db, mgr)
 
@@ -49,7 +49,7 @@ func TestListEventsReturnsEmpty(t *testing.T) {
 func TestCreateTunnel_MalformedJSON(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 
 	mgr := tunnel.NewManager()
@@ -66,7 +66,7 @@ func TestCreateTunnel_MalformedJSON(t *testing.T) {
 func TestListOrgTunnelsEndpoint(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 	db.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: "org1", Name: "payment-wh"})
 	db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
@@ -84,4 +84,30 @@ func TestListOrgTunnelsEndpoint(t *testing.T) {
 	json.NewDecoder(rec.Body).Decode(&result2)
 	require.Len(t, result2, 1)
 	require.Equal(t, "org", result2[0]["Type"])
+}
+
+func TestHandleListEvents_LimitCappedAt500(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
+	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: "org1", Name: "test-wh"})
+
+	// Insert 501 events so the 500 cap is the binding constraint
+	for i := 0; i < 501; i++ {
+		db.SaveEvent(store.SaveEventParams{TunnelID: tun.ID, Method: "POST", Path: "/", Headers: "{}", RequestBody: ""})
+	}
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	req := httptest.NewRequest("GET", "/api/events?tunnel_id="+tun.ID+"&limit=5000000", nil)
+	req.Header.Set("Authorization", "Bearer "+user.APIKey)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var events []map[string]any
+	json.NewDecoder(rec.Body).Decode(&events)
+	require.Len(t, events, 500)
 }

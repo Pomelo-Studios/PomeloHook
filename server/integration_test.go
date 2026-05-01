@@ -23,7 +23,7 @@ func TestEndToEnd_WebhookReceivedAndForwarded(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 	require.NoError(t, err)
 	tun, err := db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
