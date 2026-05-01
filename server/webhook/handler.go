@@ -107,5 +107,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.manager.Broadcast(tun.ID, payload)
 	}
 
+	eventJSON, _ := json.Marshal(event)
+	h.manager.BroadcastEvent(tun.ID, eventJSON)
+
 	w.WriteHeader(http.StatusAccepted)
 }
