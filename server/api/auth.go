@@ -61,6 +61,9 @@ func (l *loginRateLimiter) allowed(ip string) bool {
 }
 
 func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		return strings.TrimSpace(strings.SplitN(xff, ",", 2)[0])
+	}
 	if ra := r.RemoteAddr; ra != "" {
 		if idx := strings.LastIndex(ra, ":"); idx != -1 {
 			return ra[:idx]

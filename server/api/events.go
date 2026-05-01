@@ -182,7 +182,12 @@ func handleMarkEventForwarded(s *store.Store) http.HandlerFunc {
 			ResponseMS     int64  `json:"response_ms"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			var maxBytesErr *http.MaxBytesError
+			if errors.As(err, &maxBytesErr) {
+				http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+			} else {
+				http.Error(w, "invalid JSON", http.StatusBadRequest)
+			}
 			return
 		}
 		if err := s.MarkEventForwarded(eventID, body.ResponseStatus, body.ResponseBody, body.ResponseMS); err != nil {
