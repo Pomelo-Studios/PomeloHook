@@ -49,7 +49,7 @@ func TestDeleteOldEvents(t *testing.T) {
 	setupTunnel(t, db)
 
 	db.ExecRaw(`INSERT INTO webhook_events (id, tunnel_id, received_at, method, path, headers, forwarded) VALUES ('old-1','tunnel-1',?,?,?,?,?)`,
-		time.Now().AddDate(0, 0, -31).Format(time.RFC3339), "POST", "/", "{}", false)
+		time.Now().UTC().AddDate(0, 0, -31).Format(time.RFC3339), "POST", "/", "{}", false)
 
 	deleted, err := db.DeleteEventsOlderThan(30)
 	require.NoError(t, err)
@@ -61,4 +61,41 @@ func setupTunnel(t *testing.T, db *store.Store) {
 	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	db.ExecRaw("INSERT INTO users (id, org_id, email, name, api_key, role) VALUES ('user1','org1','a@b.com','A','key1','admin')")
 	db.ExecRaw("INSERT INTO tunnels (id, type, org_id, subdomain) VALUES ('tunnel-1','org','org1','stripe')")
+}
+
+func TestSaveEvent_ReceivedAtIsRFC3339(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	setupTunnel(t, db)
+
+	ev, err := db.SaveEvent(store.SaveEventParams{
+		TunnelID: "tunnel-1", Method: "POST", Path: "/", Headers: "{}", RequestBody: "",
+	})
+	require.NoError(t, err)
+
+	var raw string
+	err = db.QueryRaw(&raw, `SELECT received_at FROM webhook_events WHERE id=?`, ev.ID)
+	require.NoError(t, err)
+	_, err = time.Parse(time.RFC3339, raw)
+	require.NoError(t, err, "received_at must be stored in RFC3339 format, got: %q", raw)
+}
+
+func TestMarkEventReplayed_ReplayedAtIsRFC3339(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	setupTunnel(t, db)
+
+	ev, err := db.SaveEvent(store.SaveEventParams{
+		TunnelID: "tunnel-1", Method: "POST", Path: "/", Headers: "{}", RequestBody: "",
+	})
+	require.NoError(t, err)
+
+	err = db.MarkEventReplayed(ev.ID)
+	require.NoError(t, err)
+
+	var raw string
+	err = db.QueryRaw(&raw, `SELECT replayed_at FROM webhook_events WHERE id=?`, ev.ID)
+	require.NoError(t, err)
+	_, err = time.Parse(time.RFC3339, raw)
+	require.NoError(t, err, "replayed_at must be RFC3339, got: %q", raw)
 }
