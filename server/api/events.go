@@ -73,15 +73,20 @@ func canAccessTunnel(user *store.User, tun *store.Tunnel) bool {
 	return tun.UserID == user.ID || tun.OrgID == user.OrgID
 }
 
+const maxListLimit = 500
+
 func handleListEvents(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := auth.UserFromContext(r.Context())
 		tunnelID := r.URL.Query().Get("tunnel_id")
 		limit := 50
 		if l := r.URL.Query().Get("limit"); l != "" {
-			if n, err := strconv.Atoi(l); err == nil {
+			if n, err := strconv.Atoi(l); err == nil && n > 0 {
 				limit = n
 			}
+		}
+		if limit > maxListLimit {
+			limit = maxListLimit
 		}
 
 		tun, err := s.GetTunnelByID(tunnelID)
