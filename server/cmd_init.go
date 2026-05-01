@@ -21,8 +21,8 @@ func runInit() error {
 	}
 	defer db.Close()
 
-	var count int
-	if err := db.DB.QueryRow("SELECT COUNT(*) FROM organizations").Scan(&count); err != nil {
+	count, err := db.OrgCount()
+	if err != nil {
 		return fmt.Errorf("check existing organizations: %w", err)
 	}
 	if count > 0 {

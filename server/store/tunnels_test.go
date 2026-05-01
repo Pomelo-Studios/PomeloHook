@@ -10,7 +10,7 @@ import (
 func TestCreatePersonalTunnel(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 
 	tunnel, err := db.CreateTunnel(store.CreateTunnelParams{
@@ -25,7 +25,7 @@ func TestCreatePersonalTunnel(t *testing.T) {
 func TestOrgTunnelConflict(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 
 	tunnel, _ := db.CreateTunnel(store.CreateTunnelParams{
@@ -45,7 +45,7 @@ func TestOrgTunnelConflict(t *testing.T) {
 func TestSetTunnelActiveStoresDevice(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
 
@@ -61,7 +61,7 @@ func TestSetTunnelActiveStoresDevice(t *testing.T) {
 func TestSetTunnelInactiveClearsDevice(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
 
@@ -78,7 +78,7 @@ func TestSetTunnelInactiveClearsDevice(t *testing.T) {
 func TestListOrgTunnels(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 
 	db.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: "org1", Name: "payment-wh"})

@@ -19,7 +19,7 @@ import (
 func TestWSConnectRegistersInManager(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
 
@@ -47,7 +47,7 @@ func TestWSConnectRegistersInManager(t *testing.T) {
 func TestWSConnectStoresDevice(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
 
@@ -77,7 +77,7 @@ func TestWSConnectStoresDevice(t *testing.T) {
 func TestWSFanOutBothClientsReceiveWebhook(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	userA, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "Alice", Role: "member"})
 	userB, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "b@b.com", Name: "Bob", Role: "member"})
 	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: "org1"})

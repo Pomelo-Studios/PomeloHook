@@ -13,7 +13,7 @@ import (
 func openWithOrg(t *testing.T) (*store.Store, *store.User) {
 	t.Helper()
 	db, _ := store.Open(":memory:")
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	u, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "Alice", Role: "admin"})
 	return db, u
 }
@@ -41,7 +41,7 @@ func TestDeleteTunnel_NotFound(t *testing.T) {
 func TestDeleteUser_WrongOrg(t *testing.T) {
 	db, u := openWithOrg(t)
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org2', 'Beta')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org2', 'Beta')")
 
 	_, err := db.DeleteUser(u.ID, "org2")
 	if err != sql.ErrNoRows {
@@ -95,7 +95,7 @@ func TestRotateAPIKey_NotFound(t *testing.T) {
 func TestRotateAPIKey_WrongOrg(t *testing.T) {
 	db, u := openWithOrg(t)
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org2', 'Beta')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org2', 'Beta')")
 
 	_, _, err := db.RotateAPIKey(u.ID, "org2")
 	if !errors.Is(err, sql.ErrNoRows) {
@@ -117,8 +117,8 @@ func TestRotateAPIKey(t *testing.T) {
 func TestListAllTunnels(t *testing.T) {
 	db, u := openWithOrg(t)
 	defer db.Close()
-	db.DB.Exec("INSERT INTO tunnels (id, type, user_id, subdomain) VALUES ('t1','personal',?,?)", u.ID, "abc")
-	db.DB.Exec("INSERT INTO tunnels (id, type, org_id, subdomain) VALUES ('t2','org','org1','def')")
+	db.ExecRaw("INSERT INTO tunnels (id, type, user_id, subdomain) VALUES ('t1','personal',?,?)", u.ID, "abc")
+	db.ExecRaw("INSERT INTO tunnels (id, type, org_id, subdomain) VALUES ('t2','org','org1','def')")
 
 	tunnels, err := db.ListAllTunnels("org1")
 	require.NoError(t, err)
@@ -128,7 +128,7 @@ func TestListAllTunnels(t *testing.T) {
 func TestDeleteTunnel(t *testing.T) {
 	db, _ := openWithOrg(t)
 	defer db.Close()
-	db.DB.Exec("INSERT INTO tunnels (id, type, org_id, subdomain) VALUES ('t1','org','org1','abc')")
+	db.ExecRaw("INSERT INTO tunnels (id, type, org_id, subdomain) VALUES ('t1','org','org1','abc')")
 
 	require.NoError(t, db.DeleteTunnel("t1", "org1"))
 	tunnels, _ := db.ListAllTunnels("org1")
