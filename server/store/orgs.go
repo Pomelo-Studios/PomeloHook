@@ -6,6 +6,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type OrgMember struct {
+	ID                    string `json:"ID"`
+	Name                  string `json:"Name"`
+	Email                 string `json:"Email"`
+	Role                  string `json:"Role"`
+	ActiveTunnelSubdomain string `json:"ActiveTunnelSubdomain"`
+}
+
 type Org struct {
 	ID        string
 	Name      string
@@ -32,6 +40,30 @@ func (s *Store) OrgCount() (int, error) {
 	var count int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM organizations").Scan(&count)
 	return count, err
+}
+
+func (s *Store) ListOrgUsersWithStatus(orgID string) ([]*OrgMember, error) {
+	rows, err := s.db.Query(`
+		SELECT u.id, u.name, u.email, u.role,
+		       COALESCE(t.subdomain, '') AS active_subdomain
+		FROM users u
+		LEFT JOIN tunnels t ON t.active_user_id = u.id AND t.status = 'active'
+		WHERE u.org_id = ?
+		ORDER BY u.name
+	`, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var members []*OrgMember
+	for rows.Next() {
+		m := &OrgMember{}
+		if err := rows.Scan(&m.ID, &m.Name, &m.Email, &m.Role, &m.ActiveTunnelSubdomain); err != nil {
+			return nil, err
+		}
+		members = append(members, m)
+	}
+	return members, rows.Err()
 }
 
 func (s *Store) UpdateOrg(id, name string) (*Org, error) {
