@@ -72,9 +72,7 @@ func handleCreateAdminUser(s *store.Store) http.HandlerFunc {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		writeJSON(w, created)
+		writeJSONStatus(w, http.StatusCreated, created)
 	}
 }
 
