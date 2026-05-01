@@ -93,15 +93,14 @@ func TestHandleListEvents_LimitCappedAt500(t *testing.T) {
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: "org1", Name: "test-wh"})
 
-	// Insert 10 events
-	for i := 0; i < 10; i++ {
+	// Insert 501 events so the 500 cap is the binding constraint
+	for i := 0; i < 501; i++ {
 		db.SaveEvent(store.SaveEventParams{TunnelID: tun.ID, Method: "POST", Path: "/", Headers: "{}", RequestBody: ""})
 	}
 
 	mgr := tunnel.NewManager()
 	router := api.NewRouter(db, mgr)
 
-	// Request with a huge limit (5 million) - should be capped at 500 in the handler
 	req := httptest.NewRequest("GET", "/api/events?tunnel_id="+tun.ID+"&limit=5000000", nil)
 	req.Header.Set("Authorization", "Bearer "+user.APIKey)
 	rec := httptest.NewRecorder()
@@ -110,6 +109,5 @@ func TestHandleListEvents_LimitCappedAt500(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 	var events []map[string]any
 	json.NewDecoder(rec.Body).Decode(&events)
-	// We inserted 10 events, so we get 10. But internally the limit was capped at 500.
-	require.Len(t, events, 10)
+	require.Len(t, events, 500)
 }
