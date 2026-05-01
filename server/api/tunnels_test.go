@@ -37,7 +37,7 @@ func TestCreatePersonalTunnel_Idempotent(t *testing.T) {
 
 	first := call()
 	second := call()
-	require.Equal(t, first["ID"], second["ID"], "second call must return the same tunnel")
+	require.Equal(t, first["id"], second["id"], "second call must return the same tunnel")
 
 	var count int
 	db.QueryRaw(&count, "SELECT COUNT(*) FROM tunnels WHERE user_id=? AND type='personal'", user.ID)

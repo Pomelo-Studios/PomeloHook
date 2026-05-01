@@ -83,7 +83,7 @@ func TestListOrgTunnelsEndpoint(t *testing.T) {
 	var result2 []map[string]any
 	json.NewDecoder(rec.Body).Decode(&result2)
 	require.Len(t, result2, 1)
-	require.Equal(t, "org", result2[0]["Type"])
+	require.Equal(t, "org", result2[0]["type"])
 }
 
 func TestCanAccessTunnel_EmptyOrgDoesNotGrant(t *testing.T) {

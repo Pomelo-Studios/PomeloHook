@@ -3,7 +3,6 @@ package tunnel
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -65,9 +64,6 @@ func (c *Client) Connect() error {
 		conn, _, err := wsDialer.Dial(wsURL, headers)
 		if err != nil {
 			attempt++
-			if attempt > 5 {
-				return fmt.Errorf("could not connect after 5 attempts: %w", err)
-			}
 			wait := time.Duration(1<<attempt) * time.Second
 			jitter := time.Duration(c.rng.Int63n(int64(wait / 2)))
 			log.Printf("reconnecting in %s...", wait+jitter)
