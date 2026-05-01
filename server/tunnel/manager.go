@@ -86,8 +86,8 @@ func (m *Manager) SubCount(tunnelID string) int {
 func (m *Manager) RegisterStream(tunnelID string) chan []byte {
 	ch := make(chan []byte, 64)
 	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.streams[tunnelID] = append(m.streams[tunnelID], ch)
-	m.mu.Unlock()
 	return ch
 }
 
@@ -118,6 +118,7 @@ func (m *Manager) BroadcastEvent(tunnelID string, eventJSON []byte) {
 		select {
 		case ch <- eventJSON:
 		default:
+			log.Printf("tunnel %s: stream subscriber buffer full, event dropped", tunnelID)
 		}
 	}
 }
