@@ -106,6 +106,35 @@ func TestCanAccessTunnel_EmptyOrgDoesNotGrant(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, rec.Code)
 }
 
+func TestMarkEventForwarded_SetsForwardedTrue(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a2@b.com", Name: "A", Role: "admin"})
+	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: "org1"})
+	db.ExecRaw(`INSERT INTO webhook_events (id, tunnel_id, received_at, method, path, headers, request_body, forwarded)
+		VALUES ('ev1', ?, '2026-01-01T00:00:00Z', 'POST', '/', '{}', '{}', FALSE)`, tun.ID)
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	body := `{"response_status":200,"response_body":"ok","response_ms":42}`
+	req := httptest.NewRequest("POST", "/api/events/ev1/forwarded", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+user.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusNoContent, rec.Code)
+
+	event, err := db.GetEvent("ev1")
+	require.NoError(t, err)
+	require.True(t, event.Forwarded)
+	require.Equal(t, 200, event.ResponseStatus)
+	require.Equal(t, "ok", event.ResponseBody)
+	require.Equal(t, int64(42), event.ResponseMS)
+}
+
 func TestHandleListEvents_LimitCappedAt500(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()

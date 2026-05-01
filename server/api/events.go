@@ -160,6 +160,39 @@ func handleReplayEvent(s *store.Store) http.HandlerFunc {
 	}
 }
 
+func handleMarkEventForwarded(s *store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := auth.UserFromContext(r.Context())
+		eventID := r.PathValue("id")
+
+		event, err := s.GetEvent(eventID)
+		if err != nil {
+			http.Error(w, "event not found", http.StatusNotFound)
+			return
+		}
+		tun, err := s.GetTunnelByID(event.TunnelID)
+		if err != nil || !canAccessTunnel(user, tun) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		var body struct {
+			ResponseStatus int    `json:"response_status"`
+			ResponseBody   string `json:"response_body"`
+			ResponseMS     int64  `json:"response_ms"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			return
+		}
+		if err := s.MarkEventForwarded(eventID, body.ResponseStatus, body.ResponseBody, body.ResponseMS); err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 func replayHTTP(event *store.WebhookEvent, targetURL string) (*http.Response, int64, error) {
 	req, err := http.NewRequest(event.Method, targetURL, bytes.NewBufferString(event.RequestBody))
 	if err != nil {
