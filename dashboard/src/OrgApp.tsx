@@ -47,22 +47,22 @@ export function OrgApp() {
 
     const tunnelID = selectedTunnelID
     function fetchEvents() {
-      api.getEvents(tunnelID, 100).then(setEvents).catch(() => {})
+      api.getEvents(tunnelID, 100, apiKey).then(setEvents).catch(() => {})
     }
 
     fetchEvents()
     const id = setInterval(fetchEvents, 5000)
     return () => clearInterval(id)
-  }, [selectedTunnelID])
+  }, [selectedTunnelID, apiKey])
 
   const handleReplay = useCallback(async (eventID: string, targetURL: string) => {
     setReplayError(null)
     try {
-      await api.replay(eventID, targetURL)
+      await api.replay(eventID, targetURL, apiKey)
     } catch (err) {
       setReplayError(err instanceof Error ? err.message : 'Replay failed')
     }
-  }, [])
+  }, [apiKey])
 
   if (loading) {
     return (
