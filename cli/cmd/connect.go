@@ -92,7 +92,7 @@ func resolveTunnel(cfg *config.Config, isOrg bool, tunnelName string) (id, subdo
 	if resp.StatusCode == http.StatusConflict {
 		return "", "", fmt.Errorf("org tunnel '%s' is already active", tunnelName)
 	}
-	if resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		return "", "", fmt.Errorf("failed to create tunnel: %d", resp.StatusCode)
 	}
 
