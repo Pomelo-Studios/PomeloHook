@@ -29,9 +29,9 @@ func TestListEventsRequiresAuth(t *testing.T) {
 func TestListEventsReturnsEmpty(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
-	db.DB.Exec("INSERT INTO tunnels (id, type, org_id, subdomain) VALUES ('t1','org','org1','stripe')")
+	db.ExecRaw("INSERT INTO tunnels (id, type, org_id, subdomain) VALUES ('t1','org','org1','stripe')")
 	mgr := tunnel.NewManager()
 	router := api.NewRouter(db, mgr)
 
@@ -49,7 +49,7 @@ func TestListEventsReturnsEmpty(t *testing.T) {
 func TestCreateTunnel_MalformedJSON(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 
 	mgr := tunnel.NewManager()
@@ -66,7 +66,7 @@ func TestCreateTunnel_MalformedJSON(t *testing.T) {
 func TestListOrgTunnelsEndpoint(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
-	db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "admin"})
 	db.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: "org1", Name: "payment-wh"})
 	db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})

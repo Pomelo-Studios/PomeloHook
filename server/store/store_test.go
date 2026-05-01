@@ -16,7 +16,7 @@ func TestStore_WALModeEnabled(t *testing.T) {
 	defer s.Close()
 
 	var mode string
-	if err := s.DB.QueryRow("PRAGMA journal_mode").Scan(&mode); err != nil {
+	if err := s.QueryRaw(&mode, "PRAGMA journal_mode"); err != nil {
 		t.Fatal(err)
 	}
 	if mode != "wal" {
@@ -38,7 +38,7 @@ func TestStore_TunnelIndexesExist(t *testing.T) {
 	}
 	for _, idx := range wantIndexes {
 		var name string
-		err := s.DB.QueryRow(`SELECT name FROM sqlite_master WHERE type='index' AND name=?`, idx).Scan(&name)
+		err := s.QueryRaw(&name, `SELECT name FROM sqlite_master WHERE type='index' AND name=?`, idx)
 		if err != nil {
 			t.Errorf("index %q not found: %v", idx, err)
 		}
@@ -50,7 +50,7 @@ func TestOpenCreatesSchema(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Test Org')")
+	err = db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Test Org')")
 	require.NoError(t, err)
 }
 

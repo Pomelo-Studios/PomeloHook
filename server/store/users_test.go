@@ -14,7 +14,7 @@ func TestCreateAndGetUser(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	err = db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
 	require.NoError(t, err)
 
 	user, err := db.CreateUser(store.CreateUserParams{
@@ -39,7 +39,7 @@ func TestSetPasswordHash(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('o1', 'T')")
+	err = db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('o1', 'T')")
 	require.NoError(t, err)
 
 	u, err := db.CreateUser(store.CreateUserParams{OrgID: "o1", Email: "x@y.com", Name: "X", Role: "admin"})
@@ -58,7 +58,7 @@ func TestSetPasswordHashWrongOrg(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	_, err = db.DB.Exec("INSERT INTO organizations (id, name) VALUES ('o1', 'T')")
+	err = db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('o1', 'T')")
 	require.NoError(t, err)
 
 	u, err := db.CreateUser(store.CreateUserParams{OrgID: "o1", Email: "x@y.com", Name: "X", Role: "admin"})

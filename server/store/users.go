@@ -32,7 +32,7 @@ func (s *Store) CreateUser(p CreateUserParams) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = s.DB.Exec(
+	_, err = s.db.Exec(
 		`INSERT INTO users (id, org_id, email, name, api_key, role, password_hash) VALUES (?,?,?,?,?,?,?)`,
 		id, p.OrgID, p.Email, p.Name, key, p.Role, p.PasswordHash,
 	)
@@ -43,7 +43,7 @@ func (s *Store) CreateUser(p CreateUserParams) (*User, error) {
 }
 
 func (s *Store) GetUserByID(id, orgID string) (*User, error) {
-	row := s.DB.QueryRow(
+	row := s.db.QueryRow(
 		`SELECT id, org_id, email, name, api_key, role, password_hash FROM users WHERE id=? AND org_id=?`,
 		id, orgID,
 	)
@@ -52,7 +52,7 @@ func (s *Store) GetUserByID(id, orgID string) (*User, error) {
 }
 
 func (s *Store) GetUserByAPIKey(key string) (*User, error) {
-	row := s.DB.QueryRow(
+	row := s.db.QueryRow(
 		`SELECT id, org_id, email, name, api_key, role, password_hash FROM users WHERE api_key = ?`, key,
 	)
 	u := &User{}
@@ -60,7 +60,7 @@ func (s *Store) GetUserByAPIKey(key string) (*User, error) {
 }
 
 func (s *Store) GetUserByEmail(email string) (*User, error) {
-	row := s.DB.QueryRow(
+	row := s.db.QueryRow(
 		`SELECT id, org_id, email, name, api_key, role, password_hash FROM users WHERE email = ?`, email,
 	)
 	u := &User{}
@@ -68,7 +68,7 @@ func (s *Store) GetUserByEmail(email string) (*User, error) {
 }
 
 func (s *Store) ListOrgUsers(orgID string) ([]*User, error) {
-	rows, err := s.DB.Query(
+	rows, err := s.db.Query(
 		`SELECT id, org_id, email, name, api_key, role, password_hash FROM users WHERE org_id=?`, orgID,
 	)
 	if err != nil {
@@ -87,7 +87,7 @@ func (s *Store) ListOrgUsers(orgID string) ([]*User, error) {
 }
 
 func (s *Store) SetPasswordHash(id, orgID, hash string) error {
-	res, err := s.DB.Exec(`UPDATE users SET password_hash=? WHERE id=? AND org_id=?`, hash, id, orgID)
+	res, err := s.db.Exec(`UPDATE users SET password_hash=? WHERE id=? AND org_id=?`, hash, id, orgID)
 	if err != nil {
 		return err
 	}

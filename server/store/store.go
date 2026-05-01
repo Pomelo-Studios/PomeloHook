@@ -9,7 +9,7 @@ import (
 )
 
 type Store struct {
-	DB *sql.DB
+	db *sql.DB
 }
 
 func Open(dsn string) (*Store, error) {
@@ -44,11 +44,11 @@ func Open(dsn string) (*Store, error) {
 		return nil, err
 	}
 
-	return &Store{DB: db}, nil
+	return &Store{db: db}, nil
 }
 
 func (s *Store) Close() error {
-	return s.DB.Close()
+	return s.db.Close()
 }
 
 // migration holds a versioned schema change.
@@ -181,6 +181,17 @@ func migrate(db *sql.DB) error {
 // AppliedMigrationCount returns the number of applied migrations. Used in tests only.
 func (s *Store) AppliedMigrationCount() (int, error) {
 	var n int
-	err := s.DB.QueryRow(`SELECT COUNT(*) FROM schema_migrations`).Scan(&n)
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM schema_migrations`).Scan(&n)
 	return n, err
+}
+
+// ExecRaw executes a raw SQL statement. For use in tests only.
+func (s *Store) ExecRaw(query string, args ...any) error {
+	_, err := s.db.Exec(query, args...)
+	return err
+}
+
+// QueryRaw executes a raw SQL query and scans a single value. For use in tests only.
+func (s *Store) QueryRaw(dest any, query string, args ...any) error {
+	return s.db.QueryRow(query, args...).Scan(dest)
 }
