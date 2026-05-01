@@ -70,7 +70,10 @@ func validateReplayURL(raw string) error {
 }
 
 func canAccessTunnel(user *store.User, tun *store.Tunnel) bool {
-	return tun.UserID == user.ID || tun.OrgID == user.OrgID
+	if tun.UserID == user.ID {
+		return true
+	}
+	return user.OrgID != "" && tun.OrgID == user.OrgID
 }
 
 const maxListLimit = 500

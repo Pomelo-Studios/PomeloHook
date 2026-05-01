@@ -86,6 +86,26 @@ func TestListOrgTunnelsEndpoint(t *testing.T) {
 	require.Equal(t, "org", result2[0]["Type"])
 }
 
+func TestCanAccessTunnel_EmptyOrgDoesNotGrant(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	// Create an org with id='' so that users with org_id='' satisfy the FK constraint.
+	// This replicates the scenario where user.OrgID=="" (empty) and tun.OrgID=="" (COALESCE of NULL).
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('', 'No-Org')")
+	db.ExecRaw("INSERT INTO users (id, org_id, email, name, api_key, role) VALUES ('victim1', '', 'victim@b.com', 'V', 'key-victim', 'member')")
+	db.ExecRaw("INSERT INTO users (id, org_id, email, name, api_key, role) VALUES ('attacker1', '', 'attack@b.com', 'A', 'key-attacker', 'member')")
+	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: "victim1"})
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+	req := httptest.NewRequest("GET", "/api/events?tunnel_id="+tun.ID, nil)
+	req.Header.Set("Authorization", "Bearer key-attacker")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusForbidden, rec.Code)
+}
+
 func TestHandleListEvents_LimitCappedAt500(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
