@@ -131,6 +131,27 @@ var migrations = []migration{
 	{version: 3, fn: func(tx *sql.Tx) error {
 		return addColumnIfNotExists(tx, "tunnels", "active_device", "TEXT")
 	}},
+	{version: 4, sql: `
+        CREATE TABLE IF NOT EXISTS webhook_events_new (
+            id              TEXT PRIMARY KEY,
+            tunnel_id       TEXT REFERENCES tunnels(id),
+            received_at     TEXT NOT NULL CHECK(received_at GLOB '????-??-??T??:??:??Z'),
+            method          TEXT NOT NULL,
+            path            TEXT NOT NULL,
+            headers         TEXT NOT NULL,
+            request_body    TEXT,
+            response_status INTEGER,
+            response_body   TEXT,
+            response_ms     INTEGER,
+            forwarded       BOOLEAN NOT NULL DEFAULT FALSE,
+            replayed_at     TEXT CHECK(replayed_at IS NULL OR replayed_at GLOB '????-??-??T??:??:??Z')
+        );
+        INSERT INTO webhook_events_new SELECT * FROM webhook_events;
+        DROP TABLE webhook_events;
+        ALTER TABLE webhook_events_new RENAME TO webhook_events;
+        CREATE INDEX IF NOT EXISTS idx_events_tunnel_received
+            ON webhook_events (tunnel_id, received_at);
+    `},
 }
 
 func migrate(db *sql.DB) error {
