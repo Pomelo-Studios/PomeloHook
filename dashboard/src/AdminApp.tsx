@@ -86,6 +86,14 @@ export function AdminApp() {
           </p>
           {devItems.map(item => <NavButton key={item.id} item={item} />)}
 
+          <a
+            href="/app"
+            className="flex items-center gap-2 px-[10px] py-[7px] rounded-lg text-[12px] font-medium transition-colors border mt-2"
+            style={{ color: 'var(--text-secondary)', background: 'transparent', borderColor: 'transparent' }}
+          >
+            ← App
+          </a>
+
           {isServerMode && (
             <button
               onClick={logout}

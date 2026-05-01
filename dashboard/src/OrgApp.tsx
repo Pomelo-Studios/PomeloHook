@@ -152,6 +152,15 @@ export function OrgApp() {
           ))}
         </div>
         <div className="flex-1" />
+        {me?.role === 'admin' && (
+          <a
+            href="/admin"
+            className="text-[11px] font-medium px-3 py-1 rounded transition-colors mr-2"
+            style={{ color: 'var(--text-dim)', background: 'var(--surface)' }}
+          >
+            Admin Panel →
+          </a>
+        )}
         {isServerMode && (
           <button
             onClick={logout}
