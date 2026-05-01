@@ -74,6 +74,27 @@ func TestWSConnectStoresDevice(t *testing.T) {
 	require.Equal(t, "MONSTER-2352", got.ActiveDevice)
 }
 
+func TestWSRejectsCrossOrgTunnelAccess(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org2', 'Evil')")
+	owner, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "owner@b.com", Name: "O", Role: "member"})
+	attacker, _ := db.CreateUser(store.CreateUserParams{OrgID: "org2", Email: "evil@b.com", Name: "E", Role: "member"})
+	tun, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: owner.ID})
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+	srv := httptest.NewServer(router)
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/api/ws?tunnel_id=" + tun.ID
+	hdr := http.Header{"Authorization": []string{"Bearer " + attacker.APIKey}}
+	_, resp, err := websocket.DefaultDialer.Dial(wsURL, hdr)
+	require.Error(t, err)
+	require.Equal(t, http.StatusForbidden, resp.StatusCode)
+}
+
 func TestWSFanOutBothClientsReceiveWebhook(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
