@@ -131,6 +131,8 @@ var migrations = []migration{
 	{version: 3, fn: func(tx *sql.Tx) error {
 		return addColumnIfNotExists(tx, "tunnels", "active_device", "TEXT")
 	}},
+	// Migration 4: timestamps are stored as UTC RFC3339 strings ending in 'Z'.
+	// The CHECK constraints intentionally reject other valid RFC3339 forms (e.g. +00:00 offsets).
 	{version: 4, sql: `
         CREATE TABLE IF NOT EXISTS webhook_events_new (
             id              TEXT PRIMARY KEY,
@@ -165,17 +167,18 @@ func migrate(db *sql.DB) error {
 	}
 
 	for _, m := range migrations {
-		var exists int
-		if err := db.QueryRow(`SELECT COUNT(*) FROM schema_migrations WHERE version=?`, m.version).Scan(&exists); err != nil {
-			return fmt.Errorf("check migration %d: %w", m.version, err)
-		}
-		if exists > 0 {
-			continue
-		}
-
 		tx, err := db.Begin()
 		if err != nil {
 			return fmt.Errorf("begin migration %d: %w", m.version, err)
+		}
+		var exists int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM schema_migrations WHERE version=?`, m.version).Scan(&exists); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("check migration %d: %w", m.version, err)
+		}
+		if exists > 0 {
+			tx.Rollback()
+			continue
 		}
 		if m.fn != nil {
 			if err := m.fn(tx); err != nil {
