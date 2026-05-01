@@ -6,6 +6,30 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Vers
 
 ---
 
+## [1.14.0] — 2026-05-01
+
+### Fixed
+- Restrict WebSocket connections to origins listed in `POMELO_ALLOWED_ORIGINS`
+- Allow empty Origin header in WebSocket allowlist check (non-browser clients)
+- Defer `POMELO_ALLOWED_ORIGINS` warning to the first WebSocket upgrade, not startup
+- Gate `X-Forwarded-For` / `X-Real-IP` trust on `POMELO_TRUST_PROXY` env var
+- Use `X-Forwarded-For` / `X-Real-IP` for rate limiting when behind a reverse proxy
+- Enforce RFC 3339 timestamp format on `webhook_events` via DB CHECK constraint
+- Cap `/events` list endpoint at 500 results to prevent unbounded SQLite reads
+- Remove duplicate `validateReplayURL` call inside `replayHTTP`
+- Use `writeJSONStatus` for 201 responses so Content-Type is set before WriteHeader
+- Replace silent `json.NewEncoder` writes with `writeJSON` helper that logs errors
+- Correct log prefix in `writeJSONStatus`
+- Move migration existence check inside transaction to avoid race condition
+
+### Internal
+- Replace ad-hoc migrations with versioned `schema_migrations` table
+- Use `INSERT OR IGNORE` to claim migration slot atomically
+- Make `Store.db` private; add `ExecRaw` / `QueryRaw` helpers for tests
+- Unexport `makeCheckOrigin`; move origin tests to internal package
+
+---
+
 ## [1.12.0] — 2026-04-30
 
 ### Added
