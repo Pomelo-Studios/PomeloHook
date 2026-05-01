@@ -3,6 +3,7 @@ package tunnel
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -66,6 +67,9 @@ func (c *Client) Connect() error {
 		conn, _, err := wsDialer.Dial(wsURL, headers)
 		if err != nil {
 			attempt++
+			if attempt > 10 {
+				attempt = 10
+			}
 			wait := time.Duration(1<<attempt) * time.Second
 			jitter := time.Duration(c.rng.Int63n(int64(wait / 2)))
 			log.Printf("reconnecting in %s...", wait+jitter)
@@ -101,6 +105,7 @@ func (c *Client) markForwarded(result *forward.ForwardResult) {
 		log.Printf("mark forwarded %s: %v", result.EventID, err)
 		return
 	}
+	io.Copy(io.Discard, resp.Body)
 	resp.Body.Close()
 }
 
