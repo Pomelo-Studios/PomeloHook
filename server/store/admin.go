@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+// ErrConflict is returned when a CAS update affects 0 rows due to a concurrent modification.
+var ErrConflict = errors.New("conflict: concurrent modification")
+
 type TableInfo struct {
 	Name     string `json:"name"`
 	RowCount int    `json:"row_count"`
@@ -96,7 +99,13 @@ func (s *Store) DeleteUser(id, orgID string) (deletedKey string, err error) {
 }
 
 func (s *Store) RotateAPIKey(id, orgID string) (oldKey, newKey string, err error) {
-	if err = s.db.QueryRow(`SELECT api_key FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&oldKey); err != nil {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return "", "", err
+	}
+	defer tx.Rollback()
+
+	if err = tx.QueryRow(`SELECT api_key FROM users WHERE id=? AND org_id=?`, id, orgID).Scan(&oldKey); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", "", sql.ErrNoRows
 		}
@@ -106,14 +115,14 @@ func (s *Store) RotateAPIKey(id, orgID string) (oldKey, newKey string, err error
 	if err != nil {
 		return "", "", err
 	}
-	res, err := s.db.Exec(`UPDATE users SET api_key=? WHERE id=? AND org_id=?`, newKey, id, orgID)
+	res, err := tx.Exec(`UPDATE users SET api_key=? WHERE id=? AND org_id=? AND api_key=?`, newKey, id, orgID, oldKey)
 	if err != nil {
 		return "", "", err
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
-		return "", "", sql.ErrNoRows
+		return "", "", ErrConflict
 	}
-	return oldKey, newKey, nil
+	return oldKey, newKey, tx.Commit()
 }
 
 func (s *Store) ListAllTunnels(orgID string) ([]*Tunnel, error) {

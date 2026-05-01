@@ -56,6 +56,12 @@ func handleWSConnect(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 			return
 		}
 
+		tun, err := s.GetTunnelByID(tunnelID)
+		if err != nil || !canAccessTunnel(user, tun) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
 		ch := m.Register(tunnelID, user.Name)
 
 		conn, err := upgrader.Upgrade(w, r, nil)

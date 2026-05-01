@@ -2,15 +2,91 @@ package api
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
+	"os"
+	"strings"
+	"sync"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
+const loginMaxAttempts = 5
+const loginWindow = time.Minute
+
+type loginRateLimiter struct {
+	mu      sync.Mutex
+	buckets map[string]*loginBucket
+}
+
+type loginBucket struct {
+	count   int
+	resetAt time.Time
+}
+
+func newLoginRateLimiter() *loginRateLimiter {
+	l := &loginRateLimiter{buckets: map[string]*loginBucket{}}
+	go func() {
+		t := time.NewTicker(loginWindow)
+		defer t.Stop()
+		for range t.C {
+			l.mu.Lock()
+			now := time.Now()
+			for ip, b := range l.buckets {
+				if now.After(b.resetAt) {
+					delete(l.buckets, ip)
+				}
+			}
+			l.mu.Unlock()
+		}
+	}()
+	return l
+}
+
+func (l *loginRateLimiter) allowed(ip string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := time.Now()
+	b, ok := l.buckets[ip]
+	if !ok || now.After(b.resetAt) {
+		l.buckets[ip] = &loginBucket{count: 1, resetAt: now.Add(loginWindow)}
+		return true
+	}
+	if b.count >= loginMaxAttempts {
+		return false
+	}
+	b.count++
+	return true
+}
+
+// clientIP mirrors webhook.realIP: XFF/X-Real-IP only honored when POMELO_TRUST_PROXY=true.
+func clientIP(r *http.Request) string {
+	if os.Getenv("POMELO_TRUST_PROXY") == "true" {
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			return strings.TrimSpace(strings.SplitN(xff, ",", 2)[0])
+		}
+		if xri := r.Header.Get("X-Real-IP"); xri != "" {
+			return strings.TrimSpace(xri)
+		}
+	}
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil || ip == "" {
+		return r.RemoteAddr
+	}
+	return ip
+}
+
 func handleLogin(s *store.Store) http.HandlerFunc {
+	rl := newLoginRateLimiter()
 	return func(w http.ResponseWriter, r *http.Request) {
+		ip := clientIP(r)
+		if !rl.allowed(ip) {
+			http.Error(w, "too many requests", http.StatusTooManyRequests)
+			return
+		}
 		var body struct {
 			Email    string `json:"email"`
 			Password string `json:"password"`

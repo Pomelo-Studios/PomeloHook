@@ -4,6 +4,7 @@ package store_test
 import (
 	"database/sql"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/pomelo-studios/pomelo-hook/server/store"
@@ -112,6 +113,39 @@ func TestRotateAPIKey(t *testing.T) {
 	require.Equal(t, u.APIKey, oldKey)
 	require.NotEqual(t, u.APIKey, newKey)
 	require.Contains(t, newKey, "ph_")
+}
+
+func TestRotateAPIKey_ConcurrentRotationsDoNotConflict(t *testing.T) {
+	db, _ := openWithOrg(t)
+	defer db.Close()
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "b@b.com", Name: "B", Role: "admin"})
+
+	const goroutines = 10
+	results := make([]string, goroutines)
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	for i := 0; i < goroutines; i++ {
+		i := i
+		go func() {
+			defer wg.Done()
+			_, newKey, err := db.RotateAPIKey(user.ID, "org1")
+			if err == nil {
+				results[i] = newKey
+			}
+		}()
+	}
+	wg.Wait()
+
+	var finals []string
+	for _, k := range results {
+		if k != "" {
+			finals = append(finals, k)
+		}
+	}
+	require.NotEmpty(t, finals)
+	var currentKey string
+	db.QueryRaw(&currentKey, "SELECT api_key FROM users WHERE id=?", user.ID)
+	require.Contains(t, finals, currentKey)
 }
 
 func TestListAllTunnels(t *testing.T) {
