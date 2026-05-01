@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+// ErrConflict is returned when a CAS update affects 0 rows due to a concurrent modification.
+var ErrConflict = errors.New("conflict: concurrent modification")
+
 type TableInfo struct {
 	Name     string `json:"name"`
 	RowCount int    `json:"row_count"`
@@ -117,7 +120,7 @@ func (s *Store) RotateAPIKey(id, orgID string) (oldKey, newKey string, err error
 		return "", "", err
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
-		return "", "", sql.ErrNoRows
+		return "", "", ErrConflict
 	}
 	return oldKey, newKey, tx.Commit()
 }
