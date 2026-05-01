@@ -1,4 +1,4 @@
-import type { WebhookEvent, Tunnel, User, Org, Me, TableInfo, TableResult, QueryResult } from '../types'
+import type { WebhookEvent, Tunnel, User, Org, Me, TableInfo, TableResult, QueryResult, OrgMember } from '../types'
 
 const BASE = ''
 
@@ -67,5 +67,7 @@ export const api = {
       request<Tunnel[]>('/api/tunnels', { headers: authHeaders(apiKey) }),
     getTunnels: (apiKey: string) =>
       request<Tunnel[]>('/api/org/tunnels', { headers: authHeaders(apiKey) }),
+    listMembers: (apiKey: string) =>
+      request<OrgMember[]>('/api/orgs/users', { headers: authHeaders(apiKey) }),
   },
 }

@@ -68,3 +68,11 @@ export interface QueryResult {
   columns: string[]
   rows: unknown[][]
 }
+
+export interface OrgMember {
+  ID: string
+  Name: string
+  Email: string
+  Role: string
+  ActiveTunnelSubdomain: string
+}
