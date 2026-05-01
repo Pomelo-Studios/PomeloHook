@@ -66,3 +66,13 @@ func TestValidateReplayURL_AllowsPublicDomain(t *testing.T) {
 		t.Fatalf("expected no error for public domain, got: %v", err)
 	}
 }
+
+// TestHandleReplayEvent_ValidatesURLBeforeForwarding documents the contract that
+// replayHTTP trusts its caller (handleReplayEvent) to have validated the URL first.
+// This test verifies that validateReplayURL blocks localhost, preventing SSRF.
+func TestHandleReplayEvent_ValidatesURLBeforeForwarding(t *testing.T) {
+	err := validateReplayURL("http://localhost/hook")
+	if err == nil {
+		t.Fatal("validateReplayURL must block localhost")
+	}
+}

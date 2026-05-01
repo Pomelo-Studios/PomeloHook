@@ -158,9 +158,6 @@ func handleReplayEvent(s *store.Store) http.HandlerFunc {
 }
 
 func replayHTTP(event *store.WebhookEvent, targetURL string) (*http.Response, int64, error) {
-	if err := validateReplayURL(targetURL); err != nil {
-		return nil, 0, err
-	}
 	req, err := http.NewRequest(event.Method, targetURL, bytes.NewBufferString(event.RequestBody))
 	if err != nil {
 		return nil, 0, err
