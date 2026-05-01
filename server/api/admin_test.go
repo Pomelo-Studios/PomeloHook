@@ -274,3 +274,54 @@ func TestAdminRunQuerySelectAllowed(t *testing.T) {
 	router.ServeHTTP(rec, req)
 	require.Equal(t, http.StatusOK, rec.Code)
 }
+
+func TestUpdateMe(t *testing.T) {
+	db, err := store.Open(":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+	err = db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	require.NoError(t, err)
+	user, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "Alice", Role: "member"})
+	require.NoError(t, err)
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	body, _ := json.Marshal(map[string]string{"name": "Alice Updated", "email": "alice2@b.com"})
+	req := httptest.NewRequest("PUT", "/api/me", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+user.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]string
+	err = json.NewDecoder(w.Body).Decode(&resp)
+	require.NoError(t, err)
+	require.Equal(t, "Alice Updated", resp["name"])
+}
+
+func TestChangePassword(t *testing.T) {
+	db, err := store.Open(":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+	err = db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	require.NoError(t, err)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("oldpassword"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+	user, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "Alice", Role: "member", PasswordHash: string(hash)})
+	require.NoError(t, err)
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	body, _ := json.Marshal(map[string]string{"current_password": "oldpassword", "new_password": "newpassword123"})
+	req := httptest.NewRequest("POST", "/api/me/password", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+user.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusNoContent, w.Code)
+}

@@ -86,6 +86,20 @@ func (s *Store) ListOrgUsers(orgID string) ([]*User, error) {
 	return users, rows.Err()
 }
 
+func (s *Store) UpdateUserProfile(id, orgID, name, email string) (*User, error) {
+	res, err := s.db.Exec(
+		`UPDATE users SET name=?, email=? WHERE id=? AND org_id=?`,
+		name, email, id, orgID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return nil, sql.ErrNoRows
+	}
+	return s.GetUserByID(id, orgID)
+}
+
 func (s *Store) SetPasswordHash(id, orgID, hash string) error {
 	res, err := s.db.Exec(`UPDATE users SET password_hash=? WHERE id=? AND org_id=?`, hash, id, orgID)
 	if err != nil {
