@@ -79,5 +79,11 @@ export const api = {
       request<Tunnel[]>('/api/org/tunnels', { headers: authHeaders(apiKey) }),
     listMembers: (apiKey: string) =>
       request<OrgMember[]>('/api/orgs/users', { headers: authHeaders(apiKey) }),
+    createPersonalTunnel: (apiKey: string) =>
+      request<Tunnel>('/api/tunnels', {
+        method: 'POST',
+        headers: authHeaders(apiKey),
+        body: JSON.stringify({ type: 'personal' }),
+      }),
   },
 }
