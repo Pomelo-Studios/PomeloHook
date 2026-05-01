@@ -8,7 +8,7 @@ import { useAuth } from './hooks/useAuth'
 import { api } from './api/client'
 import type { WebhookEvent, Tunnel, OrgMember } from './types'
 
-type Tab = 'personal' | 'org' | 'members'
+type Tab = 'personal' | 'org' | 'members' | 'profile'
 
 function useWSEvents(tunnelID: string, apiKey: string, onEvent: (e: WebhookEvent) => void) {
   const onEventRef = useRef(onEvent)
@@ -49,6 +49,7 @@ export function OrgApp() {
   const [selectedEvent, setSelectedEvent] = useState<WebhookEvent | null>(null)
   const [replayError, setReplayError] = useState<string | null>(null)
   const [members, setMembers] = useState<OrgMember[]>([])
+  const [me, setMe] = useState<{ name: string; email: string; role: string; api_key: string } | null>(null)
 
   const selectedTunnel = tunnels.find(t => t.ID === selectedTunnelID) ?? null
 
@@ -79,6 +80,11 @@ export function OrgApp() {
     const id = setInterval(() => api.org.listMembers(apiKey).then(setMembers).catch(() => {}), 10000)
     return () => clearInterval(id)
   }, [tab, apiKey, isServerMode])
+
+  useEffect(() => {
+    if (isServerMode && !apiKey) return
+    api.getMe(apiKey).then(setMe).catch(() => {})
+  }, [apiKey, isServerMode])
 
   useEffect(() => {
     if (!selectedTunnelID) { setEvents([]); return }
@@ -130,7 +136,7 @@ export function OrgApp() {
           PomeloHook
         </span>
         <div className="flex gap-1">
-          {(['personal', 'org', 'members'] as Tab[]).map(t => (
+          {(['personal', 'org', 'members', 'profile'] as Tab[]).map(t => (
             <button
               key={t}
               onClick={() => { setTab(t); setSelectedTunnelID(null); setSelectedEvent(null) }}
@@ -158,7 +164,11 @@ export function OrgApp() {
         )}
       </div>
 
-      {tab === 'members' ? (
+      {tab === 'profile' ? (
+        <div className="flex-1 overflow-y-auto p-6 max-w-lg">
+          <ProfilePanel apiKey={apiKey} me={me} onUpdated={setMe} />
+        </div>
+      ) : tab === 'members' ? (
         <div className="flex-1 overflow-y-auto p-4">
           <table className="w-full text-[11px]" style={{ borderCollapse: 'collapse' }}>
             <thead>
@@ -239,6 +249,115 @@ export function OrgApp() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function ProfilePanel({
+  apiKey,
+  me,
+  onUpdated,
+}: {
+  apiKey: string
+  me: { name: string; email: string; role: string; api_key: string } | null
+  onUpdated: (u: { name: string; email: string; role: string; api_key: string }) => void
+}) {
+  const [name, setName] = useState(me?.name ?? '')
+  const [email, setEmail] = useState(me?.email ?? '')
+  const [profileMsg, setProfileMsg] = useState('')
+  const [currentPwd, setCurrentPwd] = useState('')
+  const [newPwd, setNewPwd] = useState('')
+  const [pwdMsg, setPwdMsg] = useState('')
+  const [showKey, setShowKey] = useState(false)
+
+  useEffect(() => { setName(me?.name ?? ''); setEmail(me?.email ?? '') }, [me])
+
+  async function handleProfileSave(e: React.FormEvent) {
+    e.preventDefault()
+    try {
+      const updated = await api.updateMe(apiKey, name, email)
+      onUpdated({ ...updated, api_key: me?.api_key ?? '' })
+      setProfileMsg('Saved.')
+      setTimeout(() => setProfileMsg(''), 2000)
+    } catch {
+      setProfileMsg('Save failed.')
+    }
+  }
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault()
+    try {
+      await api.changePassword(apiKey, currentPwd, newPwd)
+      setCurrentPwd(''); setNewPwd('')
+      setPwdMsg('Password changed.')
+      setTimeout(() => setPwdMsg(''), 2000)
+    } catch {
+      setPwdMsg('Failed. Check your current password.')
+    }
+  }
+
+  const inputStyle = {
+    background: 'var(--surface)', border: '1px solid var(--border)',
+    borderRadius: 6, padding: '6px 10px', fontSize: 12, color: 'var(--text-primary)', width: '100%',
+  }
+  const labelStyle = { fontSize: 10, fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase' as const, letterSpacing: 1 }
+  const btnStyle = {
+    background: '#FF6B6B', color: '#fff', border: 'none', borderRadius: 6,
+    padding: '6px 14px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div>
+        <h3 className="text-[13px] font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Profile</h3>
+        <form onSubmit={handleProfileSave} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <label style={labelStyle}>Name</label>
+            <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} required />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label style={labelStyle}>Email</label>
+            <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          </div>
+          <div className="flex items-center gap-3">
+            <button type="submit" style={btnStyle}>Save</button>
+            {profileMsg && <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{profileMsg}</span>}
+          </div>
+        </form>
+      </div>
+
+      <div>
+        <h3 className="text-[13px] font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>API Key</h3>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            {showKey ? (me?.api_key ?? '—') : '••••••••••••••••••••'}
+          </span>
+          <button
+            onClick={() => setShowKey(v => !v)}
+            style={{ fontSize: 10, color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            {showKey ? 'hide' : 'reveal'}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-[13px] font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Change Password</h3>
+        <form onSubmit={handlePasswordChange} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <label style={labelStyle}>Current password</label>
+            <input style={inputStyle} type="password" value={currentPwd} onChange={e => setCurrentPwd(e.target.value)} required />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label style={labelStyle}>New password (min 8 chars)</label>
+            <input style={inputStyle} type="password" value={newPwd} onChange={e => setNewPwd(e.target.value)} minLength={8} required />
+          </div>
+          <div className="flex items-center gap-3">
+            <button type="submit" style={btnStyle}>Change Password</button>
+            {pwdMsg && <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{pwdMsg}</span>}
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
