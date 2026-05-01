@@ -17,6 +17,7 @@ func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
 	mux.Handle("GET /api/ws", auth.Middleware(s, http.HandlerFunc(handleWSConnect(s, m))))
 	mux.Handle("GET /api/me", auth.Middleware(s, http.HandlerFunc(handleGetMe())))
 
+	mux.HandleFunc("GET /api/events/stream", handleEventsStream(s, m))
 	mux.Handle("GET /api/events", auth.Middleware(s, http.HandlerFunc(handleListEvents(s))))
 	mux.Handle("POST /api/events/{id}/replay", auth.Middleware(s, http.HandlerFunc(handleReplayEvent(s))))
 	mux.Handle("GET /api/tunnels", auth.Middleware(s, http.HandlerFunc(handleListTunnels(s))))
