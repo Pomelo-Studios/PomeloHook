@@ -49,3 +49,26 @@ func TestCreateOrg(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, org.ID, fetched.ID)
 }
+
+func TestListOrgUsersWithStatus_ShowsActiveTunnel(t *testing.T) {
+	db, err := store.Open(":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+
+	org, err := db.CreateOrg("Acme")
+	require.NoError(t, err)
+
+	user, err := db.CreateUser(store.CreateUserParams{OrgID: org.ID, Email: "a@b.com", Name: "Alice", Role: "member"})
+	require.NoError(t, err)
+
+	tun, err := db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
+	require.NoError(t, err)
+
+	err = db.SetTunnelActive(tun.ID, user.ID, "laptop")
+	require.NoError(t, err)
+
+	members, err := db.ListOrgUsersWithStatus(org.ID)
+	require.NoError(t, err)
+	require.Len(t, members, 1)
+	require.Equal(t, tun.Subdomain, members[0].ActiveTunnelSubdomain)
+}
