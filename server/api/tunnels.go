@@ -1,7 +1,9 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/pomelo-studios/pomelo-hook/server/auth"
@@ -30,6 +32,15 @@ func handleCreateTunnel(s *store.Store) http.HandlerFunc {
 		params := store.CreateTunnelParams{Type: body.Type, Name: body.Name}
 		if body.Type == "personal" {
 			params.UserID = user.ID
+			existing, err := s.GetPersonalTunnelForUser(user.ID)
+			if err == nil {
+				writeJSON(w, existing)
+				return
+			}
+			if !errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
 		} else {
 			params.OrgID = user.OrgID
 		}
