@@ -1,6 +1,7 @@
 package tunnel
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -81,6 +82,30 @@ func (c *Client) Connect() error {
 	}
 }
 
+func (c *Client) markForwarded(result *forward.ForwardResult) {
+	payload, err := json.Marshal(map[string]any{
+		"response_status": result.StatusCode,
+		"response_body":   result.Body,
+		"response_ms":     result.MS,
+	})
+	if err != nil {
+		return
+	}
+	reqURL := c.serverURL + "/api/events/" + result.EventID + "/forwarded"
+	req, err := http.NewRequest("POST", reqURL, bytes.NewReader(payload))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := (&http.Client{Timeout: 5 * time.Second}).Do(req)
+	if err != nil {
+		log.Printf("mark forwarded %s: %v", result.EventID, err)
+		return
+	}
+	resp.Body.Close()
+}
+
 func (c *Client) pump(conn *websocket.Conn) error {
 	defer conn.Close()
 	for {
@@ -99,8 +124,11 @@ func (c *Client) pump(conn *websocket.Conn) error {
 			if err != nil {
 				log.Printf("forward error: %v", err)
 			}
-			if c.onEvent != nil && result != nil {
-				c.onEvent(result)
+			if result != nil {
+				c.markForwarded(result)
+				if c.onEvent != nil {
+					c.onEvent(result)
+				}
 			}
 		}(msg)
 	}
