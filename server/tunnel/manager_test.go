@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -135,4 +136,47 @@ func TestBroadcastConcurrentSafe(t *testing.T) {
 			t.Fatal("expected message in channel but got none")
 		}
 	}
+}
+
+func TestRegisterStream_ReceivesEvents(t *testing.T) {
+	m := tunnel.NewManager()
+	ch := m.RegisterStream("tun1")
+
+	payload := []byte(`{"ID":"evt1"}`)
+	m.BroadcastEvent("tun1", payload)
+
+	select {
+	case got := <-ch:
+		if string(got) != string(payload) {
+			t.Fatalf("expected %s, got %s", payload, got)
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("timed out waiting for event")
+	}
+}
+
+func TestUnregisterStream_ClosesChannel(t *testing.T) {
+	m := tunnel.NewManager()
+	ch := m.RegisterStream("tun1")
+	m.UnregisterStream("tun1", ch)
+
+	_, open := <-ch
+	if open {
+		t.Fatal("expected channel to be closed after unregister")
+	}
+}
+
+func TestBroadcastEvent_DropsWhenFull(t *testing.T) {
+	m := tunnel.NewManager()
+	ch := m.RegisterStream("tun1")
+
+	// Fill the buffer (64 slots) and one more — must not block
+	for i := 0; i < 65; i++ {
+		m.BroadcastEvent("tun1", []byte(`{}`))
+	}
+	// Drain
+	for len(ch) > 0 {
+		<-ch
+	}
+	m.UnregisterStream("tun1", ch)
 }

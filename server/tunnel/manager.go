@@ -6,13 +6,15 @@ import (
 )
 
 type Manager struct {
-	mu    sync.Mutex
-	conns map[string][]chan []byte
+	mu      sync.Mutex
+	conns   map[string][]chan []byte
+	streams map[string][]chan []byte
 }
 
 func NewManager() *Manager {
 	return &Manager{
-		conns: make(map[string][]chan []byte),
+		conns:   make(map[string][]chan []byte),
+		streams: make(map[string][]chan []byte),
 	}
 }
 
@@ -77,4 +79,45 @@ func (m *Manager) SubCount(tunnelID string) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return len(m.conns[tunnelID])
+}
+
+// RegisterStream adds a new browser WebSocket event subscriber for tunnelID
+// and returns its dedicated channel.
+func (m *Manager) RegisterStream(tunnelID string) chan []byte {
+	ch := make(chan []byte, 64)
+	m.mu.Lock()
+	m.streams[tunnelID] = append(m.streams[tunnelID], ch)
+	m.mu.Unlock()
+	return ch
+}
+
+// UnregisterStream removes and closes the specific stream channel from tunnelID's
+// subscriber list. Safe to call on an already-removed channel (no-op).
+func (m *Manager) UnregisterStream(tunnelID string, ch chan []byte) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	subs := m.streams[tunnelID]
+	for i, c := range subs {
+		if c == ch {
+			close(c)
+			m.streams[tunnelID] = append(subs[:i], subs[i+1:]...)
+			break
+		}
+	}
+	if len(m.streams[tunnelID]) == 0 {
+		delete(m.streams, tunnelID)
+	}
+}
+
+// BroadcastEvent sends eventJSON to all browser stream subscribers of tunnelID.
+// Non-blocking per subscriber: drops the message if a channel's buffer is full.
+func (m *Manager) BroadcastEvent(tunnelID string, eventJSON []byte) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, ch := range m.streams[tunnelID] {
+		select {
+		case ch <- eventJSON:
+		default:
+		}
+	}
 }
