@@ -98,8 +98,7 @@ func handleListEvents(s *store.Store) http.HandlerFunc {
 		if events == nil {
 			events = []*store.WebhookEvent{}
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(events)
+		writeJSON(w, events)
 	}
 }
 
@@ -146,8 +145,7 @@ func handleReplayEvent(s *store.Store) http.HandlerFunc {
 			log.Printf("mark event %s replayed: %v", eventID, err)
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		writeJSON(w, map[string]any{
 			"status_code": resp.StatusCode,
 			"response_ms": ms,
 		})

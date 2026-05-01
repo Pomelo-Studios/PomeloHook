@@ -29,8 +29,7 @@ func requireAdmin(next http.Handler) http.Handler {
 func handleGetMe() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := auth.UserFromContext(r.Context())
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
+		writeJSON(w, map[string]string{
 			"id":     user.ID,
 			"email":  user.Email,
 			"name":   user.Name,
@@ -48,8 +47,7 @@ func handleGetAdminUsers(s *store.Store) http.HandlerFunc {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(users)
+		writeJSON(w, users)
 	}
 }
 
@@ -76,7 +74,7 @@ func handleCreateAdminUser(s *store.Store) http.HandlerFunc {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(created)
+		writeJSON(w, created)
 	}
 }
 
@@ -108,8 +106,7 @@ func handleUpdateAdminUser(s *store.Store) http.HandlerFunc {
 			return
 		}
 		auth.InvalidateAPIKey(old.APIKey)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(updated)
+		writeJSON(w, updated)
 	}
 }
 
@@ -137,8 +134,7 @@ func handleRotateAPIKey(s *store.Store) http.HandlerFunc {
 			return
 		}
 		auth.InvalidateAPIKey(oldKey)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"api_key": newKey})
+		writeJSON(w, map[string]string{"api_key": newKey})
 	}
 }
 
@@ -182,8 +178,7 @@ func handleGetAdminOrg(s *store.Store) http.HandlerFunc {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(org)
+		writeJSON(w, org)
 	}
 }
 
@@ -202,8 +197,7 @@ func handleUpdateAdminOrg(s *store.Store) http.HandlerFunc {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(org)
+		writeJSON(w, org)
 	}
 }
 
@@ -215,8 +209,7 @@ func handleListAdminTunnels(s *store.Store) http.HandlerFunc {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(tunnels)
+		writeJSON(w, tunnels)
 	}
 }
 
@@ -262,8 +255,7 @@ func handleListTables(s *store.Store) http.HandlerFunc {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(tables)
+		writeJSON(w, tables)
 	}
 }
 
@@ -277,8 +269,7 @@ func handleGetTableRows(s *store.Store) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		writeJSON(w, result)
 	}
 }
 
@@ -296,7 +287,6 @@ func handleRunQuery(s *store.Store) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		writeJSON(w, result)
 	}
 }
