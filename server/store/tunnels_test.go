@@ -75,6 +75,38 @@ func TestSetTunnelInactiveClearsDevice(t *testing.T) {
 	require.Equal(t, "", got.ActiveDevice)
 }
 
+func TestGetPersonalTunnel_NilBeforeCreate(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "member"})
+
+	got, err := db.GetPersonalTunnel(user.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != nil {
+		t.Fatalf("expected nil, got %+v", got)
+	}
+}
+
+func TestGetPersonalTunnel_ReturnsExisting(t *testing.T) {
+	db, _ := store.Open(":memory:")
+	defer db.Close()
+	db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	user, _ := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "A", Role: "member"})
+
+	created, _ := db.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
+
+	got, err := db.GetPersonalTunnel(user.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got == nil || got.ID != created.ID {
+		t.Fatalf("expected tunnel %s, got %+v", created.ID, got)
+	}
+}
+
 func TestListOrgTunnels(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()
