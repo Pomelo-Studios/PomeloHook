@@ -180,6 +180,34 @@ func TestLoginSuccess(t *testing.T) {
 	require.NotEmpty(t, resp["api_key"])
 }
 
+func TestMemberCanLogin(t *testing.T) {
+	db, _, _ := setupAdmin(t)
+	defer db.Close()
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+
+	member, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "member@acme.com", Name: "Member", Role: "member"})
+	require.NoError(t, err)
+
+	err = db.SetPasswordHash(member.ID, member.OrgID, string(hash))
+	require.NoError(t, err)
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	body, _ := json.Marshal(map[string]string{"email": "member@acme.com", "password": "password123"})
+	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var resp map[string]string
+	err = json.NewDecoder(rec.Body).Decode(&resp)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp["api_key"])
+}
+
 func TestAdminSetUserPassword(t *testing.T) {
 	db, admin, router := setupAdmin(t)
 	defer db.Close()

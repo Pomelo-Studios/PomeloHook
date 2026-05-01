@@ -32,10 +32,6 @@ func handleLogin(s *store.Store) http.HandlerFunc {
 			http.Error(w, "invalid credentials", http.StatusUnauthorized)
 			return
 		}
-		if user.Role != "admin" {
-			http.Error(w, "invalid credentials", http.StatusUnauthorized)
-			return
-		}
 		writeJSON(w, map[string]string{"api_key": user.APIKey, "name": user.Name})
 	}
 }
