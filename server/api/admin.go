@@ -30,11 +30,12 @@ func handleGetMe() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := auth.UserFromContext(r.Context())
 		writeJSON(w, map[string]string{
-			"id":     user.ID,
-			"email":  user.Email,
-			"name":   user.Name,
-			"role":   user.Role,
-			"org_id": user.OrgID,
+			"id":      user.ID,
+			"email":   user.Email,
+			"name":    user.Name,
+			"role":    user.Role,
+			"org_id":  user.OrgID,
+			"api_key": user.APIKey,
 		})
 	}
 }
