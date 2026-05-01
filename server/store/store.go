@@ -171,14 +171,19 @@ func migrate(db *sql.DB) error {
 		if err != nil {
 			return fmt.Errorf("begin migration %d: %w", m.version, err)
 		}
-		var exists int
-		if err := tx.QueryRow(`SELECT COUNT(*) FROM schema_migrations WHERE version=?`, m.version).Scan(&exists); err != nil {
+		// INSERT OR IGNORE atomically claims the migration slot before any reads.
+		// If another process already inserted the row the INSERT is a no-op (0 rows
+		// affected) and we skip cleanly without a read-to-write lock upgrade, which
+		// can cause SQLITE_BUSY in WAL mode under concurrent starts.
+		res, err := tx.Exec(`INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)`, m.version)
+		if err != nil {
 			tx.Rollback()
-			return fmt.Errorf("check migration %d: %w", m.version, err)
+			return fmt.Errorf("claim migration %d: %w", m.version, err)
 		}
-		if exists > 0 {
+		n, _ := res.RowsAffected()
+		if n == 0 {
 			tx.Rollback()
-			continue
+			continue // already applied by this or another process
 		}
 		if m.fn != nil {
 			if err := m.fn(tx); err != nil {
@@ -191,22 +196,11 @@ func migrate(db *sql.DB) error {
 				return fmt.Errorf("run migration %d: %w", m.version, err)
 			}
 		}
-		if _, err := tx.Exec(`INSERT INTO schema_migrations (version) VALUES (?)`, m.version); err != nil {
-			tx.Rollback()
-			return fmt.Errorf("record migration %d: %w", m.version, err)
-		}
 		if err := tx.Commit(); err != nil {
 			return fmt.Errorf("commit migration %d: %w", m.version, err)
 		}
 	}
 	return nil
-}
-
-// AppliedMigrationCount returns the number of applied migrations. Used in tests only.
-func (s *Store) AppliedMigrationCount() (int, error) {
-	var n int
-	err := s.db.QueryRow(`SELECT COUNT(*) FROM schema_migrations`).Scan(&n)
-	return n, err
 }
 
 // ExecRaw executes a raw SQL statement. For use in tests only.
