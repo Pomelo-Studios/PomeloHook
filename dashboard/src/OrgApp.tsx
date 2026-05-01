@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { LogOut } from 'lucide-react'
 import { EventList } from './components/EventList'
 import { EventDetail } from './components/EventDetail'
@@ -9,6 +9,36 @@ import { api } from './api/client'
 import type { WebhookEvent, Tunnel } from './types'
 
 type Tab = 'personal' | 'org'
+
+function useWSEvents(tunnelID: string, apiKey: string, onEvent: (e: WebhookEvent) => void) {
+  const onEventRef = useRef(onEvent)
+  onEventRef.current = onEvent
+
+  useEffect(() => {
+    if (!tunnelID || !apiKey) return
+    let ws: WebSocket
+    let closed = false
+    let delay = 1000
+
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
+      ws = new WebSocket(
+        `${proto}//${location.host}/api/events/stream?tunnel_id=${encodeURIComponent(tunnelID)}&api_key=${encodeURIComponent(apiKey)}`
+      )
+      ws.onmessage = e => {
+        try { onEventRef.current(JSON.parse(e.data) as WebhookEvent) } catch {}
+      }
+      ws.onopen = () => { delay = 1000 }
+      ws.onclose = () => {
+        if (!closed) setTimeout(() => { delay = Math.min(delay * 2, 30000); connect() }, delay)
+      }
+      ws.onerror = () => ws.close()
+    }
+
+    connect()
+    return () => { closed = true; ws?.close() }
+  }, [tunnelID, apiKey])
+}
 
 export function OrgApp() {
   const { apiKey, isServerMode, loading, login, logout } = useAuth()
@@ -54,6 +84,12 @@ export function OrgApp() {
     const id = setInterval(fetchEvents, 5000)
     return () => clearInterval(id)
   }, [selectedTunnelID, apiKey])
+
+  useWSEvents(
+    selectedTunnelID ?? '',
+    apiKey,
+    event => setEvents(prev => [event, ...prev.filter(e => e.ID !== event.ID)].slice(0, 100))
+  )
 
   const handleReplay = useCallback(async (eventID: string, targetURL: string) => {
     setReplayError(null)
