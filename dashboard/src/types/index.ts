@@ -51,6 +51,7 @@ export interface Me {
   name: string
   role: string
   org_id: string
+  api_key: string
 }
 
 export interface TableInfo {
