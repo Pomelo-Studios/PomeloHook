@@ -6,9 +6,9 @@ import { TunnelList } from './components/TunnelList'
 import { LoginForm } from './components/admin/LoginForm'
 import { useAuth } from './hooks/useAuth'
 import { api } from './api/client'
-import type { WebhookEvent, Tunnel } from './types'
+import type { WebhookEvent, Tunnel, OrgMember } from './types'
 
-type Tab = 'personal' | 'org'
+type Tab = 'personal' | 'org' | 'members'
 
 function useWSEvents(tunnelID: string, apiKey: string, onEvent: (e: WebhookEvent) => void) {
   const onEventRef = useRef(onEvent)
@@ -48,6 +48,7 @@ export function OrgApp() {
   const [events, setEvents] = useState<WebhookEvent[]>([])
   const [selectedEvent, setSelectedEvent] = useState<WebhookEvent | null>(null)
   const [replayError, setReplayError] = useState<string | null>(null)
+  const [members, setMembers] = useState<OrgMember[]>([])
 
   const selectedTunnel = tunnels.find(t => t.ID === selectedTunnelID) ?? null
 
@@ -71,6 +72,13 @@ export function OrgApp() {
     const id = setInterval(fetchTunnels, 5000)
     return () => clearInterval(id)
   }, [loading, isServerMode, apiKey, tab])
+
+  useEffect(() => {
+    if (tab !== 'members' || (isServerMode && !apiKey)) return
+    api.org.listMembers(apiKey).then(setMembers).catch(() => {})
+    const id = setInterval(() => api.org.listMembers(apiKey).then(setMembers).catch(() => {}), 10000)
+    return () => clearInterval(id)
+  }, [tab, apiKey, isServerMode])
 
   useEffect(() => {
     if (!selectedTunnelID) { setEvents([]); return }
@@ -122,7 +130,7 @@ export function OrgApp() {
           PomeloHook
         </span>
         <div className="flex gap-1">
-          {(['personal', 'org'] as Tab[]).map(t => (
+          {(['personal', 'org', 'members'] as Tab[]).map(t => (
             <button
               key={t}
               onClick={() => { setTab(t); setSelectedTunnelID(null); setSelectedEvent(null) }}
@@ -150,49 +158,87 @@ export function OrgApp() {
         )}
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        <div
-          className="w-[180px] flex flex-col overflow-hidden flex-shrink-0"
-          style={{ borderRight: '1px solid var(--border)' }}
-        >
-          <TunnelList
-            tunnels={tunnels}
-            selectedID={selectedTunnelID}
-            onSelect={t => { setSelectedTunnelID(t.ID); setSelectedEvent(null) }}
-          />
-        </div>
-
-        <div
-          className="w-[240px] flex flex-col overflow-hidden flex-shrink-0"
-          style={{ borderRight: '1px solid var(--border)' }}
-        >
-          <EventList
-            events={events}
-            selectedID={selectedEvent?.ID ?? null}
-            onSelect={setSelectedEvent}
-            tunnelSubdomain={selectedTunnel?.Subdomain}
-          />
-        </div>
-
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {replayError && (
-            <div
-              className="text-xs px-4 py-2 flex-shrink-0"
-              style={{ background: 'var(--err-bg)', color: 'var(--err-text)', borderBottom: '1px solid var(--selected-border)' }}
-            >
-              {replayError}
-            </div>
+      {tab === 'members' ? (
+        <div className="flex-1 overflow-y-auto p-4">
+          <table className="w-full text-[11px]" style={{ borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                {['Name', 'Email', 'Role', 'Active Tunnel'].map(h => (
+                  <th key={h} className="text-left py-2 px-3 font-semibold" style={{ color: 'var(--text-dim)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {members.map(m => (
+                <tr key={m.ID} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                  <td className="py-2 px-3" style={{ color: 'var(--text-primary)' }}>{m.Name}</td>
+                  <td className="py-2 px-3 font-mono" style={{ color: 'var(--text-secondary)' }}>{m.Email}</td>
+                  <td className="py-2 px-3">
+                    <span
+                      className="px-2 py-[1px] rounded-full text-[10px] font-semibold"
+                      style={m.Role === 'admin'
+                        ? { background: 'rgba(255,107,107,0.13)', color: '#FF6B6B' }
+                        : { background: 'var(--method-dim-bg)', color: 'var(--text-dim)' }}
+                    >
+                      {m.Role}
+                    </span>
+                  </td>
+                  <td className="py-2 px-3 font-mono" style={{ color: m.ActiveTunnelSubdomain ? '#50cc80' : 'var(--text-dim)' }}>
+                    {m.ActiveTunnelSubdomain || '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {members.length === 0 && (
+            <p className="text-center py-8 text-[11px]" style={{ color: 'var(--text-dim)' }}>No members</p>
           )}
-          {selectedEvent
-            ? <EventDetail event={selectedEvent} onReplay={handleReplay} />
-            : (
-              <div className="flex items-center justify-center h-full text-sm" style={{ color: 'var(--text-dim)' }}>
-                Select an event
-              </div>
-            )
-          }
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-1 overflow-hidden">
+          <div
+            className="w-[180px] flex flex-col overflow-hidden flex-shrink-0"
+            style={{ borderRight: '1px solid var(--border)' }}
+          >
+            <TunnelList
+              tunnels={tunnels}
+              selectedID={selectedTunnelID}
+              onSelect={t => { setSelectedTunnelID(t.ID); setSelectedEvent(null) }}
+            />
+          </div>
+
+          <div
+            className="w-[240px] flex flex-col overflow-hidden flex-shrink-0"
+            style={{ borderRight: '1px solid var(--border)' }}
+          >
+            <EventList
+              events={events}
+              selectedID={selectedEvent?.ID ?? null}
+              onSelect={setSelectedEvent}
+              tunnelSubdomain={selectedTunnel?.Subdomain}
+            />
+          </div>
+
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {replayError && (
+              <div
+                className="text-xs px-4 py-2 flex-shrink-0"
+                style={{ background: 'var(--err-bg)', color: 'var(--err-text)', borderBottom: '1px solid var(--selected-border)' }}
+              >
+                {replayError}
+              </div>
+            )}
+            {selectedEvent
+              ? <EventDetail event={selectedEvent} onReplay={handleReplay} />
+              : (
+                <div className="flex items-center justify-center h-full text-sm" style={{ color: 'var(--text-dim)' }}>
+                  Select an event
+                </div>
+              )
+            }
+          </div>
+        </div>
+      )}
     </div>
   )
 }
