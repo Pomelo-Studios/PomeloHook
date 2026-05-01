@@ -165,7 +165,19 @@ func replayHTTP(event *store.WebhookEvent, targetURL string) (*http.Response, in
 	if err != nil {
 		return nil, 0, err
 	}
-	req.Header.Set("Content-Type", "application/json")
+
+	var storedHeaders map[string][]string
+	if err := json.Unmarshal([]byte(event.Headers), &storedHeaders); err == nil {
+		for k, vals := range storedHeaders {
+			for _, v := range vals {
+				req.Header.Add(k, v)
+			}
+		}
+	}
+	if req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
 	start := time.Now()
 	resp, err := replayClient.Do(req)
 	ms := time.Since(start).Milliseconds()

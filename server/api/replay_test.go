@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/pomelo-studios/pomelo-hook/server/store"
@@ -57,6 +58,30 @@ func TestValidateReplayURL_BlocksInternalDomain(t *testing.T) {
 	err := validateReplayURL("http://service.internal/api")
 	if err == nil {
 		t.Fatal("expected error for .internal domain, got nil")
+	}
+}
+
+func TestReplayHTTP_ForwardsOriginalHeaders(t *testing.T) {
+	var gotSig string
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotSig = r.Header.Get("Stripe-Signature")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer target.Close()
+
+	// Override replayClient to allow loopback for this test only.
+	orig := replayClient
+	replayClient = &http.Client{Timeout: orig.Timeout}
+	defer func() { replayClient = orig }()
+
+	headersJSON := `{"Stripe-Signature":["t=1,v1=abc"],"Content-Type":["application/json"]}`
+	event := &store.WebhookEvent{Method: "POST", RequestBody: `{}`, Headers: headersJSON}
+	_, _, err := replayHTTP(event, target.URL+"/webhook")
+	if err != nil {
+		t.Fatalf("replayHTTP error: %v", err)
+	}
+	if gotSig != "t=1,v1=abc" {
+		t.Fatalf("expected Stripe-Signature 't=1,v1=abc', got %q", gotSig)
 	}
 }
 
