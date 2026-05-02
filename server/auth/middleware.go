@@ -90,9 +90,11 @@ func lookupUser(s *store.Store, key string) (*store.User, error) {
 		return nil, err
 	}
 
-	if perms, err := s.GetRolePermissions(user.Role); err == nil {
-		user.Permissions = perms
+	perms, err := s.GetRolePermissions(user.Role)
+	if err != nil {
+		return nil, err
 	}
+	user.Permissions = perms
 
 	cacheMu.Lock()
 	cache[key] = cachedEntry{user: user, expiresAt: time.Now().Add(cacheTTL)}
