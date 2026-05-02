@@ -1,4 +1,4 @@
-import type { WebhookEvent, Tunnel, User, Org, Me, TableInfo, TableResult, QueryResult, OrgMember } from '../types'
+import type { WebhookEvent, Tunnel, User, Org, Me, OrgRole, OrgMember, TableInfo, TableResult, QueryResult } from '../types'
 
 const BASE = ''
 
@@ -77,13 +77,52 @@ export const api = {
       request<Tunnel[]>('/api/tunnels', { headers: authHeaders(apiKey) }),
     getTunnels: (apiKey: string) =>
       request<Tunnel[]>('/api/org/tunnels', { headers: authHeaders(apiKey) }),
-    listMembers: (apiKey: string) =>
-      request<OrgMember[]>('/api/orgs/users', { headers: authHeaders(apiKey) }),
-    createPersonalTunnel: (apiKey: string) =>
+    createPersonalTunnel: (apiKey: string, name = '') =>
       request<Tunnel>('/api/tunnels', {
         method: 'POST',
         headers: authHeaders(apiKey),
-        body: JSON.stringify({ type: 'personal' }),
+        body: JSON.stringify({ type: 'personal', name }),
       }),
+    createOrgTunnel: (apiKey: string, name = '') =>
+      request<Tunnel>('/api/tunnels', {
+        method: 'POST',
+        headers: authHeaders(apiKey),
+        body: JSON.stringify({ type: 'org', name }),
+      }),
+    deleteOrgTunnel: (apiKey: string, id: string) =>
+      request<void>(`/api/tunnels/${id}`, { method: 'DELETE', headers: authHeaders(apiKey) }),
+    updateTunnel: (apiKey: string, id: string, displayName: string) =>
+      request<Tunnel>(`/api/tunnels/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(apiKey),
+        body: JSON.stringify({ display_name: displayName }),
+      }),
+    listMembers: (apiKey: string) =>
+      request<OrgMember[]>('/api/org/members', { headers: authHeaders(apiKey) }),
+    inviteMember: (apiKey: string, body: { email: string; name: string; role: string }) =>
+      request<{ id: string; email: string; name: string; role: string; api_key: string }>(
+        '/api/org/members/invite',
+        { method: 'POST', headers: authHeaders(apiKey), body: JSON.stringify(body) }
+      ),
+    removeMember: (apiKey: string, id: string) =>
+      request<void>(`/api/org/members/${id}`, { method: 'DELETE', headers: authHeaders(apiKey) }),
+    changeMemberRole: (apiKey: string, id: string, role: string) =>
+      request<{ id: string; role: string }>(`/api/org/members/${id}/role`, {
+        method: 'PUT',
+        headers: authHeaders(apiKey),
+        body: JSON.stringify({ role }),
+      }),
+    listRoles: (apiKey: string) =>
+      request<OrgRole[]>('/api/org/roles', { headers: authHeaders(apiKey) }),
+    createRole: (apiKey: string, body: { name: string; display_name: string; permissions: string[] }) =>
+      request<OrgRole>('/api/org/roles', { method: 'POST', headers: authHeaders(apiKey), body: JSON.stringify(body) }),
+    updateRole: (apiKey: string, name: string, body: { display_name: string; permissions: string[] }) =>
+      request<OrgRole>(`/api/org/roles/${name}`, { method: 'PUT', headers: authHeaders(apiKey), body: JSON.stringify(body) }),
+    deleteRole: (apiKey: string, name: string) =>
+      request<void>(`/api/org/roles/${name}`, { method: 'DELETE', headers: authHeaders(apiKey) }),
+    getSettings: (apiKey: string) =>
+      request<Org>('/api/org/settings', { headers: authHeaders(apiKey) }),
+    updateSettings: (apiKey: string, name: string) =>
+      request<Org>('/api/org/settings', { method: 'PUT', headers: authHeaders(apiKey), body: JSON.stringify({ name }) }),
   },
 }
