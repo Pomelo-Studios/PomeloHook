@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/pomelo-studios/pomelo-hook/server/auth"
@@ -29,22 +30,23 @@ func handleCreateTunnel(s *store.Store) http.HandlerFunc {
 			return
 		}
 		if body.Type == "personal" {
-			existing, err := s.GetPersonalTunnel(user.ID)
+			tun, created, err := s.GetOrCreatePersonalTunnel(user.ID, body.Name)
+			if errors.Is(err, store.ErrSubdomainTaken) {
+				http.Error(w, "subdomain already taken", http.StatusConflict)
+				return
+			}
 			if err != nil {
 				http.Error(w, "internal error", http.StatusInternalServerError)
 				return
 			}
-			if existing != nil {
-				writeJSON(w, existing)
-				return
+			if created {
+				writeJSONStatus(w, http.StatusCreated, tun)
+			} else {
+				writeJSON(w, tun)
 			}
+			return
 		}
-		params := store.CreateTunnelParams{Type: body.Type, Name: body.Name}
-		if body.Type == "personal" {
-			params.UserID = user.ID
-		} else {
-			params.OrgID = user.OrgID
-		}
+		params := store.CreateTunnelParams{Type: body.Type, Name: body.Name, OrgID: user.OrgID}
 		tun, err := s.CreateTunnel(params)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)

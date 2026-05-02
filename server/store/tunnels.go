@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 
 	"github.com/google/uuid"
 )
@@ -160,4 +161,31 @@ func nilIfEmpty(s string) any {
 		return nil
 	}
 	return s
+}
+
+var ErrSubdomainTaken = errors.New("subdomain already taken by another user")
+
+func (s *Store) GetOrCreatePersonalTunnel(userID, name string) (*Tunnel, bool, error) {
+	if name == "" {
+		existing, err := s.GetPersonalTunnel(userID)
+		if err != nil {
+			return nil, false, err
+		}
+		if existing != nil {
+			return existing, false, nil
+		}
+		tun, err := s.CreateTunnel(CreateTunnelParams{Type: "personal", UserID: userID})
+		return tun, err == nil, err
+	}
+
+	existing, err := s.GetTunnelBySubdomain(name)
+	if err == nil {
+		if existing.UserID == userID && existing.Type == "personal" {
+			return existing, false, nil
+		}
+		return nil, false, ErrSubdomainTaken
+	}
+
+	tun, err := s.CreateTunnel(CreateTunnelParams{Type: "personal", UserID: userID, Name: name})
+	return tun, err == nil, err
 }
