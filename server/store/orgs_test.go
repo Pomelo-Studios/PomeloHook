@@ -75,14 +75,18 @@ func TestListOrgUsersWithStatus_ShowsActiveTunnel(t *testing.T) {
 
 func TestListOrgUsersWithStatus_NoDuplicates(t *testing.T) {
 	s := openTestStore(t)
-	org, _ := s.CreateOrg("Test Org")
-	user, _ := s.CreateUser(store.CreateUserParams{OrgID: org.ID, Email: "a@test.com", Name: "Alice", Role: "member"})
+	org, err := s.CreateOrg("Test Org")
+	require.NoError(t, err)
+	user, err := s.CreateUser(store.CreateUserParams{OrgID: org.ID, Email: "a@test.com", Name: "Alice", Role: "member"})
+	require.NoError(t, err)
 
 	// Create two tunnels, both marked active for the same user
-	t1, _ := s.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
-	t2, _ := s.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID, Name: "second"})
-	s.SetTunnelActive(t1.ID, user.ID, "device1")
-	s.SetTunnelActive(t2.ID, user.ID, "device2")
+	t1, err := s.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
+	require.NoError(t, err)
+	t2, err := s.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID, Name: "second"})
+	require.NoError(t, err)
+	require.NoError(t, s.SetTunnelActive(t1.ID, user.ID, "device1"))
+	require.NoError(t, s.SetTunnelActive(t2.ID, user.ID, "device2"))
 
 	members, err := s.ListOrgUsersWithStatus(org.ID)
 	require.NoError(t, err)

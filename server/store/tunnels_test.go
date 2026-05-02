@@ -140,6 +140,12 @@ func TestGetOrCreatePersonalTunnel(t *testing.T) {
 	u2, _ := s.CreateUser(store.CreateUserParams{OrgID: org.ID, Email: "y@test.com", Name: "Y", Role: "member"})
 	_, _, err = s.GetOrCreatePersonalTunnel(u2.ID, "myapp")
 	require.ErrorIs(t, err, store.ErrSubdomainTaken)
+
+	// name taken by an org tunnel → ErrSubdomainTaken
+	_, err = s.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: org.ID, Name: "orgapp"})
+	require.NoError(t, err)
+	_, _, err = s.GetOrCreatePersonalTunnel(u.ID, "orgapp")
+	require.ErrorIs(t, err, store.ErrSubdomainTaken)
 }
 
 func TestListOrgTunnels(t *testing.T) {
