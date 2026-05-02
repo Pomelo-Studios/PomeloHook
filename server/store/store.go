@@ -154,6 +154,30 @@ var migrations = []migration{
         CREATE INDEX IF NOT EXISTS idx_events_tunnel_received
             ON webhook_events (tunnel_id, received_at);
     `},
+	{version: 5, fn: func(tx *sql.Tx) error {
+		if _, err := tx.Exec(`
+			CREATE TABLE IF NOT EXISTS roles (
+				name         TEXT PRIMARY KEY,
+				display_name TEXT NOT NULL,
+				permissions  TEXT NOT NULL DEFAULT '[]',
+				is_system    BOOLEAN NOT NULL DEFAULT FALSE,
+				created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+			)
+		`); err != nil {
+			return err
+		}
+		if err := addColumnIfNotExists(tx, "tunnels", "display_name", "TEXT"); err != nil {
+			return err
+		}
+		_, err := tx.Exec(`
+			INSERT OR IGNORE INTO roles (name, display_name, permissions, is_system) VALUES
+				('admin',     'Admin',     '[]',                                                                                                      TRUE),
+				('member',    'Member',    '["view_events","replay_events"]',                                                                         TRUE),
+				('developer', 'Developer', '["view_events","replay_events","create_org_tunnel","delete_org_tunnel"]',                                  FALSE),
+				('manager',   'Manager',   '["view_events","replay_events","create_org_tunnel","delete_org_tunnel","manage_members","change_member_role"]', FALSE)
+		`)
+		return err
+	}},
 }
 
 func migrate(db *sql.DB) error {
