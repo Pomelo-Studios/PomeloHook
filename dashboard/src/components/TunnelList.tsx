@@ -74,12 +74,19 @@ export function TunnelList({ tunnels, selectedID, onSelect }: Props) {
                   className="w-[6px] h-[6px] rounded-full flex-shrink-0"
                   style={{ background: isActive ? '#50cc80' : 'var(--text-dim)' }}
                 />
-                <span
-                  className="text-[11px] font-mono flex-1 truncate"
-                  style={{ color: selected ? 'var(--text-primary)' : 'var(--text-secondary)' }}
-                >
-                  {tunnel.Subdomain}
-                </span>
+                <div className="flex-1 min-w-0">
+                  <div
+                    className="text-[11px] font-mono truncate"
+                    style={{ color: selected ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                  >
+                    {tunnel.DisplayName || tunnel.Subdomain}
+                  </div>
+                  {tunnel.DisplayName && (
+                    <div className="text-[9px] font-mono truncate" style={{ color: 'var(--text-dim)' }}>
+                      {tunnel.Subdomain}
+                    </div>
+                  )}
+                </div>
                 <CopyButton text={webhookURL} />
               </div>
               {isActive && tunnel.ActiveDevice && (

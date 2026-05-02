@@ -4,8 +4,8 @@ import { TunnelList } from './TunnelList'
 import type { Tunnel } from '../types'
 
 const tunnels: Tunnel[] = [
-  { ID: 't1', Type: 'personal', Subdomain: 'abc123', Status: 'active', ActiveUserID: 'u1', ActiveDevice: 'MONSTER-2352' },
-  { ID: 't2', Type: 'personal', Subdomain: 'def456', Status: 'inactive', ActiveUserID: '', ActiveDevice: '' },
+  { ID: 't1', Type: 'personal', Subdomain: 'abc123', DisplayName: '', Status: 'active', ActiveUserID: 'u1', ActiveDevice: 'MONSTER-2352' },
+  { ID: 't2', Type: 'personal', Subdomain: 'def456', DisplayName: '', Status: 'inactive', ActiveUserID: '', ActiveDevice: '' },
 ]
 
 test('renders tunnel subdomains', () => {
