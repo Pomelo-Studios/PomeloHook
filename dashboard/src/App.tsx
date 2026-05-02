@@ -14,14 +14,22 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    Promise.all([api.getMe(''), api.getTunnels()])
-      .then(([me, tunnels]) => {
-        if (me.role === 'admin') setIsAdmin(true)
-        const active = tunnels.find(t => t.status === 'active')
-        if (active) { setTunnelID(active.id); setTunnelSubdomain(active.subdomain) }
-      })
-      .catch(() => {})
-  }, [])
+    if (tunnelID) return
+    let cancelled = false
+    function poll() {
+      Promise.all([api.getMe(''), api.getTunnels()])
+        .then(([me, tunnels]) => {
+          if (cancelled) return
+          if (me.role === 'admin') setIsAdmin(true)
+          const active = tunnels.find(t => t.status === 'active')
+          if (active) { setTunnelID(active.id); setTunnelSubdomain(active.subdomain) }
+        })
+        .catch(() => {})
+    }
+    poll()
+    const id = setInterval(poll, 3000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [tunnelID])
 
   useEffect(() => {
     if (!tunnelID) return
