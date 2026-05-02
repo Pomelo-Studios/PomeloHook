@@ -108,11 +108,7 @@ func (s *Store) DeleteRole(name string) error {
 	return err
 }
 
-type roleScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanRole(row roleScanner) (*Role, error) {
+func scanRole(row rowScanner) (*Role, error) {
 	r := &Role{}
 	var permJSON string
 	if err := row.Scan(&r.Name, &r.DisplayName, &permJSON, &r.IsSystem, &r.CreatedAt); err != nil {
