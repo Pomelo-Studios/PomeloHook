@@ -9,14 +9,15 @@ import (
 )
 
 type Tunnel struct {
-	ID           string
-	Type         string
-	UserID       string
-	OrgID        string
-	Subdomain    string
-	ActiveUserID string
-	ActiveDevice string
-	Status       string
+	ID           string `json:"id"`
+	Type         string `json:"type"`
+	UserID       string `json:"user_id"`
+	OrgID        string `json:"org_id"`
+	Subdomain    string `json:"subdomain"`
+	DisplayName  string `json:"display_name"`
+	ActiveUserID string `json:"active_user_id"`
+	ActiveDevice string `json:"active_device"`
+	Status       string `json:"status"`
 }
 
 type CreateTunnelParams struct {
@@ -26,11 +27,11 @@ type CreateTunnelParams struct {
 	Name   string // optional, used as subdomain for org tunnels
 }
 
-const tunnelColumns = `id, type, COALESCE(user_id,''), COALESCE(org_id,''), subdomain, COALESCE(active_user_id,''), COALESCE(active_device,''), status`
+const tunnelColumns = `id, type, COALESCE(user_id,''), COALESCE(org_id,''), subdomain, COALESCE(display_name,''), COALESCE(active_user_id,''), COALESCE(active_device,''), status`
 
 func scanTunnel(row rowScanner) (*Tunnel, error) {
 	t := &Tunnel{}
-	return t, row.Scan(&t.ID, &t.Type, &t.UserID, &t.OrgID, &t.Subdomain, &t.ActiveUserID, &t.ActiveDevice, &t.Status)
+	return t, row.Scan(&t.ID, &t.Type, &t.UserID, &t.OrgID, &t.Subdomain, &t.DisplayName, &t.ActiveUserID, &t.ActiveDevice, &t.Status)
 }
 
 func randomHex(n int) (string, error) {
@@ -144,6 +145,14 @@ func (s *Store) ListOrgTunnels(orgID string) ([]*Tunnel, error) {
 		tunnels = append(tunnels, t)
 	}
 	return tunnels, rows.Err()
+}
+
+func (s *Store) UpdateTunnelDisplayName(id, displayName string) (*Tunnel, error) {
+	_, err := s.db.Exec(`UPDATE tunnels SET display_name = ? WHERE id = ?`, nilIfEmpty(displayName), id)
+	if err != nil {
+		return nil, err
+	}
+	return s.GetTunnelByID(id)
 }
 
 func nilIfEmpty(s string) any {

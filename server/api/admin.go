@@ -24,16 +24,34 @@ func requireAdmin(next http.Handler) http.Handler {
 	})
 }
 
-func handleGetMe() http.HandlerFunc {
+func handleGetMe(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := auth.UserFromContext(r.Context())
-		writeJSON(w, map[string]string{
-			"id":      user.ID,
-			"email":   user.Email,
-			"name":    user.Name,
-			"role":    user.Role,
-			"org_id":  user.OrgID,
-			"api_key": user.APIKey,
+		perms := make([]string, 0, len(user.Permissions))
+		for p := range user.Permissions {
+			perms = append(perms, p)
+		}
+		if user.Role == "admin" {
+			perms = []string{
+				"create_org_tunnel", "delete_org_tunnel",
+				"view_events", "replay_events",
+				"manage_members", "change_member_role",
+				"edit_org_settings", "manage_roles",
+			}
+		}
+		orgName := ""
+		if org, err := s.GetOrg(user.OrgID); err == nil {
+			orgName = org.Name
+		}
+		writeJSON(w, map[string]any{
+			"id":          user.ID,
+			"email":       user.Email,
+			"name":        user.Name,
+			"role":        user.Role,
+			"org_id":      user.OrgID,
+			"org_name":    orgName,
+			"api_key":     user.APIKey,
+			"permissions": perms,
 		})
 	}
 }

@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/pomelo-studios/pomelo-hook/server/auth"
 )
 
 type responseWriter struct {
@@ -60,4 +62,17 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			r.RemoteAddr,
 		)
 	})
+}
+
+func requirePermission(perm string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user := auth.UserFromContext(r.Context())
+			if user == nil || !user.Can(perm) {
+				http.Error(w, "forbidden", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
