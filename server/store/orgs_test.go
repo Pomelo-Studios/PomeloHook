@@ -72,3 +72,19 @@ func TestListOrgUsersWithStatus_ShowsActiveTunnel(t *testing.T) {
 	require.Len(t, members, 1)
 	require.Equal(t, tun.Subdomain, members[0].ActiveTunnelSubdomain)
 }
+
+func TestListOrgUsersWithStatus_NoDuplicates(t *testing.T) {
+	s := openTestStore(t)
+	org, _ := s.CreateOrg("Test Org")
+	user, _ := s.CreateUser(store.CreateUserParams{OrgID: org.ID, Email: "a@test.com", Name: "Alice", Role: "member"})
+
+	// Create two tunnels, both marked active for the same user
+	t1, _ := s.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
+	t2, _ := s.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID, Name: "second"})
+	s.SetTunnelActive(t1.ID, user.ID, "device1")
+	s.SetTunnelActive(t2.ID, user.ID, "device2")
+
+	members, err := s.ListOrgUsersWithStatus(org.ID)
+	require.NoError(t, err)
+	require.Len(t, members, 1, "each user should appear exactly once regardless of active tunnel count")
+}
