@@ -87,3 +87,26 @@ func TestMigration_VersionsAreRecorded(t *testing.T) {
 	require.NoError(t, err)
 	require.Greater(t, count, 0, "at least one migration must have been recorded")
 }
+
+func TestMigration5_RolesAndDisplayName(t *testing.T) {
+	s, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+
+	// Verify roles table exists with 4 seeded rows
+	var count int
+	if err := s.QueryRaw(&count, `SELECT COUNT(*) FROM roles`); err != nil {
+		t.Fatalf("roles table missing or query failed: %v", err)
+	}
+	if count != 4 {
+		t.Fatalf("want 4 seeded roles, got %d", count)
+	}
+
+	// Verify tunnels.display_name column exists
+	var col int
+	if err := s.QueryRaw(&col, `SELECT COUNT(*) FROM pragma_table_info('tunnels') WHERE name='display_name'`); err != nil || col == 0 {
+		t.Fatal("tunnels.display_name column missing")
+	}
+}
