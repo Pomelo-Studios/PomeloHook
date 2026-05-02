@@ -54,7 +54,7 @@ export function OrgApp() {
   const [editingDisplayName, setEditingDisplayName] = useState(false)
   const [displayNameInput, setDisplayNameInput] = useState('')
 
-  const selectedTunnel = tunnels.find(t => t.ID === selectedTunnelID) ?? null
+  const selectedTunnel = tunnels.find(t => t.id === selectedTunnelID) ?? null
 
   useEffect(() => {
     if (loading || (isServerMode && !apiKey)) return
@@ -64,10 +64,10 @@ export function OrgApp() {
         ? api.org.getUserTunnels(apiKey)
         : api.org.getTunnels(apiKey)
       req.then(data => {
-        const filtered = tab === 'personal' ? data.filter(t => t.Type === 'personal') : data
+        const filtered = tab === 'personal' ? data.filter(t => t.type === 'personal') : data
         setTunnels(filtered)
         setSelectedTunnelID(prev =>
-          filtered.some(t => t.ID === prev) ? prev : (filtered[0]?.ID ?? null)
+          filtered.some(t => t.id === prev) ? prev : (filtered[0]?.id ?? null)
         )
       }).catch(() => {})
     }
@@ -85,7 +85,7 @@ export function OrgApp() {
   useEffect(() => {
     if (!selectedTunnelID) { setEvents([]); return }
     setEditingDisplayName(false)
-    setDisplayNameInput(tunnels.find(t => t.ID === selectedTunnelID)?.DisplayName ?? '')
+    setDisplayNameInput(tunnels.find(t => t.id === selectedTunnelID)?.display_name ?? '')
 
     const tunnelID = selectedTunnelID
     function fetchEvents() {
@@ -124,7 +124,7 @@ export function OrgApp() {
         ? await api.org.createOrgTunnel(apiKey)
         : await api.org.createPersonalTunnel(apiKey)
       setTunnels(prev => [...prev, tun])
-      setSelectedTunnelID(tun.ID)
+      setSelectedTunnelID(tun.id)
     } catch (err) {
       setReplayError(err instanceof Error ? err.message : 'Failed to create tunnel')
     } finally { setCreating(false) }
@@ -225,7 +225,7 @@ export function OrgApp() {
             <TunnelList
               tunnels={tunnels}
               selectedID={selectedTunnelID}
-              onSelect={t => { setSelectedTunnelID(t.ID); setSelectedEvent(null) }}
+              onSelect={t => { setSelectedTunnelID(t.id); setSelectedEvent(null) }}
             />
           </div>
 
@@ -237,7 +237,7 @@ export function OrgApp() {
               events={events}
               selectedID={selectedEvent?.ID ?? null}
               onSelect={setSelectedEvent}
-              tunnelSubdomain={selectedTunnel?.Subdomain}
+              tunnelSubdomain={selectedTunnel?.subdomain}
             />
           </div>
 
@@ -255,8 +255,8 @@ export function OrgApp() {
                     />
                     <button
                       onClick={async () => {
-                        const updated = await api.org.updateTunnel(apiKey, selectedTunnel.ID, displayNameInput)
-                        setTunnels(ts => ts.map(t => t.ID === updated.ID ? updated : t))
+                        const updated = await api.org.updateTunnel(apiKey, selectedTunnel.id, displayNameInput)
+                        setTunnels(ts => ts.map(t => t.id === updated.id ? updated : t))
                         setEditingDisplayName(false)
                       }}
                       style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(255,107,107,0.13)', color: '#FF6B6B', border: '1px solid rgba(255,107,107,0.3)', borderRadius: 4, cursor: 'pointer' }}
@@ -264,7 +264,7 @@ export function OrgApp() {
                       Save
                     </button>
                     <button
-                      onClick={() => { setEditingDisplayName(false); setDisplayNameInput(selectedTunnel.DisplayName ?? '') }}
+                      onClick={() => { setEditingDisplayName(false); setDisplayNameInput(selectedTunnel.display_name ?? '') }}
                       style={{ fontSize: 11, padding: '2px 8px', background: 'transparent', color: '#555', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer' }}
                     >
                       ✕
@@ -272,11 +272,11 @@ export function OrgApp() {
                   </div>
                 ) : (
                   <div
-                    onClick={() => { setDisplayNameInput(selectedTunnel.DisplayName ?? ''); setEditingDisplayName(true) }}
-                    style={{ fontSize: 12, color: selectedTunnel.DisplayName ? 'var(--text-primary)' : '#444', cursor: 'pointer', padding: '2px 4px', borderRadius: 4 }}
+                    onClick={() => { setDisplayNameInput(selectedTunnel.display_name ?? ''); setEditingDisplayName(true) }}
+                    style={{ fontSize: 12, color: selectedTunnel.display_name ? 'var(--text-primary)' : '#444', cursor: 'pointer', padding: '2px 4px', borderRadius: 4 }}
                     title="Click to rename"
                   >
-                    {selectedTunnel.DisplayName || '(click to add display name)'}
+                    {selectedTunnel.display_name || '(click to add display name)'}
                   </div>
                 )}
               </div>
