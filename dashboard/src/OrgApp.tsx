@@ -6,9 +6,10 @@ import { TunnelList } from './components/TunnelList'
 import { LoginForm } from './components/admin/LoginForm'
 import { useAuth } from './hooks/useAuth'
 import { api } from './api/client'
-import type { WebhookEvent, Tunnel, OrgMember, Me } from './types'
+import type { WebhookEvent, Tunnel, Me } from './types'
+import { SettingsTab } from './components/SettingsTab'
 
-type Tab = 'personal' | 'org' | 'members' | 'profile'
+type Tab = 'personal' | 'org' | 'settings' | 'profile'
 
 function useWSEvents(tunnelID: string, apiKey: string, onEvent: (e: WebhookEvent) => void) {
   const onEventRef = useRef(onEvent)
@@ -48,9 +49,10 @@ export function OrgApp() {
   const [events, setEvents] = useState<WebhookEvent[]>([])
   const [selectedEvent, setSelectedEvent] = useState<WebhookEvent | null>(null)
   const [replayError, setReplayError] = useState<string | null>(null)
-  const [members, setMembers] = useState<OrgMember[]>([])
   const [me, setMe] = useState<Me | null>(null)
   const [creating, setCreating] = useState(false)
+  const [editingDisplayName, setEditingDisplayName] = useState(false)
+  const [displayNameInput, setDisplayNameInput] = useState('')
 
   const selectedTunnel = tunnels.find(t => t.ID === selectedTunnelID) ?? null
 
@@ -76,19 +78,14 @@ export function OrgApp() {
   }, [loading, isServerMode, apiKey, tab])
 
   useEffect(() => {
-    if (tab !== 'members' || (isServerMode && !apiKey)) return
-    api.org.listMembers(apiKey).then(setMembers).catch(() => {})
-    const id = setInterval(() => api.org.listMembers(apiKey).then(setMembers).catch(() => {}), 10000)
-    return () => clearInterval(id)
-  }, [tab, apiKey, isServerMode])
-
-  useEffect(() => {
     if (isServerMode && !apiKey) return
     api.getMe(apiKey).then(setMe).catch(() => {})
   }, [apiKey, isServerMode])
 
   useEffect(() => {
     if (!selectedTunnelID) { setEvents([]); return }
+    setEditingDisplayName(false)
+    setDisplayNameInput(tunnels.find(t => t.ID === selectedTunnelID)?.DisplayName ?? '')
 
     const tunnelID = selectedTunnelID
     function fetchEvents() {
@@ -123,7 +120,9 @@ export function OrgApp() {
   async function handleCreateTunnel() {
     setCreating(true)
     try {
-      const tun = await api.org.createPersonalTunnel(apiKey)
+      const tun = tab === 'org'
+        ? await api.org.createOrgTunnel(apiKey)
+        : await api.org.createPersonalTunnel(apiKey)
       setTunnels(prev => [...prev, tun])
       setSelectedTunnelID(tun.ID)
     } catch (err) {
@@ -143,20 +142,31 @@ export function OrgApp() {
     return <LoginForm onLogin={login} />
   }
 
+  const can = (perm: string) => me?.role === 'admin' || (me?.permissions ?? []).includes(perm)
+  const hasAnySettingsPerm = can('manage_members') || can('change_member_role') || can('manage_roles') || can('edit_org_settings')
+
   return (
     <div className="flex flex-col h-screen font-sans text-sm" style={{ background: 'var(--bg)' }}>
       <div
         className="flex items-center px-4 flex-shrink-0"
         style={{ height: '42px', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}
       >
-        <span className="font-mono text-[13px] font-bold mr-4" style={{ color: '#FF6B6B' }}>
+        <span className="font-mono text-[13px] font-bold mr-2" style={{ color: '#FF6B6B' }}>
           PomeloHook
         </span>
+        {me?.org_name && (
+          <span
+            className="text-[10px] font-medium px-2 py-[2px] rounded mr-3"
+            style={{ background: 'var(--method-dim-bg)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}
+          >
+            {me.org_name}
+          </span>
+        )}
         <div className="flex gap-1">
-          {(['personal', 'org', 'members', 'profile'] as Tab[]).map(t => (
+          {(['personal', 'org', ...(hasAnySettingsPerm ? ['settings'] : []), 'profile'] as Tab[]).map(t => (
             <button
               key={t}
-              onClick={() => { setTab(t); setSelectedTunnelID(null); setSelectedEvent(null) }}
+              onClick={() => { setTab(t as Tab); setSelectedTunnelID(null); setSelectedEvent(null) }}
               className="px-3 py-1 rounded text-[11px] font-semibold capitalize transition-colors"
               style={
                 tab === t
@@ -169,6 +179,16 @@ export function OrgApp() {
           ))}
         </div>
         <div className="flex-1" />
+        {(tab === 'personal' || tab === 'org') && (tab === 'personal' || can('create_org_tunnel')) && (
+          <button
+            onClick={handleCreateTunnel}
+            disabled={creating}
+            className="text-[11px] font-semibold px-3 py-1 rounded mr-3 transition-colors"
+            style={{ background: 'rgba(255,107,107,0.13)', color: '#FF6B6B', border: '1px solid rgba(255,107,107,0.3)' }}
+          >
+            {creating ? 'Creating…' : '+ New Tunnel'}
+          </button>
+        )}
         {me?.role === 'admin' && (
           <a
             href="/admin"
@@ -194,42 +214,8 @@ export function OrgApp() {
         <div className="flex-1 overflow-y-auto p-6 max-w-lg">
           <ProfilePanel apiKey={apiKey} me={me} onUpdated={setMe} />
         </div>
-      ) : tab === 'members' ? (
-        <div className="flex-1 overflow-y-auto p-4">
-          <table className="w-full text-[11px]" style={{ borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                {['Name', 'Email', 'Role', 'Active Tunnel'].map(h => (
-                  <th key={h} className="text-left py-2 px-3 font-semibold" style={{ color: 'var(--text-dim)' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {members.map(m => (
-                <tr key={m.ID} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <td className="py-2 px-3" style={{ color: 'var(--text-primary)' }}>{m.Name}</td>
-                  <td className="py-2 px-3 font-mono" style={{ color: 'var(--text-secondary)' }}>{m.Email}</td>
-                  <td className="py-2 px-3">
-                    <span
-                      className="px-2 py-[1px] rounded-full text-[10px] font-semibold"
-                      style={m.Role === 'admin'
-                        ? { background: 'rgba(255,107,107,0.13)', color: '#FF6B6B' }
-                        : { background: 'var(--method-dim-bg)', color: 'var(--text-dim)' }}
-                    >
-                      {m.Role}
-                    </span>
-                  </td>
-                  <td className="py-2 px-3 font-mono" style={{ color: m.ActiveTunnelSubdomain ? '#50cc80' : 'var(--text-dim)' }}>
-                    {m.ActiveTunnelSubdomain || '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {members.length === 0 && (
-            <p className="text-center py-8 text-[11px]" style={{ color: 'var(--text-dim)' }}>No members</p>
-          )}
-        </div>
+      ) : tab === 'settings' ? (
+        <SettingsTab apiKey={apiKey} me={me} can={can} />
       ) : (
         <div className="flex flex-1 overflow-hidden">
           <div
@@ -241,18 +227,6 @@ export function OrgApp() {
               selectedID={selectedTunnelID}
               onSelect={t => { setSelectedTunnelID(t.ID); setSelectedEvent(null) }}
             />
-            {tab === 'personal' && tunnels.length === 0 && (
-              <div className="px-4 py-4">
-                <button
-                  onClick={handleCreateTunnel}
-                  disabled={creating}
-                  className="w-full py-2 rounded text-[11px] font-semibold transition-colors"
-                  style={{ background: 'rgba(255,107,107,0.13)', color: '#FF6B6B', border: '1px solid rgba(255,107,107,0.3)' }}
-                >
-                  {creating ? 'Creating…' : '+ New Tunnel'}
-                </button>
-              </div>
-            )}
           </div>
 
           <div
@@ -268,6 +242,45 @@ export function OrgApp() {
           </div>
 
           <div className="flex-1 flex flex-col overflow-hidden">
+            {selectedTunnel && (
+              <div style={{ padding: '6px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+                <div style={{ fontSize: 10, color: '#555', marginBottom: 3 }}>Display name</div>
+                {editingDisplayName ? (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input
+                      value={displayNameInput}
+                      onChange={e => setDisplayNameInput(e.target.value)}
+                      style={{ flex: 1, padding: '3px 6px', background: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 4, fontSize: 11 }}
+                      autoFocus
+                    />
+                    <button
+                      onClick={async () => {
+                        const updated = await api.org.updateTunnel(apiKey, selectedTunnel.ID, displayNameInput)
+                        setTunnels(ts => ts.map(t => t.ID === updated.ID ? updated : t))
+                        setEditingDisplayName(false)
+                      }}
+                      style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(255,107,107,0.13)', color: '#FF6B6B', border: '1px solid rgba(255,107,107,0.3)', borderRadius: 4, cursor: 'pointer' }}
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => { setEditingDisplayName(false); setDisplayNameInput(selectedTunnel.DisplayName ?? '') }}
+                      style={{ fontSize: 11, padding: '2px 8px', background: 'transparent', color: '#555', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer' }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => { setDisplayNameInput(selectedTunnel.DisplayName ?? ''); setEditingDisplayName(true) }}
+                    style={{ fontSize: 12, color: selectedTunnel.DisplayName ? 'var(--text-primary)' : '#444', cursor: 'pointer', padding: '2px 4px', borderRadius: 4 }}
+                    title="Click to rename"
+                  >
+                    {selectedTunnel.DisplayName || '(click to add display name)'}
+                  </div>
+                )}
+              </div>
+            )}
             {replayError && (
               <div
                 className="text-xs px-4 py-2 flex-shrink-0"
@@ -326,7 +339,7 @@ function ProfilePanel({
     e.preventDefault()
     try {
       const updated = await api.updateMe(apiKey, name, email)
-      onUpdated({ ...updated, api_key: me?.api_key ?? '', org_id: me?.org_id ?? '' })
+      onUpdated({ ...(me ?? {} as Me), ...updated })
       setProfileMsg('Saved.')
       setTimeout(() => setProfileMsg(''), 2000)
     } catch {
