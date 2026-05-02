@@ -36,10 +36,13 @@ Events are always stored regardless of whether forwarding succeeds — they are 
 
 ## Features
 
-- **Personal tunnels** — each user gets their own subdomain, private to them
+- **Personal tunnels** — each user gets their own subdomain, private to them; use `--name` to claim a specific subdomain
 - **Org tunnels** — shared across the org, multiple subscribers receive the same webhook simultaneously
 - **30-day retention** — events auto-deleted after 30 days (configurable)
 - **Replay** — resend any stored event to any URL from the CLI or dashboard
+- **Display names** — label any tunnel with a human-readable name; renamed inline in the dashboard
+- **RBAC** — custom roles with per-permission grants; built-in roles (admin, member, developer, manager) plus org-defined roles
+- **Org management** — invite/remove members, assign roles, manage org settings from the Settings tab in the org dashboard
 - **Local dashboard** — embedded in the CLI binary, no separate install
 - **Admin panel** — web UI for managing users, orgs, tunnels, and the SQLite database; served at `/admin` on the server
 - **No CGO** — pure-Go SQLite, single binary deployment
@@ -151,10 +154,20 @@ pomelo-hook connect --port 3000
 - Prints the public webhook URL
 
 ```
-Tunnel: https://your-server.com/webhook/a1b2c3d4 → localhost:3000
-Dashboard: http://localhost:4040
-Press Ctrl+C to stop
+✓ Connected
+  Webhook URL  https://your-server.com/webhook/a1b2c3d4
+  Forwarding   → localhost:3000
+  Dashboard    http://localhost:4040
+  Press Ctrl+C to stop
 ```
+
+**Named personal tunnel** — claim a specific subdomain:
+
+```bash
+pomelo-hook connect --port 3000 --name my-subdomain
+```
+
+If the subdomain is already taken by another user, the command exits with an error.
 
 **Org tunnel:**
 
@@ -210,8 +223,14 @@ The dashboard is embedded in the CLI binary and requires no separate install.
 
 The org dashboard is served at `https://your-server.com/app` and is embedded in the server binary.
 
-- **Tunnel list** — sidebar showing all org tunnels with live active/inactive status and the hostname of the connected device
+- **Personal / Org tabs** — switch between your personal tunnel and shared org tunnels
+- **Tunnel list** — sidebar with live active/inactive status, connected device name, and display name label
+- **Display name** — click any tunnel label in the detail pane to rename it inline
 - **Event detail** — full request/response detail for the selected tunnel's events
+- **Settings tab** — visible to any member with a settings-related permission:
+  - **Members** — list, invite (returns API key), remove, and change role for org members
+  - **Roles** — view all roles and their permissions; create custom roles, edit permission sets, delete non-system roles
+  - **Organization** — rename the org (requires `edit_org_settings` permission)
 - Requires authentication; any org member can access it
 
 ---
@@ -239,24 +258,99 @@ When accessing the panel through the CLI dashboard (`http://localhost:4040/admin
 
 ---
 
+## RBAC
+
+Permissions are granted via roles. Every user has one role; the `admin` role bypasses all permission checks.
+
+**Built-in roles** (cannot be deleted):
+
+| Role | Permissions |
+|------|-------------|
+| `admin` | All permissions (hardcoded bypass) |
+| `member` | `view_events`, `replay_events` |
+
+**Default non-system roles** (editable):
+
+| Role | Permissions |
+|------|-------------|
+| `developer` | `view_events`, `replay_events`, `create_org_tunnel`, `delete_org_tunnel` |
+| `manager` | all developer permissions + `manage_members`, `change_member_role` |
+
+**Available permissions:**
+
+| Permission | Grants |
+|------------|--------|
+| `view_events` | Read webhook event list and detail |
+| `replay_events` | Replay stored events |
+| `create_org_tunnel` | Create new org tunnels |
+| `delete_org_tunnel` | Delete org tunnels |
+| `manage_members` | Invite and remove org members |
+| `change_member_role` | Change another member's role |
+| `edit_org_settings` | Rename the organization |
+| `manage_roles` | Create, edit, and delete custom roles |
+
+Custom roles can be created from the **Settings → Roles** tab in the org dashboard or via the API.
+
+---
+
 ## API Reference
 
-All endpoints except `POST /api/auth/login` require `Authorization: Bearer <api_key>`.
+All endpoints except `POST /api/auth/login` and `GET /api/health` require `Authorization: Bearer <api_key>`.
 
-| Method | Path                          | Description                        |
-|--------|-------------------------------|------------------------------------|
-| GET    | `/api/health`                 | Health check (no auth)             |
-| POST   | `/api/auth/login`             | Return API key for an email        |
-| GET    | `/api/me`                     | Return the authenticated user      |
-| POST   | `/api/tunnels`                | Create a personal or org tunnel    |
-| GET    | `/api/tunnels`                | List tunnels visible to the caller |
-| GET    | `/api/ws?tunnel_id=<id>`      | Upgrade to WebSocket tunnel        |
-| GET    | `/api/events?tunnel_id=<id>`  | List events (default limit: 50)    |
-| POST   | `/api/events/{id}/replay`     | Replay event to a target URL       |
-| GET    | `/api/orgs/users`             | List org users                     |
-| GET    | `/api/org/tunnels`            | List all org tunnels with live status and active device |
+**Auth & profile:**
 
-Admin endpoints (require `role='admin'`):
+| Method | Path                 | Description                                    |
+|--------|----------------------|------------------------------------------------|
+| GET    | `/api/health`        | Health check (no auth)                         |
+| POST   | `/api/auth/login`    | Exchange email + password for API key          |
+| GET    | `/api/me`            | Current user — includes `permissions[]` and `org_name` |
+| PUT    | `/api/me`            | Update name and email                          |
+| POST   | `/api/me/password`   | Change password (requires current password)    |
+
+**Tunnels:**
+
+| Method | Path                    | Description                                        |
+|--------|-------------------------|----------------------------------------------------|
+| GET    | `/api/tunnels`          | List tunnels visible to the caller                 |
+| POST   | `/api/tunnels`          | Create a personal or org tunnel (`type`, `name`)   |
+| PUT    | `/api/tunnels/{id}`     | Update tunnel display name                         |
+| DELETE | `/api/tunnels/{id}`     | Delete an org tunnel (`delete_org_tunnel`)         |
+| GET    | `/api/org/tunnels`      | List all org tunnels with live status              |
+| GET    | `/api/ws?tunnel_id=<id>`| Upgrade to WebSocket tunnel                        |
+
+**Events:**
+
+| Method | Path                          | Description                            |
+|--------|-------------------------------|----------------------------------------|
+| GET    | `/api/events?tunnel_id=<id>`  | List events (`view_events`)            |
+| POST   | `/api/events/{id}/replay`     | Replay event to a target URL (`replay_events`) |
+
+**Org members** (`manage_members` or `change_member_role` where noted):
+
+| Method | Path                             | Description                                     |
+|--------|----------------------------------|-------------------------------------------------|
+| GET    | `/api/org/members`               | List org members with active tunnel info        |
+| POST   | `/api/org/members/invite`        | Invite member — returns API key (`manage_members`) |
+| DELETE | `/api/org/members/{id}`          | Remove member (`manage_members`)               |
+| PUT    | `/api/org/members/{id}/role`     | Change member role (`change_member_role`)       |
+
+**Org roles** (`manage_roles` where noted):
+
+| Method | Path                    | Description                                     |
+|--------|-------------------------|-------------------------------------------------|
+| GET    | `/api/org/roles`        | List all roles and their permissions            |
+| POST   | `/api/org/roles`        | Create a custom role (`manage_roles`)           |
+| PUT    | `/api/org/roles/{name}` | Update role display name or permissions (`manage_roles`) |
+| DELETE | `/api/org/roles/{name}` | Delete a non-system role (`manage_roles`)       |
+
+**Org settings** (`edit_org_settings`):
+
+| Method | Path                  | Description              |
+|--------|-----------------------|--------------------------|
+| GET    | `/api/org/settings`   | Get org name             |
+| PUT    | `/api/org/settings`   | Update org name          |
+
+**Admin endpoints** (require `role='admin'`):
 
 | Method | Path                                  | Description                            |
 |--------|---------------------------------------|----------------------------------------|
@@ -275,7 +369,7 @@ Admin endpoints (require `role='admin'`):
 | GET    | `/api/admin/db/tables/{name}`         | Browse table rows (`?limit=&offset=`)  |
 | POST   | `/api/admin/db/query`                 | Run a raw SQL query                    |
 
-Webhook ingestion (no auth):
+**Webhook ingestion** (no auth):
 
 | Method | Path                     | Description                            |
 |--------|--------------------------|----------------------------------------|
