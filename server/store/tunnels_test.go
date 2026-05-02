@@ -107,6 +107,41 @@ func TestGetPersonalTunnel_ReturnsExisting(t *testing.T) {
 	}
 }
 
+func TestGetOrCreatePersonalTunnel(t *testing.T) {
+	s := openTestStore(t)
+	org, _ := s.CreateOrg("Org")
+	u, _ := s.CreateUser(store.CreateUserParams{OrgID: org.ID, Email: "x@test.com", Name: "X", Role: "member"})
+
+	// unnamed: creates one
+	tun1, created, err := s.GetOrCreatePersonalTunnel(u.ID, "")
+	require.NoError(t, err)
+	require.True(t, created)
+	require.NotEmpty(t, tun1.ID)
+
+	// unnamed: returns existing
+	tun2, created2, err := s.GetOrCreatePersonalTunnel(u.ID, "")
+	require.NoError(t, err)
+	require.False(t, created2)
+	require.Equal(t, tun1.ID, tun2.ID)
+
+	// named: creates with specific subdomain
+	tun3, created3, err := s.GetOrCreatePersonalTunnel(u.ID, "myapp")
+	require.NoError(t, err)
+	require.True(t, created3)
+	require.Equal(t, "myapp", tun3.Subdomain)
+
+	// same name returns existing
+	tun4, created4, err := s.GetOrCreatePersonalTunnel(u.ID, "myapp")
+	require.NoError(t, err)
+	require.False(t, created4)
+	require.Equal(t, tun3.ID, tun4.ID)
+
+	// name taken by another user → ErrSubdomainTaken
+	u2, _ := s.CreateUser(store.CreateUserParams{OrgID: org.ID, Email: "y@test.com", Name: "Y", Role: "member"})
+	_, _, err = s.GetOrCreatePersonalTunnel(u2.ID, "myapp")
+	require.ErrorIs(t, err, store.ErrSubdomainTaken)
+}
+
 func TestListOrgTunnels(t *testing.T) {
 	db, _ := store.Open(":memory:")
 	defer db.Close()

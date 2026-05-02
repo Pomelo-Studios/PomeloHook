@@ -28,11 +28,13 @@ var connectCmd = &cobra.Command{
 var localPort string
 var orgTunnel bool
 var orgTunnelName string
+var tunnelName string
 
 func init() {
 	connectCmd.Flags().StringVar(&localPort, "port", "3000", "Local port to forward to")
 	connectCmd.Flags().BoolVar(&orgTunnel, "org", false, "Connect to an org tunnel")
 	connectCmd.Flags().StringVar(&orgTunnelName, "tunnel", "", "Org tunnel name (required with --org)")
+	connectCmd.Flags().StringVar(&tunnelName, "name", "", "Named subdomain for your personal tunnel (get-or-create)")
 }
 
 func runConnect(cmd *cobra.Command, args []string) error {
@@ -41,14 +43,16 @@ func runConnect(cmd *cobra.Command, args []string) error {
 		return errNotLoggedIn
 	}
 
-	tunnelID, subdomain, err := resolveTunnel(cfg, orgTunnel, orgTunnelName)
+	tunnelID, subdomain, err := resolveTunnel(cfg, orgTunnel, orgTunnelName, tunnelName)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Tunnel: %s/webhook/%s → localhost:%s\n", cfg.ServerURL, subdomain, localPort)
-	fmt.Println("Dashboard: http://localhost:4040")
-	fmt.Println("Press Ctrl+C to stop")
+	fmt.Printf("\n✓ Connected\n")
+	fmt.Printf("  Webhook URL : %s/webhook/%s\n", cfg.ServerURL, subdomain)
+	fmt.Printf("  Forwarding  → http://localhost:%s\n", localPort)
+	fmt.Printf("  Dashboard   : http://localhost:4040\n\n")
+	fmt.Printf("  Press Ctrl+C to disconnect\n\n")
 
 	dashboard.Serve(newLocalAPIProxy(cfg.ServerURL, cfg.APIKey))
 
@@ -66,13 +70,15 @@ func runConnect(cmd *cobra.Command, args []string) error {
 	return client.Connect()
 }
 
-func resolveTunnel(cfg *config.Config, isOrg bool, tunnelName string) (id, subdomain string, err error) {
+func resolveTunnel(cfg *config.Config, isOrg bool, orgName, personalName string) (id, subdomain string, err error) {
 	tunnelType := "personal"
+	name := personalName
 	if isOrg {
 		tunnelType = "org"
+		name = orgName
 	}
 
-	payload, err := json.Marshal(map[string]string{"type": tunnelType, "name": tunnelName})
+	payload, err := json.Marshal(map[string]string{"type": tunnelType, "name": name})
 	if err != nil {
 		return "", "", fmt.Errorf("failed to encode request: %w", err)
 	}
@@ -90,15 +96,15 @@ func resolveTunnel(cfg *config.Config, isOrg bool, tunnelName string) (id, subdo
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusConflict {
-		return "", "", fmt.Errorf("org tunnel '%s' is already active", tunnelName)
+		return "", "", fmt.Errorf("subdomain '%s' is already taken", name)
 	}
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		return "", "", fmt.Errorf("failed to create tunnel: %d", resp.StatusCode)
 	}
 
 	var tun struct {
-		ID        string `json:"ID"`
-		Subdomain string `json:"Subdomain"`
+		ID        string `json:"id"`
+		Subdomain string `json:"subdomain"`
 	}
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&tun); err != nil {
 		return "", "", err
