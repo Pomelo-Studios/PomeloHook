@@ -67,3 +67,12 @@ func TestSetPasswordHashWrongOrg(t *testing.T) {
 	err = db.SetPasswordHash(u.ID, "wrong-org", "$hash$")
 	require.ErrorIs(t, err, sql.ErrNoRows)
 }
+
+func TestUserCan(t *testing.T) {
+	u := &store.User{Role: "admin"}
+	require.True(t, u.Can("anything"), "admin should pass all permission checks")
+
+	u2 := &store.User{Role: "member", Permissions: map[string]bool{"view_events": true}}
+	require.True(t, u2.Can("view_events"), "member with view_events should pass")
+	require.False(t, u2.Can("create_org_tunnel"), "member without create_org_tunnel should fail")
+}
