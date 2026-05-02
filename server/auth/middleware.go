@@ -65,6 +65,18 @@ func InvalidateAPIKey(key string) {
 	cacheMu.Unlock()
 }
 
+// InvalidateRoleCache evicts all cached users with the given role so they
+// pick up the updated permissions on their next request.
+func InvalidateRoleCache(roleName string) {
+	cacheMu.Lock()
+	for k, e := range cache {
+		if e.user.Role == roleName {
+			delete(cache, k)
+		}
+	}
+	cacheMu.Unlock()
+}
+
 func lookupUser(s *store.Store, key string) (*store.User, error) {
 	cacheMu.RLock()
 	entry, ok := cache[key]
@@ -76,6 +88,10 @@ func lookupUser(s *store.Store, key string) (*store.User, error) {
 	user, err := s.GetUserByAPIKey(key)
 	if err != nil {
 		return nil, err
+	}
+
+	if perms, err := s.GetRolePermissions(user.Role); err == nil {
+		user.Permissions = perms
 	}
 
 	cacheMu.Lock()
