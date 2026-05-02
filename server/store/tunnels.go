@@ -179,6 +179,9 @@ func (s *Store) GetOrCreatePersonalTunnel(userID, name string) (*Tunnel, bool, e
 	}
 
 	existing, err := s.GetTunnelBySubdomain(name)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, false, err
+	}
 	if err == nil {
 		if existing.UserID == userID && existing.Type == "personal" {
 			return existing, false, nil
