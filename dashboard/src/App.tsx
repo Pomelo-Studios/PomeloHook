@@ -17,8 +17,8 @@ export default function App() {
     Promise.all([api.getMe(''), api.getTunnels()])
       .then(([me, tunnels]) => {
         if (me.role === 'admin') setIsAdmin(true)
-        const active = tunnels.find(t => t.Status === 'active')
-        if (active) { setTunnelID(active.ID); setTunnelSubdomain(active.Subdomain) }
+        const active = tunnels.find(t => t.status === 'active')
+        if (active) { setTunnelID(active.id); setTunnelSubdomain(active.subdomain) }
       })
       .catch(() => {})
   }, [])

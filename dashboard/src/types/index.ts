@@ -14,13 +14,15 @@ export interface WebhookEvent {
 }
 
 export interface Tunnel {
-  ID: string
-  Type: 'personal' | 'org'
-  Subdomain: string
-  DisplayName: string
-  Status: 'active' | 'inactive'
-  ActiveUserID: string
-  ActiveDevice: string
+  id: string
+  type: 'personal' | 'org'
+  user_id: string
+  org_id: string
+  subdomain: string
+  display_name: string
+  active_user_id: string
+  active_device: string
+  status: 'active' | 'inactive'
 }
 
 export type RoleName = string

@@ -22,8 +22,8 @@ export function AdminApp() {
   useEffect(() => {
     if (loading || (isServerMode && !apiKey)) return
     api.admin.listTunnels(apiKey).then(tunnels => {
-      const active = tunnels.find(t => t.Status === 'active')
-      if (active) setSubdomain(active.Subdomain)
+      const active = tunnels.find(t => t.status === 'active')
+      if (active) setSubdomain(active.subdomain)
     }).catch(() => {})
   }, [loading, isServerMode, apiKey])
 

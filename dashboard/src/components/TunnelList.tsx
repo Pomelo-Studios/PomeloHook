@@ -55,12 +55,12 @@ export function TunnelList({ tunnels, selectedID, onSelect }: Props) {
           </div>
         )}
         {tunnels.map(tunnel => {
-          const selected = tunnel.ID === selectedID
-          const isActive = tunnel.Status === 'active'
-          const webhookURL = `${origin}/webhook/${tunnel.Subdomain}`
+          const selected = tunnel.id === selectedID
+          const isActive = tunnel.status === 'active'
+          const webhookURL = `${origin}/webhook/${tunnel.subdomain}`
           return (
             <button
-              key={tunnel.ID}
+              key={tunnel.id}
               onClick={() => onSelect(tunnel)}
               className="w-full text-left px-4 py-[10px] flex flex-col gap-1 border-b border-l-[3px] transition-colors"
               style={{
@@ -79,19 +79,19 @@ export function TunnelList({ tunnels, selectedID, onSelect }: Props) {
                     className="text-[11px] font-mono truncate"
                     style={{ color: selected ? 'var(--text-primary)' : 'var(--text-secondary)' }}
                   >
-                    {tunnel.DisplayName || tunnel.Subdomain}
+                    {tunnel.display_name || tunnel.subdomain}
                   </div>
-                  {tunnel.DisplayName && (
+                  {tunnel.display_name && (
                     <div className="text-[9px] font-mono truncate" style={{ color: 'var(--text-dim)' }}>
-                      {tunnel.Subdomain}
+                      {tunnel.subdomain}
                     </div>
                   )}
                 </div>
                 <CopyButton text={webhookURL} />
               </div>
-              {isActive && tunnel.ActiveDevice && (
+              {isActive && tunnel.active_device && (
                 <div className="font-mono text-[9px] pl-[12px]" style={{ color: 'var(--text-dim)' }}>
-                  {tunnel.ActiveDevice}
+                  {tunnel.active_device}
                 </div>
               )}
               {selected && (
