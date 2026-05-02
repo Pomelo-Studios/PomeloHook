@@ -45,10 +45,13 @@ func TestGetMeReturnsCurrentUser(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	require.Equal(t, http.StatusOK, rec.Code)
-	var body map[string]string
+	var body map[string]any
 	json.NewDecoder(rec.Body).Decode(&body)
 	require.Equal(t, "admin@a.com", body["email"])
 	require.Equal(t, "admin", body["role"])
+	require.NotEmpty(t, body["org_name"])
+	perms, _ := body["permissions"].([]any)
+	require.NotEmpty(t, perms, "admin should receive non-empty permissions list")
 }
 
 func TestAdminUsersRequiresAdminRole(t *testing.T) {

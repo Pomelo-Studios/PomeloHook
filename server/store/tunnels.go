@@ -14,7 +14,7 @@ type Tunnel struct {
 	UserID       string `json:"user_id"`
 	OrgID        string `json:"org_id"`
 	Subdomain    string `json:"subdomain"`
-	DisplayName  string `json:"display_name"`
+	DisplayName  string `json:"display_name,omitempty"`
 	ActiveUserID string `json:"active_user_id"`
 	ActiveDevice string `json:"active_device"`
 	Status       string `json:"status"`
