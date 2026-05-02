@@ -45,9 +45,12 @@ func (s *Store) OrgCount() (int, error) {
 func (s *Store) ListOrgUsersWithStatus(orgID string) ([]*OrgMember, error) {
 	rows, err := s.db.Query(`
 		SELECT u.id, u.name, u.email, u.role,
-		       COALESCE(t.subdomain, '') AS active_subdomain
+		       COALESCE((
+		           SELECT t.subdomain FROM tunnels t
+		           WHERE t.active_user_id = u.id AND t.status = 'active'
+		           LIMIT 1
+		       ), '') AS active_subdomain
 		FROM users u
-		LEFT JOIN tunnels t ON t.active_user_id = u.id AND t.status = 'active'
 		WHERE u.org_id = ?
 		ORDER BY u.name
 	`, orgID)
