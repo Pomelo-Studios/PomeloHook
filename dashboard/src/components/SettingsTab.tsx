@@ -23,7 +23,7 @@ export function SettingsTab({ apiKey, me, can }: Props) {
 
   return (
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-      <div style={{ width: 140, borderRight: '1px solid #2a2a2a', paddingTop: 8, flexShrink: 0 }}>
+      <div style={{ width: 140, borderRight: '1px solid var(--border)', paddingTop: 8, flexShrink: 0 }}>
         {visible.map(s => (
           <button
             key={s.id}

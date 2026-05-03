@@ -66,7 +66,7 @@ export function UsersPanel({ apiKey }: Props) {
     })
   }
 
-  if (loading) return <div className="p-4 text-xs font-mono" style={{ color: 'var(--text-dim)' }}>Loading…</div>
+  if (loading) return <div className="p-4 text-xs font-mono" style={{ color: 'var(--text-3)' }}>Loading…</div>
 
   return (
     <div className="flex flex-col h-full">
@@ -77,8 +77,8 @@ export function UsersPanel({ apiKey }: Props) {
         style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
       >
         <div>
-          <div className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>Users</div>
-          <div className="text-[11px]" style={{ color: 'var(--text-dim)' }}>{users.length} users</div>
+          <div className="text-[14px] font-bold" style={{ color: 'var(--text)' }}>Users</div>
+          <div className="text-[11px]" style={{ color: 'var(--text-3)' }}>{users.length} users</div>
         </div>
         <button
           onClick={() => { setForm(emptyForm); setEditingID(null) }}
@@ -99,24 +99,24 @@ export function UsersPanel({ apiKey }: Props) {
         <div className="border-b p-4 flex gap-3 items-end flex-shrink-0" style={{ borderColor: 'var(--border)', background: 'var(--bg)' }}>
           {(['email', 'name'] as const).map(field => (
             <div key={field} className="flex flex-col gap-1">
-              <label className="text-[9px] font-bold tracking-[1.5px] uppercase" style={{ color: 'var(--text-dim)' }}>
+              <label className="text-[9px] font-bold tracking-[1.5px] uppercase" style={{ color: 'var(--text-3)' }}>
                 {field === 'email' ? 'Email' : 'Name'}
               </label>
               <input
                 value={form[field]}
                 onChange={e => setForm(f => f && { ...f, [field]: e.target.value })}
                 className={`rounded-lg px-3 py-[6px] text-xs font-mono outline-none ${field === 'email' ? 'w-44' : 'w-36'}`}
-                style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
               />
             </div>
           ))}
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-bold tracking-[1.5px] uppercase" style={{ color: 'var(--text-dim)' }}>Role</label>
+            <label className="text-[9px] font-bold tracking-[1.5px] uppercase" style={{ color: 'var(--text-3)' }}>Role</label>
             <select
               value={form.role}
               onChange={e => setForm(f => f && { ...f, role: e.target.value })}
               className="rounded-lg px-3 py-[6px] text-xs outline-none"
-              style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
             >
               <option value="member">member</option>
               <option value="admin">admin</option>
@@ -126,7 +126,7 @@ export function UsersPanel({ apiKey }: Props) {
           <button
             onClick={() => { setForm(null); setEditingID(null) }}
             className="rounded-lg px-3 py-[6px] text-[11px]"
-            style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+            style={{ border: '1px solid var(--border)', color: 'var(--text-2)' }}
           >
             Cancel
           </button>
@@ -135,11 +135,11 @@ export function UsersPanel({ apiKey }: Props) {
 
       {newKey && (
         <div className="border-b p-3 flex items-center gap-3 flex-shrink-0" style={{ background: 'var(--ok-bg)', borderColor: 'var(--border)' }}>
-          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>New key for {newKey.userEmail}:</span>
+          <span className="text-xs" style={{ color: 'var(--text-2)' }}>New key for {newKey.userEmail}:</span>
           <code className="font-mono text-xs px-2 py-[2px] rounded select-all" style={{ color: 'var(--ok-text)', background: 'var(--surface)' }}>
             {newKey.key}
           </code>
-          <button onClick={() => setNewKey(null)} className="ml-auto" style={{ color: 'var(--text-dim)' }}>
+          <button onClick={() => setNewKey(null)} className="ml-auto" style={{ color: 'var(--text-3)' }}>
             <X size={14} />
           </button>
         </div>
@@ -150,7 +150,7 @@ export function UsersPanel({ apiKey }: Props) {
           <thead className="sticky top-0">
             <tr style={{ background: 'var(--surface)' }}>
               {['Name', 'Email', 'Role', 'API Key', 'Actions'].map(h => (
-                <th key={h} className="text-left text-[9px] font-bold tracking-[1.5px] uppercase px-4 py-2 border-b" style={{ color: 'var(--text-dim)', borderColor: 'var(--border)' }}>
+                <th key={h} className="text-left text-[9px] font-bold tracking-[1.5px] uppercase px-4 py-2 border-b" style={{ color: 'var(--text-3)', borderColor: 'var(--border)' }}>
                   {h}
                 </th>
               ))}
@@ -158,35 +158,35 @@ export function UsersPanel({ apiKey }: Props) {
           </thead>
           <tbody>
             {users.map(u => (
-              <tr key={u.ID} className="group transition-colors" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <td className="px-4 py-3 text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{u.Name}</td>
-                <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{u.Email}</td>
+              <tr key={u.ID} className="group transition-colors" style={{ borderBottom: '1px solid var(--border)' }}>
+                <td className="px-4 py-3 text-xs font-semibold" style={{ color: 'var(--text)' }}>{u.Name}</td>
+                <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--text-2)' }}>{u.Email}</td>
                 <td className="px-4 py-3">
                   <span
                     className="text-[10px] font-semibold px-2 py-[2px] rounded-full"
                     style={
                       u.Role === 'admin'
                         ? { background: 'var(--selected-bg)', color: '#FF6B6B' }
-                        : { background: 'var(--method-dim-bg)', color: 'var(--text-dim)' }
+                        : { background: 'var(--surface2)', color: 'var(--text-3)' }
                     }
                   >
                     {u.Role}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-[10px] font-mono" style={{ color: 'var(--text-dim)' }}>{u.APIKey.slice(0, 8)}…</td>
+                <td className="px-4 py-3 text-[10px] font-mono" style={{ color: 'var(--text-3)' }}>{u.APIKey.slice(0, 8)}…</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => { setEditingID(u.ID); setForm({ email: u.Email, name: u.Name, role: u.Role }) }}
                       className="flex items-center gap-1 text-[10px] px-2 py-[3px] rounded-md"
-                      style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                      style={{ border: '1px solid var(--border)', color: 'var(--text-2)' }}
                     >
                       <Pencil size={10} /> Edit
                     </button>
                     <button
                       onClick={() => confirmRotate(u)}
                       className="flex items-center gap-1 text-[10px] px-2 py-[3px] rounded-md"
-                      style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                      style={{ border: '1px solid var(--border)', color: 'var(--text-2)' }}
                     >
                       <RotateCcw size={10} /> Rotate Key
                     </button>

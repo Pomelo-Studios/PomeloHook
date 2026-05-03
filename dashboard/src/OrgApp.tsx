@@ -132,7 +132,7 @@ export function OrgApp() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center text-xs font-mono" style={{ background: 'var(--bg)', color: 'var(--text-dim)' }}>
+      <div className="h-screen flex items-center justify-center text-xs font-mono" style={{ background: 'var(--bg)', color: 'var(--text-3)' }}>
         Loading…
       </div>
     )
@@ -157,7 +157,7 @@ export function OrgApp() {
         {me?.org_name && (
           <span
             className="text-[10px] font-medium px-2 py-[2px] rounded mr-3"
-            style={{ background: 'var(--method-dim-bg)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}
+            style={{ background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)' }}
           >
             {me.org_name}
           </span>
@@ -171,7 +171,7 @@ export function OrgApp() {
               style={
                 tab === t
                   ? { background: 'rgba(255,107,107,0.13)', color: '#FF6B6B' }
-                  : { color: 'var(--text-dim)' }
+                  : { color: 'var(--text-3)' }
               }
             >
               {t}
@@ -193,7 +193,7 @@ export function OrgApp() {
           <a
             href="/admin"
             className="text-[11px] font-medium px-3 py-1 rounded transition-colors mr-2"
-            style={{ color: 'var(--text-dim)', background: 'var(--surface)' }}
+            style={{ color: 'var(--text-3)', background: 'var(--surface)' }}
           >
             Admin Panel →
           </a>
@@ -202,7 +202,7 @@ export function OrgApp() {
           <button
             onClick={logout}
             className="p-1"
-            style={{ color: 'var(--text-dim)' }}
+            style={{ color: 'var(--text-3)' }}
             title="Sign out"
           >
             <LogOut size={14} strokeWidth={2} />
@@ -250,7 +250,7 @@ export function OrgApp() {
                     <input
                       value={displayNameInput}
                       onChange={e => setDisplayNameInput(e.target.value)}
-                      style={{ flex: 1, padding: '3px 6px', background: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 4, fontSize: 11 }}
+                      style={{ flex: 1, padding: '3px 6px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 4, fontSize: 11 }}
                       autoFocus
                     />
                     <button
@@ -273,7 +273,7 @@ export function OrgApp() {
                 ) : (
                   <div
                     onClick={() => { setDisplayNameInput(selectedTunnel.display_name ?? ''); setEditingDisplayName(true) }}
-                    style={{ fontSize: 12, color: selectedTunnel.display_name ? 'var(--text-primary)' : '#444', cursor: 'pointer', padding: '2px 4px', borderRadius: 4 }}
+                    style={{ fontSize: 12, color: selectedTunnel.display_name ? 'var(--text)' : '#444', cursor: 'pointer', padding: '2px 4px', borderRadius: 4 }}
                     title="Click to rename"
                   >
                     {selectedTunnel.display_name || '(click to add display name)'}
@@ -292,7 +292,7 @@ export function OrgApp() {
             {selectedEvent
               ? <EventDetail event={selectedEvent} onReplay={handleReplay} />
               : (
-                <div className="flex items-center justify-center h-full text-sm" style={{ color: 'var(--text-dim)' }}>
+                <div className="flex items-center justify-center h-full text-sm" style={{ color: 'var(--text-3)' }}>
                   Select an event
                 </div>
               )
@@ -306,10 +306,10 @@ export function OrgApp() {
 
 const profileInputStyle: React.CSSProperties = {
   background: 'var(--surface)', border: '1px solid var(--border)',
-  borderRadius: 6, padding: '6px 10px', fontSize: 12, color: 'var(--text-primary)', width: '100%',
+  borderRadius: 6, padding: '6px 10px', fontSize: 12, color: 'var(--text)', width: '100%',
 }
 const profileLabelStyle: React.CSSProperties = {
-  fontSize: 10, fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 1,
+  fontSize: 10, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 1,
 }
 const profileBtnStyle: React.CSSProperties = {
   background: '#FF6B6B', color: '#fff', border: 'none', borderRadius: 6,
@@ -362,7 +362,7 @@ function ProfilePanel({
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h3 className="text-[13px] font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Profile</h3>
+        <h3 className="text-[13px] font-semibold mb-4" style={{ color: 'var(--text)' }}>Profile</h3>
         <form onSubmit={handleProfileSave} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
             <label style={profileLabelStyle}>Name</label>
@@ -374,20 +374,20 @@ function ProfilePanel({
           </div>
           <div className="flex items-center gap-3">
             <button type="submit" style={profileBtnStyle}>Save</button>
-            {profileMsg && <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{profileMsg}</span>}
+            {profileMsg && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{profileMsg}</span>}
           </div>
         </form>
       </div>
 
       <div>
-        <h3 className="text-[13px] font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>API Key</h3>
+        <h3 className="text-[13px] font-semibold mb-4" style={{ color: 'var(--text)' }}>API Key</h3>
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+          <span className="font-mono text-[11px]" style={{ color: 'var(--text-2)' }}>
             {showKey ? (me?.api_key ?? '—') : '••••••••••••••••••••'}
           </span>
           <button
             onClick={() => setShowKey(v => !v)}
-            style={{ fontSize: 10, color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}
+            style={{ fontSize: 10, color: 'var(--text-3)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             {showKey ? 'hide' : 'reveal'}
           </button>
@@ -395,7 +395,7 @@ function ProfilePanel({
       </div>
 
       <div>
-        <h3 className="text-[13px] font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Change Password</h3>
+        <h3 className="text-[13px] font-semibold mb-4" style={{ color: 'var(--text)' }}>Change Password</h3>
         <form onSubmit={handlePasswordChange} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
             <label style={profileLabelStyle}>Current password</label>
@@ -407,7 +407,7 @@ function ProfilePanel({
           </div>
           <div className="flex items-center gap-3">
             <button type="submit" style={profileBtnStyle}>Change Password</button>
-            {pwdMsg && <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{pwdMsg}</span>}
+            {pwdMsg && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{pwdMsg}</span>}
           </div>
         </form>
       </div>

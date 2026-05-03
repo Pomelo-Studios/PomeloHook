@@ -34,7 +34,7 @@ export function OrgsPanel({ apiKey }: Props) {
         className="h-[52px] flex items-center px-5 flex-shrink-0 border-b"
         style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
       >
-        <div className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>Organization</div>
+        <div className="text-[14px] font-bold" style={{ color: 'var(--text)' }}>Organization</div>
       </div>
 
       {error && (
@@ -47,19 +47,19 @@ export function OrgsPanel({ apiKey }: Props) {
         <div className="p-6 flex flex-col gap-5 max-w-sm">
           {[{ label: 'ID', value: org.ID }, { label: 'Created', value: org.CreatedAt }].map(({ label, value }) => (
             <div key={label}>
-              <p className="text-[9px] font-bold tracking-[1.5px] uppercase mb-1" style={{ color: 'var(--text-dim)' }}>{label}</p>
-              <p className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{value}</p>
+              <p className="text-[9px] font-bold tracking-[1.5px] uppercase mb-1" style={{ color: 'var(--text-3)' }}>{label}</p>
+              <p className="text-xs font-mono" style={{ color: 'var(--text-2)' }}>{value}</p>
             </div>
           ))}
           <div>
-            <p className="text-[9px] font-bold tracking-[1.5px] uppercase mb-1" style={{ color: 'var(--text-dim)' }}>Name</p>
+            <p className="text-[9px] font-bold tracking-[1.5px] uppercase mb-1" style={{ color: 'var(--text-3)' }}>Name</p>
             {editing ? (
               <div className="flex items-center gap-2">
                 <input
                   value={name}
                   onChange={e => setName(e.target.value)}
                   className="rounded-lg px-3 py-[6px] text-xs font-mono outline-none w-48"
-                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
                 <button onClick={handleSave} className="bg-coral hover:opacity-90 text-white rounded-lg px-3 py-[6px] text-[11px] font-bold transition-opacity">
                   Save
@@ -67,18 +67,18 @@ export function OrgsPanel({ apiKey }: Props) {
                 <button
                   onClick={() => { setEditing(false); setName(org.Name) }}
                   className="rounded-lg px-3 py-[6px] text-[11px]"
-                  style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                  style={{ border: '1px solid var(--border)', color: 'var(--text-2)' }}
                 >
                   Cancel
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <p className="text-xs" style={{ color: 'var(--text-primary)' }}>{org.Name}</p>
+                <p className="text-xs" style={{ color: 'var(--text)' }}>{org.Name}</p>
                 <button
                   onClick={() => setEditing(true)}
                   className="flex items-center gap-1 text-[10px] px-2 py-[3px] rounded-md"
-                  style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                  style={{ border: '1px solid var(--border)', color: 'var(--text-2)' }}
                 >
                   <Pencil size={10} /> Edit
                 </button>

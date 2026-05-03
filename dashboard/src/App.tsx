@@ -68,7 +68,7 @@ export default function App() {
           )}
           {selected
             ? <EventDetail event={selected} onReplay={handleReplay} />
-            : <div className="flex items-center justify-center h-full text-sm" style={{ color: 'var(--text-dim)' }}>Select an event</div>
+            : <div className="flex items-center justify-center h-full text-sm" style={{ color: 'var(--text-3)' }}>Select an event</div>
           }
         </div>
       </div>

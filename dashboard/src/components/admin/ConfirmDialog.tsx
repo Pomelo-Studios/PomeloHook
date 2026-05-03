@@ -12,15 +12,15 @@ export function ConfirmDialog({ message, detail, onConfirm, onCancel }: Props) {
         className="rounded-xl p-5 max-w-md w-full mx-4 shadow-xl"
         style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
       >
-        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{message}</p>
+        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>{message}</p>
         {detail && (
-          <p className="font-mono text-xs break-all mb-4" style={{ color: 'var(--text-secondary)' }}>{detail}</p>
+          <p className="font-mono text-xs break-all mb-4" style={{ color: 'var(--text-2)' }}>{detail}</p>
         )}
         <div className="flex justify-end gap-2 mt-4">
           <button
             onClick={onCancel}
             className="text-xs px-3 py-[6px] rounded-lg transition-colors"
-            style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+            style={{ border: '1px solid var(--border)', color: 'var(--text-2)' }}
           >
             Cancel
           </button>

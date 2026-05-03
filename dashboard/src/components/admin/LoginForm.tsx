@@ -31,7 +31,7 @@ export function LoginForm({ onLogin }: Props) {
       <div className="rounded-xl p-8 w-80" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
         <div className="flex items-center gap-2 mb-6">
           <HookIcon size={28} />
-          <span className="font-extrabold text-[15px] tracking-tight" style={{ color: 'var(--text-primary)' }}>
+          <span className="font-extrabold text-[15px] tracking-tight" style={{ color: 'var(--text)' }}>
             PomeloHook Admin
           </span>
         </div>
@@ -43,7 +43,7 @@ export function LoginForm({ onLogin }: Props) {
             onChange={e => setEmail(e.target.value)}
             required
             className="rounded-lg px-3 py-2 text-xs font-mono outline-none"
-            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
           />
           <input
             type="password"
@@ -52,7 +52,7 @@ export function LoginForm({ onLogin }: Props) {
             onChange={e => setPassword(e.target.value)}
             required
             className="rounded-lg px-3 py-2 text-xs font-mono outline-none"
-            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)' }}
           />
           {error && <p className="text-xs" style={{ color: 'var(--err-text)' }}>{error}</p>}
           <button
