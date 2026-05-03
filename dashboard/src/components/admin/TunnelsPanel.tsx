@@ -42,7 +42,7 @@ export function TunnelsPanel({ apiKey }: Props) {
     })
   }
 
-  if (loading) return <div className="p-4 text-xs font-mono" style={{ color: 'var(--text-dim)' }}>Loading…</div>
+  if (loading) return <div className="p-4 text-xs font-mono" style={{ color: 'var(--text-3)' }}>Loading…</div>
 
   return (
     <div className="flex flex-col h-full">
@@ -53,8 +53,8 @@ export function TunnelsPanel({ apiKey }: Props) {
         style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
       >
         <div>
-          <div className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>Tunnels</div>
-          <div className="text-[11px]" style={{ color: 'var(--text-dim)' }}>{tunnels.length} tunnels</div>
+          <div className="text-[14px] font-bold" style={{ color: 'var(--text)' }}>Tunnels</div>
+          <div className="text-[11px]" style={{ color: 'var(--text-3)' }}>{tunnels.length} tunnels</div>
         </div>
       </div>
 
@@ -69,7 +69,7 @@ export function TunnelsPanel({ apiKey }: Props) {
           <thead className="sticky top-0">
             <tr style={{ background: 'var(--surface)' }}>
               {['Subdomain', 'Type', 'Status', 'Actions'].map(h => (
-                <th key={h} className="text-left text-[9px] font-bold tracking-[1.5px] uppercase px-4 py-2 border-b" style={{ color: 'var(--text-dim)', borderColor: 'var(--border)' }}>
+                <th key={h} className="text-left text-[9px] font-bold tracking-[1.5px] uppercase px-4 py-2 border-b" style={{ color: 'var(--text-3)', borderColor: 'var(--border)' }}>
                   {h}
                 </th>
               ))}
@@ -77,16 +77,16 @@ export function TunnelsPanel({ apiKey }: Props) {
           </thead>
           <tbody>
             {tunnels.map(t => (
-              <tr key={t.id} className="group transition-colors" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <td className="px-4 py-3 text-xs font-mono font-semibold" style={{ color: 'var(--text-primary)' }}>{t.subdomain}</td>
-                <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>{t.type}</td>
+              <tr key={t.id} className="group transition-colors" style={{ borderBottom: '1px solid var(--border)' }}>
+                <td className="px-4 py-3 text-xs font-mono font-semibold" style={{ color: 'var(--text)' }}>{t.subdomain}</td>
+                <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-2)' }}>{t.type}</td>
                 <td className="px-4 py-3">
                   <span
                     className="text-[10px] font-semibold px-2 py-[2px] rounded-full uppercase"
                     style={
                       t.status === 'active'
                         ? { background: 'var(--ok-bg)', color: 'var(--ok-text)' }
-                        : { background: 'var(--method-dim-bg)', color: 'var(--text-dim)' }
+                        : { background: 'var(--surface2)', color: 'var(--text-3)' }
                     }
                   >
                     {t.status}
@@ -98,7 +98,7 @@ export function TunnelsPanel({ apiKey }: Props) {
                       <button
                         onClick={() => confirmDisconnect(t)}
                         className="flex items-center gap-1 text-[10px] px-2 py-[3px] rounded-md"
-                        style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                        style={{ border: '1px solid var(--border)', color: 'var(--text-2)' }}
                       >
                         <Unplug size={10} /> Disconnect
                       </button>

@@ -62,7 +62,7 @@ export function DatabasePanel({ apiKey }: Props) {
         className="h-[52px] flex items-center px-5 flex-shrink-0 border-b"
         style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
       >
-        <div className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>Database</div>
+        <div className="text-[14px] font-bold" style={{ color: 'var(--text)' }}>Database</div>
       </div>
 
       {error && (
@@ -80,7 +80,7 @@ export function DatabasePanel({ apiKey }: Props) {
             style={
               tab === t
                 ? { color: '#FF6B6B', borderBottomColor: '#FF6B6B' }
-                : { color: 'var(--text-secondary)', borderBottomColor: 'transparent' }
+                : { color: 'var(--text-2)', borderBottomColor: 'transparent' }
             }
           >
             {t === 'sql' ? 'SQL' : 'Tables'}
@@ -91,19 +91,19 @@ export function DatabasePanel({ apiKey }: Props) {
       {tab === 'tables' && (
         <div className="flex flex-1 overflow-hidden">
           <div className="w-40 overflow-y-auto flex-shrink-0 py-2 border-r" style={{ borderColor: 'var(--border)' }}>
-            <p className="text-[9px] font-bold tracking-[1.5px] uppercase px-3 pb-2" style={{ color: 'var(--text-dim)' }}>Tables</p>
+            <p className="text-[9px] font-bold tracking-[1.5px] uppercase px-3 pb-2" style={{ color: 'var(--text-3)' }}>Tables</p>
             {tables.map(t => (
               <button
                 key={t.name}
                 onClick={() => loadTable(t.name, 0)}
                 className="w-full text-left px-3 py-[6px] text-[11px] flex justify-between items-center transition-colors"
                 style={{
-                  color: selectedTable === t.name ? '#FF6B6B' : 'var(--text-secondary)',
+                  color: selectedTable === t.name ? '#FF6B6B' : 'var(--text-2)',
                   background: selectedTable === t.name ? 'var(--selected-bg)' : 'transparent',
                 }}
               >
                 <span>{t.name}</span>
-                <span style={{ color: 'var(--text-dim)' }}>{t.row_count}</span>
+                <span style={{ color: 'var(--text-3)' }}>{t.row_count}</span>
               </button>
             ))}
           </div>
@@ -116,7 +116,7 @@ export function DatabasePanel({ apiKey }: Props) {
                     <thead className="sticky top-0">
                       <tr style={{ background: 'var(--surface)' }}>
                         {tableData.columns.map(c => (
-                          <th key={c} className="text-left text-[9px] font-bold tracking-[1.5px] uppercase px-4 py-2 border-b whitespace-nowrap" style={{ color: 'var(--text-dim)', borderColor: 'var(--border)' }}>
+                          <th key={c} className="text-left text-[9px] font-bold tracking-[1.5px] uppercase px-4 py-2 border-b whitespace-nowrap" style={{ color: 'var(--text-3)', borderColor: 'var(--border)' }}>
                             {c}
                           </th>
                         ))}
@@ -124,9 +124,9 @@ export function DatabasePanel({ apiKey }: Props) {
                     </thead>
                     <tbody>
                       {tableData.rows.map((row, i) => (
-                        <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                        <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
                           {row.map((cell, j) => (
-                            <td key={j} title={String(cell ?? '')} className="px-4 py-2 text-[10px] font-mono max-w-[200px] truncate" style={{ color: 'var(--text-secondary)' }}>
+                            <td key={j} title={String(cell ?? '')} className="px-4 py-2 text-[10px] font-mono max-w-[200px] truncate" style={{ color: 'var(--text-2)' }}>
                               {String(cell ?? '')}
                             </td>
                           ))}
@@ -136,17 +136,17 @@ export function DatabasePanel({ apiKey }: Props) {
                   </table>
                 </div>
                 <div className="px-5 py-2 flex items-center gap-3 flex-shrink-0 border-t" style={{ borderColor: 'var(--border)' }}>
-                  <span className="text-[10px]" style={{ color: 'var(--text-dim)' }}>{tableData.rows.length} rows</span>
+                  <span className="text-[10px]" style={{ color: 'var(--text-3)' }}>{tableData.rows.length} rows</span>
                   {offset > 0 && (
-                    <button onClick={() => loadTable(selectedTable!, offset - 200)} className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>← prev</button>
+                    <button onClick={() => loadTable(selectedTable!, offset - 200)} className="text-[10px]" style={{ color: 'var(--text-2)' }}>← prev</button>
                   )}
                   {tableData.rows.length === 200 && (
-                    <button onClick={() => loadTable(selectedTable!, offset + 200)} className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>next →</button>
+                    <button onClick={() => loadTable(selectedTable!, offset + 200)} className="text-[10px]" style={{ color: 'var(--text-2)' }}>next →</button>
                   )}
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-center h-full text-xs" style={{ color: 'var(--text-dim)' }}>Select a table</div>
+              <div className="flex items-center justify-center h-full text-xs" style={{ color: 'var(--text-3)' }}>Select a table</div>
             )}
           </div>
         </div>
@@ -161,7 +161,7 @@ export function DatabasePanel({ apiKey }: Props) {
               rows={4}
               placeholder="SELECT * FROM users LIMIT 10"
               className="w-full rounded-lg px-3 py-2 text-xs font-mono outline-none resize-none"
-              style={{ background: 'var(--code-bg)', border: '1px solid var(--code-border)', color: 'var(--text-primary)' }}
+              style={{ background: 'var(--code-bg)', border: '1px solid var(--code-border)', color: 'var(--text)' }}
             />
             <div className="flex items-center gap-2 mt-2">
               <button
@@ -189,7 +189,7 @@ export function DatabasePanel({ apiKey }: Props) {
                   <thead className="sticky top-0">
                     <tr style={{ background: 'var(--surface)' }}>
                       {queryResult.columns.map(c => (
-                        <th key={c} className="text-left text-[9px] font-bold tracking-[1.5px] uppercase px-4 py-2 border-b whitespace-nowrap" style={{ color: 'var(--text-dim)', borderColor: 'var(--border)' }}>
+                        <th key={c} className="text-left text-[9px] font-bold tracking-[1.5px] uppercase px-4 py-2 border-b whitespace-nowrap" style={{ color: 'var(--text-3)', borderColor: 'var(--border)' }}>
                           {c}
                         </th>
                       ))}
@@ -197,9 +197,9 @@ export function DatabasePanel({ apiKey }: Props) {
                   </thead>
                   <tbody>
                     {(queryResult.rows ?? []).map((row, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
                         {row.map((cell, j) => (
-                          <td key={j} className="px-4 py-2 text-[10px] font-mono max-w-[200px] truncate" style={{ color: 'var(--text-secondary)' }}>
+                          <td key={j} className="px-4 py-2 text-[10px] font-mono max-w-[200px] truncate" style={{ color: 'var(--text-2)' }}>
                             {String(cell ?? '')}
                           </td>
                         ))}
@@ -208,7 +208,7 @@ export function DatabasePanel({ apiKey }: Props) {
                   </tbody>
                 </table>
               ) : (
-                <div className="p-4 text-xs" style={{ color: 'var(--text-secondary)' }}>No results</div>
+                <div className="p-4 text-xs" style={{ color: 'var(--text-2)' }}>No results</div>
               )
             )}
           </div>

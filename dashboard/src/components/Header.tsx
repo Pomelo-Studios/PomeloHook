@@ -20,7 +20,7 @@ export function Header({ subdomain, connected, isAdmin }: Props) {
       style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
     >
       <HookIcon size={28} />
-      <span className="font-extrabold text-[15px] tracking-tight" style={{ color: 'var(--text-primary)' }}>
+      <span className="font-extrabold text-[15px] tracking-tight" style={{ color: 'var(--text)' }}>
         PomeloHook
       </span>
 
@@ -30,14 +30,14 @@ export function Header({ subdomain, connected, isAdmin }: Props) {
         <div className="flex items-center gap-2">
           <div
             className="w-[7px] h-[7px] rounded-full flex-shrink-0"
-            style={{ background: connected ? '#4CD4A1' : 'var(--text-dim)' }}
+            style={{ background: connected ? '#4CD4A1' : 'var(--text-3)' }}
           />
-          <span className="font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+          <span className="font-mono text-[10px]" style={{ color: 'var(--text-2)' }}>
             {subdomain}
           </span>
         </div>
       ) : (
-        <span className="text-[10px]" style={{ color: 'var(--text-dim)' }}>no active tunnel</span>
+        <span className="text-[10px]" style={{ color: 'var(--text-3)' }}>no active tunnel</span>
       )}
 
       <div className="ml-auto flex items-center gap-2">
@@ -54,7 +54,7 @@ export function Header({ subdomain, connected, isAdmin }: Props) {
                 style={
                   active
                     ? { color: '#FF6B6B', background: 'var(--selected-bg)', borderColor: 'var(--selected-border)' }
-                    : { color: 'var(--text-dim)', background: 'transparent', borderColor: 'transparent' }
+                    : { color: 'var(--text-3)', background: 'transparent', borderColor: 'transparent' }
                 }
               >
                 {label}
@@ -73,7 +73,7 @@ export function Header({ subdomain, connected, isAdmin }: Props) {
         <button
           onClick={toggle}
           className="w-7 h-7 flex items-center justify-center rounded-md transition-colors"
-          style={{ color: 'var(--text-dim)' }}
+          style={{ color: 'var(--text-3)' }}
           aria-label="Toggle theme"
         >
           {theme === 'dark' ? <Sun size={14} strokeWidth={2} /> : <Moon size={14} strokeWidth={2} />}

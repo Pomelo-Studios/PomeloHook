@@ -12,7 +12,7 @@ interface Props {
 function ResponsePill({ event }: { event: WebhookEvent }) {
   const style: React.CSSProperties =
     !event.Forwarded
-      ? { background: 'var(--method-dim-bg)', color: 'var(--text-dim)' }
+      ? { background: 'var(--surface2)', color: 'var(--text-3)' }
       : event.ResponseStatus >= 400
         ? { background: 'var(--err-bg)', color: 'var(--err-text)' }
         : { background: 'var(--ok-bg)', color: 'var(--ok-text)' }
@@ -38,17 +38,17 @@ export function EventDetail({ event, onReplay }: Props) {
         <span className="font-mono text-[9px] font-bold px-[7px] py-[2px] rounded-[4px] bg-coral text-white flex-shrink-0">
           {event.Method}
         </span>
-        <span className="font-mono text-[13px] font-semibold flex-1 truncate" style={{ color: 'var(--text-primary)' }}>
+        <span className="font-mono text-[13px] font-semibold flex-1 truncate" style={{ color: 'var(--text)' }}>
           {event.Path}
         </span>
-        <span className="font-mono text-[10px]" style={{ color: 'var(--text-dim)' }}>
+        <span className="font-mono text-[10px]" style={{ color: 'var(--text-3)' }}>
           {formatTime(event.ReceivedAt)}
         </span>
       </div>
 
       <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
         <div>
-          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-2" style={{ color: 'var(--text-dim)' }}>
+          <div className="text-[10px] font-bold tracking-[1.5px] uppercase mb-2" style={{ color: 'var(--text-3)' }}>
             Request Body
           </div>
           <div className="rounded-[10px] p-[14px]" style={{ background: 'var(--code-bg)', border: '1px solid var(--code-border)' }}>
@@ -58,18 +58,18 @@ export function EventDetail({ event, onReplay }: Props) {
 
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color: 'var(--text-dim)' }}>
+            <span className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color: 'var(--text-3)' }}>
               Response
             </span>
             <ResponsePill event={event} />
             {event.ResponseMS > 0 && (
-              <span className="font-mono text-[10px]" style={{ color: 'var(--text-dim)' }}>{event.ResponseMS}ms</span>
+              <span className="font-mono text-[10px]" style={{ color: 'var(--text-3)' }}>{event.ResponseMS}ms</span>
             )}
           </div>
           <div className="rounded-[10px] p-[14px]" style={responseCodeStyle(event)}>
             {event.ResponseBody
               ? <JsonView value={event.ResponseBody} />
-              : <span className="font-mono text-[10px]" style={{ color: 'var(--text-dim)' }}>—</span>
+              : <span className="font-mono text-[10px]" style={{ color: 'var(--text-3)' }}>—</span>
             }
           </div>
         </div>
@@ -84,7 +84,7 @@ export function EventDetail({ event, onReplay }: Props) {
           value={targetURL}
           onChange={e => setTargetURL(e.target.value)}
           className="flex-1 rounded-lg px-3 py-2 font-mono text-[11px] outline-none"
-          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-2)' }}
           placeholder="http://localhost:3000"
         />
         <button

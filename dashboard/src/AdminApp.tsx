@@ -29,7 +29,7 @@ export function AdminApp() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center text-xs font-mono" style={{ background: 'var(--bg)', color: 'var(--text-dim)' }}>
+      <div className="h-screen flex items-center justify-center text-xs font-mono" style={{ background: 'var(--bg)', color: 'var(--text-3)' }}>
         Loading…
       </div>
     )
@@ -57,7 +57,7 @@ export function AdminApp() {
         style={
           active
             ? { color: '#FF6B6B', background: 'var(--selected-bg)', borderColor: 'var(--selected-border)' }
-            : { color: 'var(--text-secondary)', background: 'transparent', borderColor: 'transparent' }
+            : { color: 'var(--text-2)', background: 'transparent', borderColor: 'transparent' }
         }
       >
         {item.icon}
@@ -74,14 +74,14 @@ export function AdminApp() {
           className="w-[200px] flex flex-col gap-[2px] p-2 flex-shrink-0"
           style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}
         >
-          <p className="text-[9px] font-bold tracking-[2px] uppercase px-2 pt-2 pb-1" style={{ color: 'var(--text-dim)' }}>
+          <p className="text-[9px] font-bold tracking-[2px] uppercase px-2 pt-2 pb-1" style={{ color: 'var(--text-3)' }}>
             Manage
           </p>
           {manageItems.map(item => <NavButton key={item.id} item={item} />)}
 
           <div className="my-1 mx-1" style={{ height: 1, background: 'var(--border)' }} />
 
-          <p className="text-[9px] font-bold tracking-[2px] uppercase px-2 pt-1 pb-1" style={{ color: 'var(--text-dim)' }}>
+          <p className="text-[9px] font-bold tracking-[2px] uppercase px-2 pt-1 pb-1" style={{ color: 'var(--text-3)' }}>
             Developer
           </p>
           {devItems.map(item => <NavButton key={item.id} item={item} />)}
@@ -89,7 +89,7 @@ export function AdminApp() {
           <a
             href="/app"
             className="flex items-center gap-2 px-[10px] py-[7px] rounded-lg text-[12px] font-medium transition-colors border mt-2"
-            style={{ color: 'var(--text-secondary)', background: 'transparent', borderColor: 'transparent' }}
+            style={{ color: 'var(--text-2)', background: 'transparent', borderColor: 'transparent' }}
           >
             ← App
           </a>
@@ -98,7 +98,7 @@ export function AdminApp() {
             <button
               onClick={logout}
               className="mt-auto flex items-center gap-2 px-[10px] py-[7px] rounded-lg text-[11px] transition-colors w-full"
-              style={{ color: 'var(--text-dim)' }}
+              style={{ color: 'var(--text-3)' }}
             >
               <LogOut size={13} strokeWidth={2} />
               Sign out
