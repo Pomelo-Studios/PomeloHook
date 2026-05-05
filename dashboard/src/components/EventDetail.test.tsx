@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { EventDetail } from './EventDetail'
+import { ToastProvider } from './ui'
 import type { WebhookEvent } from '../types'
 
 const mockEvent: WebhookEvent = {
@@ -20,30 +21,50 @@ const mockEvent: WebhookEvent = {
 
 describe('EventDetail', () => {
   it('shows method and path in header', () => {
-    render(<EventDetail event={mockEvent} onReplay={vi.fn()} />)
+    render(
+      <ToastProvider>
+        <EventDetail event={mockEvent} onReplay={vi.fn()} />
+      </ToastProvider>
+    )
     expect(screen.getByText('POST')).toBeInTheDocument()
     expect(screen.getByText('/webhook/stripe')).toBeInTheDocument()
   })
 
   it('renders request body JSON key', () => {
-    render(<EventDetail event={mockEvent} onReplay={vi.fn()} />)
+    render(
+      <ToastProvider>
+        <EventDetail event={mockEvent} onReplay={vi.fn()} />
+      </ToastProvider>
+    )
     expect(screen.getByText(/"amount"/)).toBeInTheDocument()
   })
 
   it('shows response status badge for forwarded event', () => {
-    render(<EventDetail event={mockEvent} onReplay={vi.fn()} />)
+    render(
+      <ToastProvider>
+        <EventDetail event={mockEvent} onReplay={vi.fn()} />
+      </ToastProvider>
+    )
     expect(screen.getByText(/200 OK/)).toBeInTheDocument()
   })
 
   it('shows not-forwarded state', () => {
     const unforwarded = { ...mockEvent, Forwarded: false, ResponseStatus: 0, ResponseBody: '' }
-    render(<EventDetail event={unforwarded} onReplay={vi.fn()} />)
+    render(
+      <ToastProvider>
+        <EventDetail event={unforwarded} onReplay={vi.fn()} />
+      </ToastProvider>
+    )
     expect(screen.getByText('not forwarded')).toBeInTheDocument()
   })
 
   it('calls onReplay with event ID and target URL when replay clicked', () => {
     const onReplay = vi.fn()
-    render(<EventDetail event={mockEvent} onReplay={onReplay} />)
+    render(
+      <ToastProvider>
+        <EventDetail event={mockEvent} onReplay={onReplay} />
+      </ToastProvider>
+    )
     fireEvent.click(screen.getByRole('button', { name: /replay/i }))
     expect(onReplay).toHaveBeenCalledWith('evt-001', expect.any(String))
   })
