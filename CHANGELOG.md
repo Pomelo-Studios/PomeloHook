@@ -6,6 +6,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Vers
 
 ---
 
+## [1.15.1] — 2026-05-05
+
+### Security
+- Block self-role escalation: `PUT /api/org/members/{id}/role` now rejects requests where the caller targets their own ID
+- Reject custom role names that collide with system role names (`admin`, `member`, `developer`, `manager`) at creation time, eliminating non-deterministic permission lookups
+- Scope `DeleteRole` system-role check by `org_id` to prevent cross-org name ambiguity
+
+### Fixed
+- Extract API key authentication in `/api/events/stream` into shared `authenticateByAPIKey` helper (logic unchanged, now reusable)
+- Disable Edit button for system roles in RolesSection to prevent attempted mutations
+- Composite unique constraint on roles table (migration 8) prevents duplicate custom role names per org
+- Remove external Fontshare CDN import; use system font stack to avoid external dependency at runtime
+- Correct developer/manager role descriptions in README
+
+---
+
 ## [1.15.0] — 2026-05-02
 
 ### Added
