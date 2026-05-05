@@ -15,70 +15,86 @@ export function Header({ subdomain, connected, isAdmin }: Props) {
   const { theme, toggle } = useTheme()
 
   return (
-    <header
-      className="h-[52px] flex-shrink-0 flex items-center gap-3 px-5 border-b"
-      style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
-    >
+    <header style={{
+      height: '48px',
+      background: 'var(--surface)',
+      borderBottom: '1px solid var(--border)',
+      display: 'flex',
+      alignItems: 'center',
+      padding: '0 16px',
+      gap: '12px',
+      flexShrink: 0,
+    }}>
       <HookIcon size={28} />
-      <span className="font-extrabold text-[15px] tracking-tight" style={{ color: 'var(--text)' }}>
+      <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-sans)' }}>
         PomeloHook
       </span>
 
-      <div className="w-px h-[18px]" style={{ background: 'var(--border)' }} />
-
-      {subdomain ? (
-        <div className="flex items-center gap-2">
-          <div
-            className="w-[7px] h-[7px] rounded-full flex-shrink-0"
-            style={{ background: connected ? '#4CD4A1' : 'var(--text-3)' }}
-          />
-          <span className="font-mono text-[10px]" style={{ color: 'var(--text-2)' }}>
+      {subdomain && (
+        <>
+          <div style={{ width: '1px', height: '16px', background: 'var(--border)', flexShrink: 0 }} />
+          <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: connected ? 'var(--mint)' : 'var(--text-3)', animation: connected ? 'blink 2s infinite' : 'none', flexShrink: 0 }} />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11.5px', color: 'var(--ok-text)', background: 'var(--ok-bg)', border: '1px solid rgba(76,212,161,0.2)', padding: '3px 10px', borderRadius: '6px' }}>
             {subdomain}
           </span>
-        </div>
-      ) : (
-        <span className="text-[10px]" style={{ color: 'var(--text-3)' }}>no active tunnel</span>
+        </>
       )}
 
-      <div className="ml-auto flex items-center gap-2">
-        {isAdmin && (
-          <div className="flex gap-1">
-            {[
-              { to: '/', label: 'Dashboard', active: !onAdmin },
-              { to: '/admin', label: 'Admin', active: onAdmin },
-            ].map(({ to, label, active }) => (
-              <Link
-                key={to}
-                to={to}
-                className="text-[11px] font-medium px-[10px] py-1 rounded-md border transition-colors"
-                style={
-                  active
-                    ? { color: '#FF6B6B', background: 'var(--selected-bg)', borderColor: 'var(--selected-border)' }
-                    : { color: 'var(--text-3)', background: 'transparent', borderColor: 'transparent' }
-                }
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
-        )}
-        {connected && (
-          <span
-            className="text-[10px] font-semibold px-[10px] py-[3px] rounded-full border"
-            style={{ color: 'var(--ok-text)', background: 'var(--ok-bg)', borderColor: 'var(--ok-bg)' }}
-          >
-            ● connected
-          </span>
-        )}
-        <button
-          onClick={toggle}
-          className="w-7 h-7 flex items-center justify-center rounded-md transition-colors"
-          style={{ color: 'var(--text-3)' }}
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? <Sun size={14} strokeWidth={2} /> : <Moon size={14} strokeWidth={2} />}
-        </button>
-      </div>
+      {!subdomain && (
+        <>
+          <div style={{ width: '1px', height: '16px', background: 'var(--border)', flexShrink: 0 }} />
+          <span style={{ fontSize: '11px', color: 'var(--text-3)', fontFamily: 'var(--font-sans)' }}>no active tunnel</span>
+        </>
+      )}
+
+      <div style={{ flex: 1 }} />
+
+      {isAdmin && (
+        <nav style={{ display: 'flex', gap: '2px' }}>
+          {[
+            { to: '/', label: 'Dashboard', active: !onAdmin },
+            { to: '/admin', label: 'Admin', active: onAdmin },
+          ].map(({ to, label, active }) => (
+            <Link
+              key={to}
+              to={to}
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: '12.5px',
+                fontWeight: 500,
+                color: active ? 'var(--text)' : 'var(--text-2)',
+                padding: '5px 10px',
+                borderRadius: '7px',
+                textDecoration: 'none',
+                background: active ? 'var(--surface2)' : 'transparent',
+                transition: 'color 0.15s',
+              }}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+      )}
+
+      <button
+        onClick={toggle}
+        style={{
+          width: '32px', height: '32px',
+          background: 'var(--surface2)',
+          border: '1px solid var(--border)',
+          borderRadius: '8px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+          color: 'var(--text-2)',
+          transition: 'border-color 0.2s',
+          flexShrink: 0,
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--coral)'; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
+        aria-label="Toggle theme"
+      >
+        {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+      </button>
     </header>
   )
 }
