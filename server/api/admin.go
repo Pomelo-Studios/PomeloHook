@@ -145,7 +145,11 @@ func handleRotateAPIKey(s *store.Store) http.HandlerFunc {
 		id := r.PathValue("id")
 		oldKey, newKey, err := s.RotateAPIKey(id, caller.OrgID)
 		if err != nil {
-			http.Error(w, "not found", http.StatusNotFound)
+			if errors.Is(err, store.ErrConflict) {
+				http.Error(w, "concurrent modification, retry", http.StatusConflict)
+			} else {
+				http.Error(w, "not found", http.StatusNotFound)
+			}
 			return
 		}
 		auth.InvalidateAPIKey(oldKey)

@@ -70,7 +70,10 @@ func validateReplayURL(raw string) error {
 }
 
 func canAccessTunnel(user *store.User, tun *store.Tunnel) bool {
-	return tun.UserID == user.ID || tun.OrgID == user.OrgID
+	if tun.UserID == user.ID {
+		return true
+	}
+	return user.OrgID != "" && tun.OrgID == user.OrgID
 }
 
 const maxListLimit = 500
@@ -157,12 +160,62 @@ func handleReplayEvent(s *store.Store) http.HandlerFunc {
 	}
 }
 
+func handleMarkEventForwarded(s *store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := auth.UserFromContext(r.Context())
+		eventID := r.PathValue("id")
+
+		event, err := s.GetEvent(eventID)
+		if err != nil {
+			http.Error(w, "event not found", http.StatusNotFound)
+			return
+		}
+		tun, err := s.GetTunnelByID(event.TunnelID)
+		if err != nil || !canAccessTunnel(user, tun) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		var body struct {
+			ResponseStatus int    `json:"response_status"`
+			ResponseBody   string `json:"response_body"`
+			ResponseMS     int64  `json:"response_ms"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			var maxBytesErr *http.MaxBytesError
+			if errors.As(err, &maxBytesErr) {
+				http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+			} else {
+				http.Error(w, "invalid JSON", http.StatusBadRequest)
+			}
+			return
+		}
+		if err := s.MarkEventForwarded(eventID, body.ResponseStatus, body.ResponseBody, body.ResponseMS); err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 func replayHTTP(event *store.WebhookEvent, targetURL string) (*http.Response, int64, error) {
 	req, err := http.NewRequest(event.Method, targetURL, bytes.NewBufferString(event.RequestBody))
 	if err != nil {
 		return nil, 0, err
 	}
-	req.Header.Set("Content-Type", "application/json")
+
+	var storedHeaders map[string][]string
+	if err := json.Unmarshal([]byte(event.Headers), &storedHeaders); err == nil {
+		for k, vals := range storedHeaders {
+			for _, v := range vals {
+				req.Header.Add(k, v)
+			}
+		}
+	}
+	if req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
 	start := time.Now()
 	resp, err := replayClient.Do(req)
 	ms := time.Since(start).Milliseconds()

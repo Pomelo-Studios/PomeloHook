@@ -1,8 +1,9 @@
 package tunnel
 
 import (
+	"bytes"
 	"encoding/json"
-	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -18,6 +19,8 @@ var wsDialer = &websocket.Dialer{
 	HandshakeTimeout: 10 * time.Second,
 	Proxy:            http.ProxyFromEnvironment,
 }
+
+var markForwardedClient = &http.Client{Timeout: 5 * time.Second}
 
 type Client struct {
 	serverURL string
@@ -64,8 +67,8 @@ func (c *Client) Connect() error {
 		conn, _, err := wsDialer.Dial(wsURL, headers)
 		if err != nil {
 			attempt++
-			if attempt > 5 {
-				return fmt.Errorf("could not connect after 5 attempts: %w", err)
+			if attempt > 10 {
+				attempt = 10
 			}
 			wait := time.Duration(1<<attempt) * time.Second
 			jitter := time.Duration(c.rng.Int63n(int64(wait / 2)))
@@ -79,6 +82,37 @@ func (c *Client) Connect() error {
 			log.Printf("tunnel disconnected: %v", err)
 		}
 	}
+}
+
+const maxForwardedBodyBytes = 512 * 1024
+
+func (c *Client) markForwarded(result *forward.ForwardResult) {
+	body := result.Body
+	if len(body) > maxForwardedBodyBytes {
+		body = body[:maxForwardedBodyBytes]
+	}
+	payload, err := json.Marshal(map[string]any{
+		"response_status": result.StatusCode,
+		"response_body":   body,
+		"response_ms":     result.MS,
+	})
+	if err != nil {
+		return
+	}
+	reqURL := c.serverURL + "/api/events/" + result.EventID + "/forwarded"
+	req, err := http.NewRequest("POST", reqURL, bytes.NewReader(payload))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := markForwardedClient.Do(req)
+	if err != nil {
+		log.Printf("mark forwarded %s: %v", result.EventID, err)
+		return
+	}
+	io.Copy(io.Discard, resp.Body)
+	resp.Body.Close()
 }
 
 func (c *Client) pump(conn *websocket.Conn) error {
@@ -99,8 +133,11 @@ func (c *Client) pump(conn *websocket.Conn) error {
 			if err != nil {
 				log.Printf("forward error: %v", err)
 			}
-			if c.onEvent != nil && result != nil {
-				c.onEvent(result)
+			if result != nil {
+				c.markForwarded(result)
+				if c.onEvent != nil {
+					c.onEvent(result)
+				}
 			}
 		}(msg)
 	}

@@ -8,6 +8,15 @@ import (
 	"github.com/pomelo-studios/pomelo-hook/server/tunnel"
 )
 
+const maxAPIBodyBytes = 1 << 20 // 1 MB body limit applied to all API endpoints
+
+func limitBody(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxAPIBodyBytes)
+		next.ServeHTTP(w, r)
+	})
+}
+
 func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
 	mux := http.NewServeMux()
 
@@ -27,6 +36,7 @@ func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
 	mux.HandleFunc("GET /api/events/stream", handleEventsStream(s, m))
 	mux.Handle("GET /api/events", perm("view_events", http.HandlerFunc(handleListEvents(s))))
 	mux.Handle("POST /api/events/{id}/replay", perm("replay_events", http.HandlerFunc(handleReplayEvent(s))))
+	mux.Handle("POST /api/events/{id}/forwarded", authed(http.HandlerFunc(handleMarkEventForwarded(s))))
 
 	mux.Handle("GET /api/tunnels", authed(http.HandlerFunc(handleListTunnels(s))))
 	mux.Handle("GET /api/org/tunnels", authed(http.HandlerFunc(handleListOrgTunnels(s))))
@@ -62,5 +72,5 @@ func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
 	mux.Handle("GET /api/admin/db/tables/{name}", adminOnly(http.HandlerFunc(handleGetTableRows(s))))
 	mux.Handle("POST /api/admin/db/query", adminOnly(http.HandlerFunc(handleRunQuery(s))))
 
-	return LoggingMiddleware(mux)
+	return limitBody(LoggingMiddleware(mux))
 }

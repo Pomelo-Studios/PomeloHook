@@ -16,7 +16,7 @@ func pickFirstTunnelID(cfg *config.Config) (string, error) {
 		return "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := apiClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -25,7 +25,7 @@ func pickFirstTunnelID(cfg *config.Config) (string, error) {
 		return "", fmt.Errorf("failed to fetch tunnels: server returned %d", resp.StatusCode)
 	}
 	var tunnels []struct {
-		ID string `json:"ID"`
+		ID string `json:"id"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&tunnels); err != nil {
 		return "", fmt.Errorf("failed to decode tunnels: %w", err)
@@ -71,7 +71,7 @@ func runList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := apiClient.Do(req)
 	if err != nil {
 		return err
 	}
