@@ -40,6 +40,10 @@ func handleCreateRole(s *store.Store) http.HandlerFunc {
 		if body.Permissions == nil {
 			body.Permissions = []string{}
 		}
+		if existing, err := s.GetRole(body.Name, caller.OrgID); err == nil && existing.IsSystem {
+			http.Error(w, "name conflicts with a system role", http.StatusBadRequest)
+			return
+		}
 		role, err := s.CreateRole(caller.OrgID, body.Name, body.DisplayName, body.Permissions)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)

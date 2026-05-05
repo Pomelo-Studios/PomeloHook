@@ -110,6 +110,10 @@ func handleChangeMemberRole(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		caller := auth.UserFromContext(r.Context())
 		id := r.PathValue("id")
+		if id == caller.ID {
+			http.Error(w, "cannot change your own role", http.StatusBadRequest)
+			return
+		}
 		var body struct {
 			Role string `json:"role"`
 		}

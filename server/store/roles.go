@@ -109,7 +109,10 @@ func (s *Store) UpdateRole(orgID, name, displayName string, permissions []string
 // DeleteRole removes a custom org role and falls back all members with that role to "member".
 func (s *Store) DeleteRole(orgID, name string) error {
 	var isSystem bool
-	err := s.db.QueryRow(`SELECT is_system FROM roles WHERE name = ?`, name).Scan(&isSystem)
+	err := s.db.QueryRow(
+		`SELECT is_system FROM roles WHERE name = ? AND (is_system = TRUE OR org_id = ?)`,
+		name, orgID,
+	).Scan(&isSystem)
 	if err == sql.ErrNoRows {
 		return sql.ErrNoRows
 	}
