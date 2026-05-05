@@ -31,11 +31,11 @@ export function SettingsTab({ apiKey, me, can }: Props) {
             style={{
               display: 'block', width: '100%', textAlign: 'left',
               padding: '6px 14px', fontSize: 11,
-              background: active === s.id ? 'rgba(255,107,107,0.08)' : 'transparent',
-              color: active === s.id ? '#FF6B6B' : '#555',
+              background: active === s.id ? 'var(--selected-bg)' : 'transparent',
+              color: active === s.id ? 'var(--coral)' : 'var(--text-3)',
               fontWeight: active === s.id ? 600 : 400,
-              borderLeft: active === s.id ? '2px solid #FF6B6B' : '2px solid transparent',
-              border: 'none', cursor: 'pointer',
+              borderLeft: active === s.id ? '2px solid var(--coral)' : '2px solid transparent',
+              cursor: 'pointer',
             }}
           >
             {s.label}
