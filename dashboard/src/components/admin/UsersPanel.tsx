@@ -82,7 +82,8 @@ export function UsersPanel({ apiKey }: Props) {
         </div>
         <button
           onClick={() => { setForm(emptyForm); setEditingID(null) }}
-          className="flex items-center gap-[6px] bg-coral hover:opacity-90 text-white rounded-lg px-[14px] py-[7px] text-[11px] font-bold transition-opacity"
+          className="flex items-center gap-[6px] rounded-lg px-[14px] py-[7px] text-[11px] font-bold transition-opacity hover:opacity-90"
+          style={{ background: 'var(--coral)', color: 'white' }}
         >
           <Plus size={12} strokeWidth={2.5} />
           New user
@@ -122,7 +123,13 @@ export function UsersPanel({ apiKey }: Props) {
               <option value="admin">admin</option>
             </select>
           </div>
-          <button onClick={handleSave} className="bg-coral hover:opacity-90 text-white rounded-lg px-3 py-[6px] text-[11px] font-bold transition-opacity">Save</button>
+          <button
+            onClick={handleSave}
+            className="rounded-lg px-3 py-[6px] text-[11px] font-bold transition-opacity hover:opacity-90"
+            style={{ background: 'var(--coral)', color: 'white' }}
+          >
+            Save
+          </button>
           <button
             onClick={() => { setForm(null); setEditingID(null) }}
             className="rounded-lg px-3 py-[6px] text-[11px]"
@@ -166,7 +173,7 @@ export function UsersPanel({ apiKey }: Props) {
                     className="text-[10px] font-semibold px-2 py-[2px] rounded-full"
                     style={
                       u.Role === 'admin'
-                        ? { background: 'var(--selected-bg)', color: '#FF6B6B' }
+                        ? { background: 'var(--selected-bg)', color: 'var(--coral)' }
                         : { background: 'var(--surface2)', color: 'var(--text-3)' }
                     }
                   >

@@ -61,7 +61,11 @@ export function OrgsPanel({ apiKey }: Props) {
                   className="rounded-lg px-3 py-[6px] text-xs font-mono outline-none w-48"
                   style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
-                <button onClick={handleSave} className="bg-coral hover:opacity-90 text-white rounded-lg px-3 py-[6px] text-[11px] font-bold transition-opacity">
+                <button
+                  onClick={handleSave}
+                  className="rounded-lg px-3 py-[6px] text-[11px] font-bold transition-opacity hover:opacity-90"
+                  style={{ background: 'var(--coral)', color: 'white' }}
+                >
                   Save
                 </button>
                 <button
