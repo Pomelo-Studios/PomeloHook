@@ -80,10 +80,10 @@ func TestListOrgUsersWithStatus_NoDuplicates(t *testing.T) {
 	user, err := s.CreateUser(store.CreateUserParams{OrgID: org.ID, Email: "a@test.com", Name: "Alice", Role: "member"})
 	require.NoError(t, err)
 
-	// Create two tunnels, both marked active for the same user
+	// Create two tunnels (personal + org), both marked active for the same user
 	t1, err := s.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID})
 	require.NoError(t, err)
-	t2, err := s.CreateTunnel(store.CreateTunnelParams{Type: "personal", UserID: user.ID, Name: "second"})
+	t2, err := s.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: org.ID, Name: "second"})
 	require.NoError(t, err)
 	require.NoError(t, s.SetTunnelActive(t1.ID, user.ID, "device1"))
 	require.NoError(t, s.SetTunnelActive(t2.ID, user.ID, "device2"))
