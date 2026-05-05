@@ -269,7 +269,7 @@ Permissions are granted via roles. Every user has one role; the `admin` role byp
 | `admin` | All permissions (hardcoded bypass) |
 | `member` | `view_events`, `replay_events` |
 
-**Default non-system roles** (editable):
+**Default system roles** (not editable):
 
 | Role | Permissions |
 |------|-------------|
