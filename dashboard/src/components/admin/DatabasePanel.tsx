@@ -79,7 +79,7 @@ export function DatabasePanel({ apiKey }: Props) {
             className="text-xs px-5 py-3 border-b-2 font-medium capitalize transition-colors"
             style={
               tab === t
-                ? { color: '#FF6B6B', borderBottomColor: '#FF6B6B' }
+                ? { color: 'var(--coral)', borderBottomColor: 'var(--coral)' }
                 : { color: 'var(--text-2)', borderBottomColor: 'transparent' }
             }
           >
@@ -98,7 +98,7 @@ export function DatabasePanel({ apiKey }: Props) {
                 onClick={() => loadTable(t.name, 0)}
                 className="w-full text-left px-3 py-[6px] text-[11px] flex justify-between items-center transition-colors"
                 style={{
-                  color: selectedTable === t.name ? '#FF6B6B' : 'var(--text-2)',
+                  color: selectedTable === t.name ? 'var(--coral)' : 'var(--text-2)',
                   background: selectedTable === t.name ? 'var(--selected-bg)' : 'transparent',
                 }}
               >
@@ -166,7 +166,8 @@ export function DatabasePanel({ apiKey }: Props) {
             <div className="flex items-center gap-2 mt-2">
               <button
                 onClick={runQuery}
-                className="flex items-center gap-[6px] bg-coral hover:opacity-90 text-white rounded-lg px-3 py-[6px] text-[11px] font-bold transition-opacity"
+                className="flex items-center gap-[6px] rounded-lg px-3 py-[6px] text-[11px] font-bold transition-opacity hover:opacity-90"
+                style={{ background: 'var(--coral)', color: 'white' }}
               >
                 <Play size={11} fill="white" strokeWidth={0} />
                 Run
@@ -174,7 +175,7 @@ export function DatabasePanel({ apiKey }: Props) {
               {isWrite && (
                 <span
                   className="flex items-center gap-1 text-[9px] px-2 py-[2px] rounded"
-                  style={{ color: '#FFA349', background: 'rgba(255,163,73,0.1)', border: '1px solid rgba(255,163,73,0.3)' }}
+                  style={{ color: 'var(--orange)', background: 'rgba(255,163,73,0.1)', border: '1px solid rgba(255,163,73,0.3)' }}
                 >
                   <AlertTriangle size={10} /> write operation
                 </span>

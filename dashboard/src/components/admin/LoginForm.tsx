@@ -58,7 +58,8 @@ export function LoginForm({ onLogin }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="bg-coral hover:opacity-90 text-white text-xs py-2 rounded-lg font-semibold disabled:opacity-50 transition-opacity"
+            className="text-xs py-2 rounded-lg font-semibold disabled:opacity-50 transition-opacity hover:opacity-90"
+            style={{ background: 'var(--coral)', color: 'white' }}
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
