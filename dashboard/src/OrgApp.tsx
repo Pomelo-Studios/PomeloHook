@@ -8,6 +8,7 @@ import { useAuth } from './hooks/useAuth'
 import { api } from './api/client'
 import type { WebhookEvent, Tunnel, Me } from './types'
 import { SettingsTab } from './components/SettingsTab'
+import { Button } from './components/ui'
 
 type Tab = 'personal' | 'org' | 'settings' | 'profile'
 
@@ -151,7 +152,7 @@ export function OrgApp() {
         className="flex items-center px-4 flex-shrink-0"
         style={{ height: '42px', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}
       >
-        <span className="font-mono text-[13px] font-bold mr-2" style={{ color: '#FF6B6B' }}>
+        <span className="font-mono text-[13px] font-bold mr-2" style={{ color: 'var(--coral)' }}>
           PomeloHook
         </span>
         {me?.org_name && (
@@ -167,11 +168,11 @@ export function OrgApp() {
             <button
               key={t}
               onClick={() => { setTab(t as Tab); setSelectedTunnelID(null); setSelectedEvent(null) }}
-              className="px-3 py-1 rounded text-[11px] font-semibold capitalize transition-colors"
+              className="px-3 text-[11px] font-semibold capitalize transition-colors"
               style={
                 tab === t
-                  ? { background: 'rgba(255,107,107,0.13)', color: '#FF6B6B' }
-                  : { color: 'var(--text-3)' }
+                  ? { color: 'var(--coral)', borderBottom: '2px solid var(--coral)', paddingBottom: '10px', marginBottom: '-1px', background: 'transparent' }
+                  : { color: 'var(--text-3)', borderBottom: '2px solid transparent', paddingBottom: '10px', marginBottom: '-1px', background: 'transparent' }
               }
             >
               {t}
@@ -180,14 +181,15 @@ export function OrgApp() {
         </div>
         <div className="flex-1" />
         {(tab === 'personal' || tab === 'org') && (tab === 'personal' || can('create_org_tunnel')) && (
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleCreateTunnel}
             disabled={creating}
-            className="text-[11px] font-semibold px-3 py-1 rounded mr-3 transition-colors"
-            style={{ background: 'rgba(255,107,107,0.13)', color: '#FF6B6B', border: '1px solid rgba(255,107,107,0.3)' }}
+            className="mr-3"
           >
             {creating ? 'Creating…' : '+ New Tunnel'}
-          </button>
+          </Button>
         )}
         {me?.role === 'admin' && (
           <a
@@ -244,7 +246,7 @@ export function OrgApp() {
           <div className="flex-1 flex flex-col overflow-hidden">
             {selectedTunnel && (
               <div style={{ padding: '6px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-                <div style={{ fontSize: 10, color: '#555', marginBottom: 3 }}>Display name</div>
+                <div style={{ fontSize: 10, color: 'var(--text-3)', marginBottom: 3 }}>Display name</div>
                 {editingDisplayName ? (
                   <div style={{ display: 'flex', gap: 6 }}>
                     <input
@@ -253,27 +255,29 @@ export function OrgApp() {
                       style={{ flex: 1, padding: '3px 6px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 4, fontSize: 11 }}
                       autoFocus
                     />
-                    <button
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={async () => {
                         const updated = await api.org.updateTunnel(apiKey, selectedTunnel.id, displayNameInput)
                         setTunnels(ts => ts.map(t => t.id === updated.id ? updated : t))
                         setEditingDisplayName(false)
                       }}
-                      style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(255,107,107,0.13)', color: '#FF6B6B', border: '1px solid rgba(255,107,107,0.3)', borderRadius: 4, cursor: 'pointer' }}
                     >
                       Save
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => { setEditingDisplayName(false); setDisplayNameInput(selectedTunnel.display_name ?? '') }}
-                      style={{ fontSize: 11, padding: '2px 8px', background: 'transparent', color: '#555', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer' }}
                     >
                       ✕
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <div
                     onClick={() => { setDisplayNameInput(selectedTunnel.display_name ?? ''); setEditingDisplayName(true) }}
-                    style={{ fontSize: 12, color: selectedTunnel.display_name ? 'var(--text)' : '#444', cursor: 'pointer', padding: '2px 4px', borderRadius: 4 }}
+                    style={{ fontSize: 12, color: selectedTunnel.display_name ? 'var(--text)' : 'var(--text-3)', cursor: 'pointer', padding: '2px 4px', borderRadius: 4 }}
                     title="Click to rename"
                   >
                     {selectedTunnel.display_name || '(click to add display name)'}
@@ -312,7 +316,7 @@ const profileLabelStyle: React.CSSProperties = {
   fontSize: 10, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 1,
 }
 const profileBtnStyle: React.CSSProperties = {
-  background: '#FF6B6B', color: '#fff', border: 'none', borderRadius: 6,
+  background: 'var(--coral)', color: 'white', border: 'none', borderRadius: 6,
   padding: '6px 14px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
 }
 

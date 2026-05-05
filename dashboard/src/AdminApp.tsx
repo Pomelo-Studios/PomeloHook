@@ -56,7 +56,7 @@ export function AdminApp() {
         className="flex items-center gap-2 px-[10px] py-[7px] rounded-lg w-full text-left text-[12px] font-medium transition-colors border"
         style={
           active
-            ? { color: '#FF6B6B', background: 'var(--selected-bg)', borderColor: 'var(--selected-border)' }
+            ? { color: 'var(--coral)', background: 'var(--selected-bg)', borderColor: 'var(--selected-border)' }
             : { color: 'var(--text-2)', background: 'transparent', borderColor: 'transparent' }
         }
       >
