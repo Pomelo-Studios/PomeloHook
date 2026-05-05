@@ -1,4 +1,3 @@
-@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap');
 @import "tailwindcss";
 
 /* ── Global brand tokens (theme-independent) ── */
@@ -8,7 +7,7 @@
   --orange: #FFA349;
   --purple: #A7B8FA;
 
-  --font-sans: 'Satoshi', sans-serif;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
 }
 
