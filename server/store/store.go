@@ -154,6 +154,70 @@ var migrations = []migration{
         CREATE INDEX IF NOT EXISTS idx_events_tunnel_received
             ON webhook_events (tunnel_id, received_at);
     `},
+	{version: 5, fn: func(tx *sql.Tx) error {
+		if _, err := tx.Exec(`
+			CREATE TABLE IF NOT EXISTS roles (
+				name         TEXT PRIMARY KEY,
+				display_name TEXT NOT NULL,
+				permissions  TEXT NOT NULL DEFAULT '[]',
+				is_system    BOOLEAN NOT NULL DEFAULT FALSE,
+				created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+			)
+		`); err != nil {
+			return err
+		}
+		if err := addColumnIfNotExists(tx, "tunnels", "display_name", "TEXT"); err != nil {
+			return err
+		}
+		_, err := tx.Exec(`
+			INSERT OR IGNORE INTO roles (name, display_name, permissions, is_system) VALUES
+				('admin',     'Admin',     '[]',                                                                                                      TRUE),
+				('member',    'Member',    '["view_events","replay_events"]',                                                                         TRUE),
+				('developer', 'Developer', '["view_events","replay_events","create_org_tunnel","delete_org_tunnel"]',                                  FALSE),
+				('manager',   'Manager',   '["view_events","replay_events","create_org_tunnel","delete_org_tunnel","manage_members","change_member_role"]', FALSE)
+		`)
+		return err
+	}},
+	{version: 6, fn: func(tx *sql.Tx) error {
+		if err := addColumnIfNotExists(tx, "roles", "org_id", "TEXT REFERENCES organizations(id)"); err != nil {
+			return err
+		}
+		// developer and manager were seeded as is_system=FALSE in migration 5;
+		// mark them system so they remain visible across all orgs after org scoping.
+		_, err := tx.Exec(`UPDATE roles SET is_system = TRUE WHERE name IN ('developer','manager') AND is_system = FALSE`)
+		return err
+	}},
+	{version: 7, sql: `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_personal_tunnel
+		ON tunnels(user_id) WHERE type='personal'
+	`},
+	{version: 8, fn: func(tx *sql.Tx) error {
+		// Recreate roles without the global `name TEXT PRIMARY KEY` so that
+		// two orgs can each define a role with the same name.
+		// System roles (org_id IS NULL) are unique by name; custom roles by (name, org_id).
+		stmts := []string{
+			`CREATE TABLE IF NOT EXISTS roles_new (
+				name         TEXT NOT NULL,
+				display_name TEXT NOT NULL,
+				permissions  TEXT NOT NULL DEFAULT '[]',
+				is_system    BOOLEAN NOT NULL DEFAULT FALSE,
+				org_id       TEXT REFERENCES organizations(id),
+				created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+			)`,
+			`INSERT INTO roles_new (name, display_name, permissions, is_system, org_id, created_at)
+			 SELECT name, display_name, permissions, is_system, org_id, created_at FROM roles`,
+			`DROP TABLE roles`,
+			`ALTER TABLE roles_new RENAME TO roles`,
+			`CREATE UNIQUE INDEX idx_roles_system_name ON roles(name) WHERE org_id IS NULL`,
+			`CREATE UNIQUE INDEX idx_roles_custom_name  ON roles(name, org_id) WHERE org_id IS NOT NULL`,
+		}
+		for _, s := range stmts {
+			if _, err := tx.Exec(s); err != nil {
+				return err
+			}
+		}
+		return nil
+	}},
 }
 
 func migrate(db *sql.DB) error {

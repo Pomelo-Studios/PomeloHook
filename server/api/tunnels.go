@@ -1,13 +1,13 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
 
 	"github.com/pomelo-studios/pomelo-hook/server/auth"
 	"github.com/pomelo-studios/pomelo-hook/server/store"
+	"github.com/pomelo-studios/pomelo-hook/server/tunnel"
 )
 
 func handleCreateTunnel(s *store.Store) http.HandlerFunc {
@@ -25,25 +25,28 @@ func handleCreateTunnel(s *store.Store) http.HandlerFunc {
 			http.Error(w, "type must be personal or org", http.StatusBadRequest)
 			return
 		}
-		if body.Type == "org" && user.Role != "admin" {
-			http.Error(w, "only admins can create org tunnels", http.StatusForbidden)
+		if body.Type == "org" && !user.Can("create_org_tunnel") {
+			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
-		params := store.CreateTunnelParams{Type: body.Type, Name: body.Name}
 		if body.Type == "personal" {
-			params.UserID = user.ID
-			existing, err := s.GetPersonalTunnelForUser(user.ID)
-			if err == nil {
-				writeJSON(w, existing)
+			tun, created, err := s.GetOrCreatePersonalTunnel(user.ID, body.Name)
+			if errors.Is(err, store.ErrSubdomainTaken) {
+				http.Error(w, "subdomain already taken", http.StatusConflict)
 				return
 			}
-			if !errors.Is(err, sql.ErrNoRows) {
+			if err != nil {
 				http.Error(w, "internal error", http.StatusInternalServerError)
 				return
 			}
-		} else {
-			params.OrgID = user.OrgID
+			if created {
+				writeJSONStatus(w, http.StatusCreated, tun)
+			} else {
+				writeJSON(w, tun)
+			}
+			return
 		}
+		params := store.CreateTunnelParams{Type: body.Type, Name: body.Name, OrgID: user.OrgID}
 		tun, err := s.CreateTunnel(params)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -84,5 +87,64 @@ func handleListOrgTunnels(s *store.Store) http.HandlerFunc {
 			tunnels = []*store.Tunnel{}
 		}
 		writeJSON(w, tunnels)
+	}
+}
+
+func handleDeleteOrgTunnel(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := auth.UserFromContext(r.Context())
+		id := r.PathValue("id")
+		tun, err := s.GetTunnelByID(id)
+		if err != nil {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if tun.Type == "personal" {
+			http.Error(w, "cannot delete personal tunnels via this endpoint", http.StatusForbidden)
+			return
+		}
+		if tun.OrgID != user.OrgID {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if err := s.DeleteTunnel(id, user.OrgID); err != nil {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		m.UnregisterAll(id)
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func handleUpdateTunnel(s *store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := auth.UserFromContext(r.Context())
+		id := r.PathValue("id")
+		var body struct {
+			DisplayName string `json:"display_name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			return
+		}
+		tun, err := s.GetTunnelByID(id)
+		if err != nil {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if tun.Type == "personal" && tun.UserID != user.ID {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		if tun.Type == "org" && (!user.Can("create_org_tunnel") || tun.OrgID != user.OrgID) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		updated, err := s.UpdateTunnelDisplayName(id, body.DisplayName)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, updated)
 	}
 }

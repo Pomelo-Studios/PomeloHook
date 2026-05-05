@@ -107,5 +107,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.manager.Broadcast(tun.ID, payload)
 	}
 
+	if h.manager.StreamCount(tun.ID) > 0 {
+		eventJSON, _ := json.Marshal(event)
+		h.manager.BroadcastEvent(tun.ID, eventJSON)
+	}
+
 	w.WriteHeader(http.StatusAccepted)
 }

@@ -2,7 +2,10 @@ package store
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
+	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -13,6 +16,7 @@ type Tunnel struct {
 	UserID       string `json:"user_id"`
 	OrgID        string `json:"org_id"`
 	Subdomain    string `json:"subdomain"`
+	DisplayName  string `json:"display_name,omitempty"`
 	ActiveUserID string `json:"active_user_id"`
 	ActiveDevice string `json:"active_device"`
 	Status       string `json:"status"`
@@ -25,11 +29,11 @@ type CreateTunnelParams struct {
 	Name   string // optional, used as subdomain for org tunnels
 }
 
-const tunnelColumns = `id, type, COALESCE(user_id,''), COALESCE(org_id,''), subdomain, COALESCE(active_user_id,''), COALESCE(active_device,''), status`
+const tunnelColumns = `id, type, COALESCE(user_id,''), COALESCE(org_id,''), subdomain, COALESCE(display_name,''), COALESCE(active_user_id,''), COALESCE(active_device,''), status`
 
 func scanTunnel(row rowScanner) (*Tunnel, error) {
 	t := &Tunnel{}
-	return t, row.Scan(&t.ID, &t.Type, &t.UserID, &t.OrgID, &t.Subdomain, &t.ActiveUserID, &t.ActiveDevice, &t.Status)
+	return t, row.Scan(&t.ID, &t.Type, &t.UserID, &t.OrgID, &t.Subdomain, &t.DisplayName, &t.ActiveUserID, &t.ActiveDevice, &t.Status)
 }
 
 func randomHex(n int) (string, error) {
@@ -60,9 +64,14 @@ func (s *Store) CreateTunnel(p CreateTunnelParams) (*Tunnel, error) {
 	return &Tunnel{ID: id, Type: p.Type, UserID: p.UserID, OrgID: p.OrgID, Subdomain: subdomain, Status: "inactive"}, nil
 }
 
-func (s *Store) GetPersonalTunnelForUser(userID string) (*Tunnel, error) {
-	row := s.db.QueryRow(`SELECT `+tunnelColumns+` FROM tunnels WHERE type='personal' AND user_id=? LIMIT 1`, userID)
-	return scanTunnel(row)
+func (s *Store) GetPersonalTunnel(userID string) (*Tunnel, error) {
+	row := s.db.QueryRow(
+		`SELECT `+tunnelColumns+` FROM tunnels WHERE user_id=? AND type='personal' LIMIT 1`, userID)
+	t, err := scanTunnel(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return t, err
 }
 
 func (s *Store) GetTunnelBySubdomain(subdomain string) (*Tunnel, error) {
@@ -140,9 +149,60 @@ func (s *Store) ListOrgTunnels(orgID string) ([]*Tunnel, error) {
 	return tunnels, rows.Err()
 }
 
+func (s *Store) UpdateTunnelDisplayName(id, displayName string) (*Tunnel, error) {
+	_, err := s.db.Exec(`UPDATE tunnels SET display_name = ? WHERE id = ?`, nilIfEmpty(displayName), id)
+	if err != nil {
+		return nil, err
+	}
+	return s.GetTunnelByID(id)
+}
+
 func nilIfEmpty(s string) any {
 	if s == "" {
 		return nil
 	}
 	return s
+}
+
+var ErrSubdomainTaken = errors.New("subdomain already taken by another user")
+
+func (s *Store) GetOrCreatePersonalTunnel(userID, name string) (*Tunnel, bool, error) {
+	// Always check for an existing personal tunnel first, regardless of name.
+	// A user can only have one personal tunnel; name is only used when creating.
+	existing, err := s.GetPersonalTunnel(userID)
+	if err != nil {
+		return nil, false, err
+	}
+	if existing != nil {
+		return existing, false, nil
+	}
+
+	if name != "" {
+		// Ensure the desired subdomain is available before creating.
+		_, err := s.GetTunnelBySubdomain(name)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, false, err
+		}
+		if err == nil {
+			return nil, false, ErrSubdomainTaken
+		}
+	}
+
+	tun, err := s.CreateTunnel(CreateTunnelParams{Type: "personal", UserID: userID, Name: name})
+	if err != nil {
+		// Handle race: another request created the tunnel between our GET and INSERT.
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			existing, err2 := s.GetPersonalTunnel(userID)
+			if err2 == nil && existing != nil {
+				return existing, false, nil
+			}
+			if err2 == nil {
+				// Collision caused by another user's tunnel winning the race on this subdomain.
+				return nil, false, ErrSubdomainTaken
+			}
+			return nil, false, err2
+		}
+		return nil, false, err
+	}
+	return tun, true, nil
 }

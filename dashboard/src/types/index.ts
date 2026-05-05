@@ -14,15 +14,18 @@ export interface WebhookEvent {
 }
 
 export interface Tunnel {
-  ID: string
-  Type: 'personal' | 'org'
-  Subdomain: string
-  Status: 'active' | 'inactive'
-  ActiveUserID: string
-  ActiveDevice: string
+  id: string
+  type: 'personal' | 'org'
+  user_id: string
+  org_id: string
+  subdomain: string
+  display_name: string
+  active_user_id: string
+  active_device: string
+  status: 'active' | 'inactive'
 }
 
-export type Role = 'admin' | 'member'
+export type RoleName = string
 
 export interface User {
   ID: string
@@ -30,7 +33,7 @@ export interface User {
   Email: string
   Name: string
   APIKey: string
-  Role: Role
+  Role: RoleName
 }
 
 export interface ConfirmState {
@@ -51,6 +54,25 @@ export interface Me {
   name: string
   role: string
   org_id: string
+  org_name: string
+  api_key: string
+  permissions: string[]
+}
+
+export interface OrgRole {
+  name: string
+  display_name: string
+  permissions: string[]
+  is_system: boolean
+  created_at: string
+}
+
+export interface OrgMember {
+  ID: string
+  Name: string
+  Email: string
+  Role: string
+  ActiveTunnelSubdomain: string
 }
 
 export interface TableInfo {

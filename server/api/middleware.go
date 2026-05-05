@@ -7,6 +7,9 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/pomelo-studios/pomelo-hook/server/auth"
+	"github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
 type responseWriter struct {
@@ -60,4 +63,39 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			r.RemoteAddr,
 		)
 	})
+}
+
+// authenticateByAPIKey reads api_key from the query string, looks up the user,
+// and attaches permissions. Returns nil and writes the error response if auth fails.
+func authenticateByAPIKey(s *store.Store, w http.ResponseWriter, r *http.Request) *store.User {
+	apiKey := r.URL.Query().Get("api_key")
+	if apiKey == "" {
+		http.Error(w, "api_key required", http.StatusUnauthorized)
+		return nil
+	}
+	user, err := s.GetUserByAPIKey(apiKey)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return nil
+	}
+	perms, err := s.GetRolePermissions(user.Role, user.OrgID)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return nil
+	}
+	user.Permissions = perms
+	return user
+}
+
+func requirePermission(perm string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user := auth.UserFromContext(r.Context())
+			if user == nil || !user.Can(perm) {
+				http.Error(w, "forbidden", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }

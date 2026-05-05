@@ -87,3 +87,25 @@ func TestMigration_VersionsAreRecorded(t *testing.T) {
 	require.NoError(t, err)
 	require.Greater(t, count, 0, "at least one migration must have been recorded")
 }
+
+func TestMigration5_RolesAndDisplayName(t *testing.T) {
+	s, err := store.Open(":memory:")
+	require.NoError(t, err)
+	defer s.Close()
+
+	var count int
+	require.NoError(t, s.QueryRaw(&count, `SELECT COUNT(*) FROM roles`), "roles table missing")
+	require.Equal(t, 4, count, "want 4 seeded roles")
+
+	var col int
+	require.NoError(t, s.QueryRaw(&col, `SELECT COUNT(*) FROM pragma_table_info('tunnels') WHERE name='display_name'`))
+	require.Equal(t, 1, col, "tunnels.display_name column missing")
+
+	var isSystem bool
+	require.NoError(t, s.QueryRaw(&isSystem, `SELECT is_system FROM roles WHERE name='member'`))
+	require.True(t, isSystem, "member role must be a system role")
+
+	var memberPerms string
+	require.NoError(t, s.QueryRaw(&memberPerms, `SELECT permissions FROM roles WHERE name='member'`))
+	require.Contains(t, memberPerms, "view_events", "member must have view_events permission")
+}

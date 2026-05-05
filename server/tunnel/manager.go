@@ -6,18 +6,19 @@ import (
 )
 
 type Manager struct {
-	mu    sync.Mutex
-	conns map[string][]chan []byte
+	mu      sync.Mutex
+	conns   map[string][]chan []byte
+	streams map[string][]chan []byte
 }
 
 func NewManager() *Manager {
 	return &Manager{
-		conns: make(map[string][]chan []byte),
+		conns:   make(map[string][]chan []byte),
+		streams: make(map[string][]chan []byte),
 	}
 }
 
-// Register adds a new subscriber for tunnelID and returns its dedicated channel.
-// Always succeeds — multiple subscribers on the same tunnel are allowed.
+// Multiple subscribers on the same tunnel are allowed.
 func (m *Manager) Register(tunnelID, _ string) chan []byte {
 	ch := make(chan []byte, 64)
 	m.mu.Lock()
@@ -26,7 +27,6 @@ func (m *Manager) Register(tunnelID, _ string) chan []byte {
 	return ch
 }
 
-// Unregister removes and closes the specific channel from tunnelID's subscriber list.
 // Returns true if this was the last subscriber (determined atomically under the lock).
 // Safe to call on an already-removed channel (no-op, returns false).
 func (m *Manager) Unregister(tunnelID string, ch chan []byte) (wasLast bool) {
@@ -47,7 +47,6 @@ func (m *Manager) Unregister(tunnelID string, ch chan []byte) (wasLast bool) {
 	return false
 }
 
-// UnregisterAll closes and removes every subscriber for tunnelID.
 // Used by admin disconnect/delete operations.
 func (m *Manager) UnregisterAll(tunnelID string) {
 	m.mu.Lock()
@@ -56,9 +55,12 @@ func (m *Manager) UnregisterAll(tunnelID string) {
 		close(ch)
 	}
 	delete(m.conns, tunnelID)
+	for _, ch := range m.streams[tunnelID] {
+		close(ch)
+	}
+	delete(m.streams, tunnelID)
 }
 
-// Broadcast sends payload to all subscribers of tunnelID.
 // Non-blocking per subscriber: drops the message if a channel's buffer is full.
 func (m *Manager) Broadcast(tunnelID string, payload []byte) {
 	m.mu.Lock()
@@ -72,9 +74,52 @@ func (m *Manager) Broadcast(tunnelID string, payload []byte) {
 	}
 }
 
-// SubCount returns the number of active subscribers for tunnelID.
 func (m *Manager) SubCount(tunnelID string) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return len(m.conns[tunnelID])
+}
+
+func (m *Manager) StreamCount(tunnelID string) int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.streams[tunnelID])
+}
+
+func (m *Manager) RegisterStream(tunnelID string) chan []byte {
+	ch := make(chan []byte, 64)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.streams[tunnelID] = append(m.streams[tunnelID], ch)
+	return ch
+}
+
+// Safe to call on an already-removed channel (no-op).
+func (m *Manager) UnregisterStream(tunnelID string, ch chan []byte) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	subs := m.streams[tunnelID]
+	for i, c := range subs {
+		if c == ch {
+			close(c)
+			m.streams[tunnelID] = append(subs[:i], subs[i+1:]...)
+			break
+		}
+	}
+	if len(m.streams[tunnelID]) == 0 {
+		delete(m.streams, tunnelID)
+	}
+}
+
+// Non-blocking per subscriber: drops the message if a channel's buffer is full.
+func (m *Manager) BroadcastEvent(tunnelID string, eventJSON []byte) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, ch := range m.streams[tunnelID] {
+		select {
+		case ch <- eventJSON:
+		default:
+			log.Printf("tunnel %s: stream subscriber buffer full, event dropped", tunnelID)
+		}
+	}
 }

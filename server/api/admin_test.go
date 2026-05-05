@@ -45,10 +45,13 @@ func TestGetMeReturnsCurrentUser(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	require.Equal(t, http.StatusOK, rec.Code)
-	var body map[string]string
+	var body map[string]any
 	json.NewDecoder(rec.Body).Decode(&body)
 	require.Equal(t, "admin@a.com", body["email"])
 	require.Equal(t, "admin", body["role"])
+	require.NotEmpty(t, body["org_name"])
+	perms, _ := body["permissions"].([]any)
+	require.NotEmpty(t, perms, "admin should receive non-empty permissions list")
 }
 
 func TestAdminUsersRequiresAdminRole(t *testing.T) {
@@ -180,6 +183,34 @@ func TestLoginSuccess(t *testing.T) {
 	require.NotEmpty(t, resp["api_key"])
 }
 
+func TestMemberCanLogin(t *testing.T) {
+	db, _, _ := setupAdmin(t)
+	defer db.Close()
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+
+	member, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "member@acme.com", Name: "Member", Role: "member"})
+	require.NoError(t, err)
+
+	err = db.SetPasswordHash(member.ID, member.OrgID, string(hash))
+	require.NoError(t, err)
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	body, _ := json.Marshal(map[string]string{"email": "member@acme.com", "password": "password123"})
+	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var resp map[string]string
+	err = json.NewDecoder(rec.Body).Decode(&resp)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp["api_key"])
+}
+
 func TestAdminSetUserPassword(t *testing.T) {
 	db, admin, router := setupAdmin(t)
 	defer db.Close()
@@ -245,4 +276,55 @@ func TestAdminRunQuerySelectAllowed(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	require.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestUpdateMe(t *testing.T) {
+	db, err := store.Open(":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+	err = db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	require.NoError(t, err)
+	user, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "Alice", Role: "member"})
+	require.NoError(t, err)
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	body, _ := json.Marshal(map[string]string{"name": "Alice Updated", "email": "alice2@b.com"})
+	req := httptest.NewRequest("PUT", "/api/me", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+user.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]string
+	err = json.NewDecoder(w.Body).Decode(&resp)
+	require.NoError(t, err)
+	require.Equal(t, "Alice Updated", resp["name"])
+}
+
+func TestChangePassword(t *testing.T) {
+	db, err := store.Open(":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+	err = db.ExecRaw("INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')")
+	require.NoError(t, err)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("oldpassword"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+	user, err := db.CreateUser(store.CreateUserParams{OrgID: "org1", Email: "a@b.com", Name: "Alice", Role: "member", PasswordHash: string(hash)})
+	require.NoError(t, err)
+
+	mgr := tunnel.NewManager()
+	router := api.NewRouter(db, mgr)
+
+	body, _ := json.Marshal(map[string]string{"current_password": "oldpassword", "new_password": "newpassword123"})
+	req := httptest.NewRequest("POST", "/api/me/password", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+user.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusNoContent, w.Code)
 }

@@ -1,38 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { EventList } from './components/EventList'
 import { EventDetail } from './components/EventDetail'
 import { Header } from './components/Header'
 import { api } from './api/client'
 import type { WebhookEvent } from './types'
-
-function useWSEvents(tunnelID: string, onEvent: (e: WebhookEvent) => void) {
-  const onEventRef = useRef(onEvent)
-  onEventRef.current = onEvent
-
-  useEffect(() => {
-    if (!tunnelID) return
-    let ws: WebSocket
-    let closed = false
-    let delay = 1000
-
-    function connect() {
-      ws = new WebSocket(`ws://${location.host}/api/events/stream?tunnel_id=${tunnelID}`)
-      ws.onmessage = e => {
-        try { onEventRef.current(JSON.parse(e.data) as WebhookEvent) } catch {}
-      }
-      ws.onopen = () => { delay = 1000 }
-      ws.onclose = () => {
-        if (!closed) {
-          setTimeout(() => { delay = Math.min(delay * 2, 30000); connect() }, delay)
-        }
-      }
-      ws.onerror = () => ws.close()
-    }
-
-    connect()
-    return () => { closed = true; ws?.close() }
-  }, [tunnelID])
-}
 
 export default function App() {
   const [events, setEvents] = useState<WebhookEvent[]>([])
@@ -43,21 +14,30 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    Promise.all([api.getMe(''), api.getTunnels()])
-      .then(([me, tunnels]) => {
-        if (me.role === 'admin') setIsAdmin(true)
-        const active = tunnels.find(t => t.Status === 'active')
-        if (active) { setTunnelID(active.ID); setTunnelSubdomain(active.Subdomain) }
-      })
-      .catch(() => {})
-  }, [])
+    if (tunnelID) return
+    let cancelled = false
+    function poll() {
+      Promise.all([api.getMe(''), api.getTunnels()])
+        .then(([me, tunnels]) => {
+          if (cancelled) return
+          if (me.role === 'admin') setIsAdmin(true)
+          const active = tunnels.find(t => t.status === 'active')
+          if (active) { setTunnelID(active.id); setTunnelSubdomain(active.subdomain) }
+        })
+        .catch(() => {})
+    }
+    poll()
+    const id = setInterval(poll, 3000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [tunnelID])
 
   useEffect(() => {
     if (!tunnelID) return
-    api.getEvents(tunnelID, 100).then(setEvents).catch(() => {})
+    const fn = () => api.getEvents(tunnelID, 100).then(setEvents).catch(() => {})
+    fn()
+    const id = setInterval(fn, 3000)
+    return () => clearInterval(id)
   }, [tunnelID])
-
-  useWSEvents(tunnelID, event => setEvents(prev => [event, ...prev].slice(0, 100)))
 
   const handleReplay = useCallback(async (eventID: string, targetURL: string) => {
     setReplayError(null)
@@ -88,7 +68,7 @@ export default function App() {
           )}
           {selected
             ? <EventDetail event={selected} onReplay={handleReplay} />
-            : <div className="flex items-center justify-center h-full text-sm" style={{ color: 'var(--text-dim)' }}>Select an event</div>
+            : <div className="flex items-center justify-center h-full text-sm" style={{ color: 'var(--text-3)' }}>Select an event</div>
           }
         </div>
       </div>

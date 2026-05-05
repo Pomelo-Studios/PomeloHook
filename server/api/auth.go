@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/pomelo-studios/pomelo-hook/server/auth"
 	"github.com/pomelo-studios/pomelo-hook/server/store"
 )
 
@@ -79,6 +80,15 @@ func clientIP(r *http.Request) string {
 	return ip
 }
 
+func hashPassword(w http.ResponseWriter, plain string) (string, bool) {
+	h, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return "", false
+	}
+	return string(h), true
+}
+
 func handleLogin(s *store.Store) http.HandlerFunc {
 	rl := newLoginRateLimiter()
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -108,10 +118,64 @@ func handleLogin(s *store.Store) http.HandlerFunc {
 			http.Error(w, "invalid credentials", http.StatusUnauthorized)
 			return
 		}
-		if user.Role != "admin" {
-			http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		writeJSON(w, map[string]string{"api_key": user.APIKey, "name": user.Name})
+	}
+}
+
+func handleUpdateMe(s *store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := auth.UserFromContext(r.Context())
+		var body struct {
+			Name  string `json:"name"`
+			Email string `json:"email"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" || body.Email == "" {
+			http.Error(w, "name and email required", http.StatusBadRequest)
 			return
 		}
-		writeJSON(w, map[string]string{"api_key": user.APIKey, "name": user.Name})
+		updated, err := s.UpdateUserProfile(user.ID, user.OrgID, body.Name, body.Email)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		auth.InvalidateAPIKey(user.APIKey)
+		writeJSON(w, map[string]string{
+			"id":    updated.ID,
+			"email": updated.Email,
+			"name":  updated.Name,
+			"role":  updated.Role,
+		})
+	}
+}
+
+func handleChangePassword(s *store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := auth.UserFromContext(r.Context())
+		var body struct {
+			CurrentPassword string `json:"current_password"`
+			NewPassword     string `json:"new_password"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "invalid body", http.StatusBadRequest)
+			return
+		}
+		if len(body.NewPassword) < 8 {
+			http.Error(w, "new password must be at least 8 characters", http.StatusBadRequest)
+			return
+		}
+		if user.PasswordHash != "" && bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(body.CurrentPassword)) != nil {
+			http.Error(w, "current password is incorrect", http.StatusUnauthorized)
+			return
+		}
+		hash, ok := hashPassword(w, body.NewPassword)
+		if !ok {
+			return
+		}
+		if err := s.SetPasswordHash(user.ID, user.OrgID, hash); err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		auth.InvalidateAPIKey(user.APIKey)
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

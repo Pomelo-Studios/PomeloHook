@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/pomelo-studios/pomelo-hook/server/auth"
 	"github.com/pomelo-studios/pomelo-hook/server/store"
 	"github.com/pomelo-studios/pomelo-hook/server/tunnel"
@@ -26,15 +24,34 @@ func requireAdmin(next http.Handler) http.Handler {
 	})
 }
 
-func handleGetMe() http.HandlerFunc {
+func handleGetMe(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := auth.UserFromContext(r.Context())
-		writeJSON(w, map[string]string{
-			"id":     user.ID,
-			"email":  user.Email,
-			"name":   user.Name,
-			"role":   user.Role,
-			"org_id": user.OrgID,
+		perms := make([]string, 0, len(user.Permissions))
+		for p := range user.Permissions {
+			perms = append(perms, p)
+		}
+		if user.Role == "admin" {
+			perms = []string{
+				"create_org_tunnel", "delete_org_tunnel",
+				"view_events", "replay_events",
+				"manage_members", "change_member_role",
+				"edit_org_settings", "manage_roles",
+			}
+		}
+		orgName := ""
+		if org, err := s.GetOrg(user.OrgID); err == nil {
+			orgName = org.Name
+		}
+		writeJSON(w, map[string]any{
+			"id":          user.ID,
+			"email":       user.Email,
+			"name":        user.Name,
+			"role":        user.Role,
+			"org_id":      user.OrgID,
+			"org_name":    orgName,
+			"api_key":     user.APIKey,
+			"permissions": perms,
 		})
 	}
 }
@@ -155,12 +172,11 @@ func handleSetUserPassword(s *store.Store) http.HandlerFunc {
 			http.Error(w, "password must be at least 8 characters", http.StatusBadRequest)
 			return
 		}
-		hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
-		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
+		hash, ok := hashPassword(w, body.Password)
+		if !ok {
 			return
 		}
-		if err := s.SetPasswordHash(id, caller.OrgID, string(hash)); err != nil {
+		if err := s.SetPasswordHash(id, caller.OrgID, hash); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				http.Error(w, "not found", http.StatusNotFound)
 			} else {

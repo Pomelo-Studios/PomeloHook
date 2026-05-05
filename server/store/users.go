@@ -15,7 +15,15 @@ type User struct {
 	Name         string
 	APIKey       string
 	Role         string
-	PasswordHash string `json:"-"`
+	PasswordHash string          `json:"-"`
+	Permissions  map[string]bool `json:"-"`
+}
+
+func (u *User) Can(permission string) bool {
+	if u.Role == "admin" {
+		return true
+	}
+	return u.Permissions[permission]
 }
 
 type CreateUserParams struct {
@@ -86,6 +94,20 @@ func (s *Store) ListOrgUsers(orgID string) ([]*User, error) {
 	return users, rows.Err()
 }
 
+func (s *Store) UpdateUserProfile(id, orgID, name, email string) (*User, error) {
+	res, err := s.db.Exec(
+		`UPDATE users SET name=?, email=? WHERE id=? AND org_id=?`,
+		name, email, id, orgID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return nil, sql.ErrNoRows
+	}
+	return s.GetUserByID(id, orgID)
+}
+
 func (s *Store) SetPasswordHash(id, orgID, hash string) error {
 	res, err := s.db.Exec(`UPDATE users SET password_hash=? WHERE id=? AND org_id=?`, hash, id, orgID)
 	if err != nil {
@@ -99,6 +121,23 @@ func (s *Store) SetPasswordHash(id, orgID, hash string) error {
 		return sql.ErrNoRows
 	}
 	return nil
+}
+
+func (s *Store) SetUserRole(id, orgID, role string) error {
+	res, err := s.db.Exec(`UPDATE users SET role=? WHERE id=? AND org_id=?`, role, id, orgID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+func (s *Store) CountAdmins(orgID string) (int, error) {
+	var count int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM users WHERE org_id=? AND role='admin'`, orgID).Scan(&count)
+	return count, err
 }
 
 func generateAPIKey() (string, error) {

@@ -1,4 +1,3 @@
-// server/api/router.go
 package api
 
 import (
@@ -21,35 +20,57 @@ func limitBody(next http.Handler) http.Handler {
 func NewRouter(s *store.Store, m *tunnel.Manager) http.Handler {
 	mux := http.NewServeMux()
 
+	authed := func(h http.Handler) http.Handler { return auth.Middleware(s, h) }
+	perm := func(p string, h http.Handler) http.Handler {
+		return auth.Middleware(s, requirePermission(p)(h))
+	}
+	adminOnly := func(h http.Handler) http.Handler { return auth.Middleware(s, requireAdmin(h)) }
+
 	mux.HandleFunc("GET /api/health", handleHealth())
 	mux.HandleFunc("POST /api/auth/login", handleLogin(s))
-	mux.Handle("GET /api/ws", auth.Middleware(s, http.HandlerFunc(handleWSConnect(s, m))))
-	mux.Handle("GET /api/me", auth.Middleware(s, http.HandlerFunc(handleGetMe())))
+	mux.Handle("GET /api/ws", authed(http.HandlerFunc(handleWSConnect(s, m))))
+	mux.Handle("GET /api/me", authed(http.HandlerFunc(handleGetMe(s))))
+	mux.Handle("PUT /api/me", authed(http.HandlerFunc(handleUpdateMe(s))))
+	mux.Handle("POST /api/me/password", authed(http.HandlerFunc(handleChangePassword(s))))
 
-	mux.Handle("GET /api/events", auth.Middleware(s, http.HandlerFunc(handleListEvents(s))))
-	mux.Handle("POST /api/events/{id}/replay", auth.Middleware(s, http.HandlerFunc(handleReplayEvent(s))))
-	mux.Handle("POST /api/events/{id}/forwarded", auth.Middleware(s, http.HandlerFunc(handleMarkEventForwarded(s))))
-	mux.Handle("GET /api/tunnels", auth.Middleware(s, http.HandlerFunc(handleListTunnels(s))))
-	mux.Handle("GET /api/org/tunnels", auth.Middleware(s, http.HandlerFunc(handleListOrgTunnels(s))))
-	mux.Handle("POST /api/tunnels", auth.Middleware(s, http.HandlerFunc(handleCreateTunnel(s))))
-	mux.Handle("GET /api/orgs/users", auth.Middleware(s, http.HandlerFunc(handleListOrgUsers(s))))
+	mux.HandleFunc("GET /api/events/stream", handleEventsStream(s, m))
+	mux.Handle("GET /api/events", perm("view_events", http.HandlerFunc(handleListEvents(s))))
+	mux.Handle("POST /api/events/{id}/replay", perm("replay_events", http.HandlerFunc(handleReplayEvent(s))))
+	mux.Handle("POST /api/events/{id}/forwarded", authed(http.HandlerFunc(handleMarkEventForwarded(s))))
 
-	admin := func(h http.Handler) http.Handler { return auth.Middleware(s, requireAdmin(h)) }
+	mux.Handle("GET /api/tunnels", authed(http.HandlerFunc(handleListTunnels(s))))
+	mux.Handle("GET /api/org/tunnels", authed(http.HandlerFunc(handleListOrgTunnels(s))))
+	mux.Handle("POST /api/tunnels", authed(http.HandlerFunc(handleCreateTunnel(s))))
+	mux.Handle("PUT /api/tunnels/{id}", authed(http.HandlerFunc(handleUpdateTunnel(s))))
+	mux.Handle("DELETE /api/tunnels/{id}", perm("delete_org_tunnel", http.HandlerFunc(handleDeleteOrgTunnel(s, m))))
 
-	mux.Handle("GET /api/admin/users", admin(http.HandlerFunc(handleGetAdminUsers(s))))
-	mux.Handle("POST /api/admin/users", admin(http.HandlerFunc(handleCreateAdminUser(s))))
-	mux.Handle("PUT /api/admin/users/{id}", admin(http.HandlerFunc(handleUpdateAdminUser(s))))
-	mux.Handle("DELETE /api/admin/users/{id}", admin(http.HandlerFunc(handleDeleteAdminUser(s))))
-	mux.Handle("POST /api/admin/users/{id}/rotate-key", admin(http.HandlerFunc(handleRotateAPIKey(s))))
-	mux.Handle("POST /api/admin/users/{id}/set-password", admin(http.HandlerFunc(handleSetUserPassword(s))))
-	mux.Handle("GET /api/admin/orgs", admin(http.HandlerFunc(handleGetAdminOrg(s))))
-	mux.Handle("PUT /api/admin/orgs", admin(http.HandlerFunc(handleUpdateAdminOrg(s))))
-	mux.Handle("GET /api/admin/tunnels", admin(http.HandlerFunc(handleListAdminTunnels(s))))
-	mux.Handle("DELETE /api/admin/tunnels/{id}", admin(http.HandlerFunc(handleDeleteAdminTunnel(s, m))))
-	mux.Handle("POST /api/admin/tunnels/{id}/disconnect", admin(http.HandlerFunc(handleDisconnectTunnel(s, m))))
-	mux.Handle("GET /api/admin/db/tables", admin(http.HandlerFunc(handleListTables(s))))
-	mux.Handle("GET /api/admin/db/tables/{name}", admin(http.HandlerFunc(handleGetTableRows(s))))
-	mux.Handle("POST /api/admin/db/query", admin(http.HandlerFunc(handleRunQuery(s))))
+	mux.Handle("GET /api/org/members", authed(http.HandlerFunc(handleListOrgMembers(s))))
+	mux.Handle("POST /api/org/members/invite", perm("manage_members", http.HandlerFunc(handleInviteMember(s))))
+	mux.Handle("DELETE /api/org/members/{id}", perm("manage_members", http.HandlerFunc(handleRemoveMember(s))))
+	mux.Handle("PUT /api/org/members/{id}/role", perm("change_member_role", http.HandlerFunc(handleChangeMemberRole(s))))
+
+	mux.Handle("GET /api/org/roles", authed(http.HandlerFunc(handleListRoles(s))))
+	mux.Handle("POST /api/org/roles", perm("manage_roles", http.HandlerFunc(handleCreateRole(s))))
+	mux.Handle("PUT /api/org/roles/{name}", perm("manage_roles", http.HandlerFunc(handleUpdateRole(s))))
+	mux.Handle("DELETE /api/org/roles/{name}", perm("manage_roles", http.HandlerFunc(handleDeleteRole(s))))
+
+	mux.Handle("GET /api/org/settings", perm("edit_org_settings", http.HandlerFunc(handleGetOrgSettings(s))))
+	mux.Handle("PUT /api/org/settings", perm("edit_org_settings", http.HandlerFunc(handleUpdateOrgSettings(s))))
+
+	mux.Handle("GET /api/admin/users", adminOnly(http.HandlerFunc(handleGetAdminUsers(s))))
+	mux.Handle("POST /api/admin/users", adminOnly(http.HandlerFunc(handleCreateAdminUser(s))))
+	mux.Handle("PUT /api/admin/users/{id}", adminOnly(http.HandlerFunc(handleUpdateAdminUser(s))))
+	mux.Handle("DELETE /api/admin/users/{id}", adminOnly(http.HandlerFunc(handleDeleteAdminUser(s))))
+	mux.Handle("POST /api/admin/users/{id}/rotate-key", adminOnly(http.HandlerFunc(handleRotateAPIKey(s))))
+	mux.Handle("POST /api/admin/users/{id}/set-password", adminOnly(http.HandlerFunc(handleSetUserPassword(s))))
+	mux.Handle("GET /api/admin/orgs", adminOnly(http.HandlerFunc(handleGetAdminOrg(s))))
+	mux.Handle("PUT /api/admin/orgs", adminOnly(http.HandlerFunc(handleUpdateAdminOrg(s))))
+	mux.Handle("GET /api/admin/tunnels", adminOnly(http.HandlerFunc(handleListAdminTunnels(s))))
+	mux.Handle("DELETE /api/admin/tunnels/{id}", adminOnly(http.HandlerFunc(handleDeleteAdminTunnel(s, m))))
+	mux.Handle("POST /api/admin/tunnels/{id}/disconnect", adminOnly(http.HandlerFunc(handleDisconnectTunnel(s, m))))
+	mux.Handle("GET /api/admin/db/tables", adminOnly(http.HandlerFunc(handleListTables(s))))
+	mux.Handle("GET /api/admin/db/tables/{name}", adminOnly(http.HandlerFunc(handleGetTableRows(s))))
+	mux.Handle("POST /api/admin/db/query", adminOnly(http.HandlerFunc(handleRunQuery(s))))
 
 	return limitBody(LoggingMiddleware(mux))
 }
