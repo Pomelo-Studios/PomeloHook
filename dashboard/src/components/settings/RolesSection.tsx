@@ -96,7 +96,12 @@ export function RolesSection({ apiKey, can }: Props) {
                   </>
                 ) : (
                   <>
-                    <button onClick={() => startEdit(role)} style={iconBtnStyle} title="Edit permissions">✎</button>
+                    <button
+                      onClick={() => !role.is_system && startEdit(role)}
+                      disabled={role.is_system}
+                      title={role.is_system ? 'System roles cannot be edited' : 'Edit permissions'}
+                      style={{ ...iconBtnStyle, opacity: role.is_system ? 0.3 : 1, cursor: role.is_system ? 'not-allowed' : 'pointer' }}
+                    >✎</button>
                     <button
                       onClick={() => !role.is_system && handleDelete(role.name)}
                       disabled={role.is_system}
