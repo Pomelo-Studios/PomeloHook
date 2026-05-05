@@ -50,6 +50,7 @@ func handleGetMe(s *store.Store) http.HandlerFunc {
 			"role":        user.Role,
 			"org_id":      user.OrgID,
 			"org_name":    orgName,
+			"api_key":     user.APIKey,
 			"permissions": perms,
 		})
 	}
