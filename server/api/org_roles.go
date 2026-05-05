@@ -12,7 +12,8 @@ import (
 
 func handleListRoles(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		roles, err := s.ListRoles()
+		caller := auth.UserFromContext(r.Context())
+		roles, err := s.ListRoles(caller.OrgID)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
@@ -26,6 +27,7 @@ func handleListRoles(s *store.Store) http.HandlerFunc {
 
 func handleCreateRole(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		caller := auth.UserFromContext(r.Context())
 		var body struct {
 			Name        string   `json:"name"`
 			DisplayName string   `json:"display_name"`
@@ -38,7 +40,7 @@ func handleCreateRole(s *store.Store) http.HandlerFunc {
 		if body.Permissions == nil {
 			body.Permissions = []string{}
 		}
-		role, err := s.CreateRole(body.Name, body.DisplayName, body.Permissions)
+		role, err := s.CreateRole(caller.OrgID, body.Name, body.DisplayName, body.Permissions)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
@@ -49,6 +51,7 @@ func handleCreateRole(s *store.Store) http.HandlerFunc {
 
 func handleUpdateRole(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		caller := auth.UserFromContext(r.Context())
 		name := r.PathValue("name")
 		var body struct {
 			DisplayName string   `json:"display_name"`
@@ -61,7 +64,7 @@ func handleUpdateRole(s *store.Store) http.HandlerFunc {
 		if body.Permissions == nil {
 			body.Permissions = []string{}
 		}
-		role, err := s.UpdateRole(name, body.DisplayName, body.Permissions)
+		role, err := s.UpdateRole(caller.OrgID, name, body.DisplayName, body.Permissions)
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
@@ -77,8 +80,9 @@ func handleUpdateRole(s *store.Store) http.HandlerFunc {
 
 func handleDeleteRole(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		caller := auth.UserFromContext(r.Context())
 		name := r.PathValue("name")
-		err := s.DeleteRole(name)
+		err := s.DeleteRole(caller.OrgID, name)
 		if errors.Is(err, store.ErrSystemRole) {
 			http.Error(w, "system role cannot be deleted", http.StatusBadRequest)
 			return

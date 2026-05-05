@@ -55,6 +55,10 @@ func (m *Manager) UnregisterAll(tunnelID string) {
 		close(ch)
 	}
 	delete(m.conns, tunnelID)
+	for _, ch := range m.streams[tunnelID] {
+		close(ch)
+	}
+	delete(m.streams, tunnelID)
 }
 
 // Non-blocking per subscriber: drops the message if a channel's buffer is full.

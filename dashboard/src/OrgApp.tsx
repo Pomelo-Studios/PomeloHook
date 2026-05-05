@@ -180,7 +180,7 @@ export function OrgApp() {
           ))}
         </div>
         <div className="flex-1" />
-        {(tab === 'personal' || tab === 'org') && (tab === 'personal' || can('create_org_tunnel')) && (
+        {(tab === 'org' && can('create_org_tunnel') || (tab === 'personal' && tunnels.length === 0)) && (
           <Button
             variant="primary"
             size="sm"
@@ -217,7 +217,7 @@ export function OrgApp() {
           <ProfilePanel apiKey={apiKey} me={me} onUpdated={setMe} />
         </div>
       ) : tab === 'settings' ? (
-        <SettingsTab apiKey={apiKey} me={me} can={can} />
+        <SettingsTab apiKey={apiKey} me={me} can={can} onOrgNameSaved={name => setMe(prev => prev ? { ...prev, org_name: name } : prev)} />
       ) : (
         <div className="flex flex-1 overflow-hidden">
           <div

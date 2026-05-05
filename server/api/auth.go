@@ -162,7 +162,7 @@ func handleChangePassword(s *store.Store) http.HandlerFunc {
 			http.Error(w, "new password must be at least 8 characters", http.StatusBadRequest)
 			return
 		}
-		if user.PasswordHash == "" || bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(body.CurrentPassword)) != nil {
+		if user.PasswordHash != "" && bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(body.CurrentPassword)) != nil {
 			http.Error(w, "current password is incorrect", http.StatusUnauthorized)
 			return
 		}
@@ -174,6 +174,7 @@ func handleChangePassword(s *store.Store) http.HandlerFunc {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
+		auth.InvalidateAPIKey(user.APIKey)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

@@ -7,7 +7,7 @@ import { Badge, methodVariant, statusVariant, Button, Input, useToast } from './
 
 interface Props {
   event: WebhookEvent
-  onReplay: (eventID: string, targetURL: string) => void
+  onReplay: (eventID: string, targetURL: string) => Promise<void>
 }
 
 function responseCodeStyle(event: WebhookEvent): React.CSSProperties {
@@ -20,9 +20,9 @@ export function EventDetail({ event, onReplay }: Props) {
   const [targetURL, setTargetURL] = useState('http://localhost:3000')
   const toast = useToast()
 
-  function handleReplay() {
+  async function handleReplay() {
     try {
-      onReplay(event.ID, targetURL)
+      await onReplay(event.ID, targetURL)
       toast.success('Event replayed')
     } catch {
       toast.error('Replay failed')

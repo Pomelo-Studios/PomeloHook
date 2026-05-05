@@ -14,6 +14,8 @@ interface Props {
 export function EventList({ events, selectedID, onSelect, tunnelSubdomain, loading = false }: Props) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable) return
       if (!events.length) return
       const idx = events.findIndex(ev => ev.ID === selectedID)
       if (e.key === 'ArrowDown' || e.key === 'j') {
