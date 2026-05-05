@@ -11,23 +11,10 @@ import (
 
 func handleEventsStream(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		apiKey := r.URL.Query().Get("api_key")
-		if apiKey == "" {
-			http.Error(w, "api_key required", http.StatusUnauthorized)
+		user := authenticateByAPIKey(s, w, r)
+		if user == nil {
 			return
 		}
-		user, err := s.GetUserByAPIKey(apiKey)
-		if err != nil {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		perms, err := s.GetRolePermissions(user.Role, user.OrgID)
-		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
-		}
-		user.Permissions = perms
 
 		tunnelID := r.URL.Query().Get("tunnel_id")
 		if tunnelID == "" {
