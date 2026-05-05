@@ -68,24 +68,24 @@ export function RolesSection({ apiKey, can }: Props) {
     set(current.includes(perm) ? current.filter(p => p !== perm) : [...current, perm])
   }
 
-  if (loading) return <div style={{ color: '#555', fontSize: 12 }}>Loading…</div>
+  if (loading) return <div style={{ color: 'var(--text-3)', fontSize: 12 }}>Loading…</div>
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontSize: 12, color: '#555' }}>{roles.length} role{roles.length !== 1 ? 's' : ''}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{roles.length} role{roles.length !== 1 ? 's' : ''}</span>
         {can('manage_roles') && (
           <button onClick={() => setShowNew(true)} style={btnStyle}>+ New Role</button>
         )}
       </div>
 
       {roles.map(role => (
-        <div key={role.name} style={{ background: '#222', borderRadius: 6, padding: '10px 14px', marginBottom: 8 }}>
+        <div key={role.name} style={{ background: 'var(--surface2)', borderRadius: 6, padding: '10px 14px', marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <span style={{ fontSize: 12, color: '#ccc', fontWeight: 500 }}>{role.display_name}</span>
-              <span style={{ fontSize: 10, color: '#444', marginLeft: 6 }}>{role.name}</span>
-              {role.is_system && <span style={{ fontSize: 9, color: '#444', marginLeft: 4 }}>(system)</span>}
+              <span style={{ fontSize: 12, color: 'var(--text-2)', fontWeight: 500 }}>{role.display_name}</span>
+              <span style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 6 }}>{role.name}</span>
+              {role.is_system && <span style={{ fontSize: 9, color: 'var(--text-3)', marginLeft: 4 }}>(system)</span>}
             </div>
             {can('manage_roles') && (
               <div style={{ display: 'flex', gap: 6 }}>
@@ -114,7 +114,7 @@ export function RolesSection({ apiKey, can }: Props) {
           {editing === role.name ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 10 }}>
               {ALL_PERMISSIONS.map(p => (
-                <label key={p} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#888', cursor: 'pointer' }}>
+                <label key={p} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-3)', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={editPerms.includes(p)}
@@ -127,9 +127,9 @@ export function RolesSection({ apiKey, can }: Props) {
           ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
               {role.permissions.length === 0 ? (
-                <span style={{ fontSize: 10, color: '#444' }}>no permissions</span>
+                <span style={{ fontSize: 10, color: 'var(--text-3)' }}>no permissions</span>
               ) : role.permissions.map(p => (
-                <span key={p} style={{ fontSize: 9, padding: '1px 6px', background: '#2a2a2a', borderRadius: 3, color: '#555' }}>{p}</span>
+                <span key={p} style={{ fontSize: 9, padding: '1px 6px', background: 'var(--surface2)', borderRadius: 3, color: 'var(--text-3)' }}>{p}</span>
               ))}
             </div>
           )}
@@ -139,7 +139,7 @@ export function RolesSection({ apiKey, can }: Props) {
       {showNew && (
         <div style={modalOverlay}>
           <div style={modalBox}>
-            <h3 style={{ fontSize: 13, color: '#ccc', marginBottom: 12 }}>New Role</h3>
+            <h3 style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 12 }}>New Role</h3>
             <label style={labelStyle}>Role ID (lowercase, underscores)</label>
             <input
               value={newName}
@@ -152,7 +152,7 @@ export function RolesSection({ apiKey, can }: Props) {
             <label style={labelStyle}>Permissions</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
               {ALL_PERMISSIONS.map(p => (
-                <label key={p} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#888', cursor: 'pointer' }}>
+                <label key={p} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-3)', cursor: 'pointer' }}>
                   <input type="checkbox" checked={newPerms.includes(p)} onChange={() => togglePerm(p, newPerms, setNewPerms)} />
                   {p}
                 </label>
@@ -171,10 +171,10 @@ export function RolesSection({ apiKey, can }: Props) {
   )
 }
 
-const btnStyle: React.CSSProperties = { fontSize: 11, padding: '4px 12px', background: 'rgba(255,107,107,0.13)', color: '#FF6B6B', border: '1px solid rgba(255,107,107,0.3)', borderRadius: 6, cursor: 'pointer' }
-const iconBtnStyle: React.CSSProperties = { fontSize: 12, padding: '2px 6px', background: 'transparent', color: '#555', border: '1px solid #2a2a2a', borderRadius: 4, cursor: 'pointer' }
-const cancelBtnStyle: React.CSSProperties = { fontSize: 11, padding: '4px 12px', background: 'transparent', color: '#888', border: '1px solid #2a2a2a', borderRadius: 6, cursor: 'pointer' }
-const inputStyle: React.CSSProperties = { display: 'block', width: '100%', marginBottom: 8, padding: '5px 8px', background: '#222', color: '#ccc', border: '1px solid #2a2a2a', borderRadius: 4, fontSize: 12, boxSizing: 'border-box' }
-const labelStyle: React.CSSProperties = { display: 'block', fontSize: 11, color: '#555', marginBottom: 3 }
+const btnStyle: React.CSSProperties = { fontSize: 11, padding: '4px 12px', background: 'var(--selected-bg)', color: 'var(--coral)', border: '1px solid var(--selected-border)', borderRadius: 6, cursor: 'pointer' }
+const iconBtnStyle: React.CSSProperties = { fontSize: 12, padding: '2px 6px', background: 'transparent', color: 'var(--text-3)', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer' }
+const cancelBtnStyle: React.CSSProperties = { fontSize: 11, padding: '4px 12px', background: 'transparent', color: 'var(--text-3)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }
+const inputStyle: React.CSSProperties = { display: 'block', width: '100%', marginBottom: 8, padding: '5px 8px', background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 4, fontSize: 12, boxSizing: 'border-box' }
+const labelStyle: React.CSSProperties = { display: 'block', fontSize: 11, color: 'var(--text-3)', marginBottom: 3 }
 const modalOverlay: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }
-const modalBox: React.CSSProperties = { background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 8, padding: 20, width: 360, maxWidth: '90vw' }
+const modalBox: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20, width: 360, maxWidth: '90vw' }
