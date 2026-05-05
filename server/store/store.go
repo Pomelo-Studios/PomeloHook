@@ -191,6 +191,33 @@ var migrations = []migration{
 		CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_personal_tunnel
 		ON tunnels(user_id) WHERE type='personal'
 	`},
+	{version: 8, fn: func(tx *sql.Tx) error {
+		// Recreate roles without the global `name TEXT PRIMARY KEY` so that
+		// two orgs can each define a role with the same name.
+		// System roles (org_id IS NULL) are unique by name; custom roles by (name, org_id).
+		stmts := []string{
+			`CREATE TABLE IF NOT EXISTS roles_new (
+				name         TEXT NOT NULL,
+				display_name TEXT NOT NULL,
+				permissions  TEXT NOT NULL DEFAULT '[]',
+				is_system    BOOLEAN NOT NULL DEFAULT FALSE,
+				org_id       TEXT REFERENCES organizations(id),
+				created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+			)`,
+			`INSERT INTO roles_new (name, display_name, permissions, is_system, org_id, created_at)
+			 SELECT name, display_name, permissions, is_system, org_id, created_at FROM roles`,
+			`DROP TABLE roles`,
+			`ALTER TABLE roles_new RENAME TO roles`,
+			`CREATE UNIQUE INDEX idx_roles_system_name ON roles(name) WHERE org_id IS NULL`,
+			`CREATE UNIQUE INDEX idx_roles_custom_name  ON roles(name, org_id) WHERE org_id IS NOT NULL`,
+		}
+		for _, s := range stmts {
+			if _, err := tx.Exec(s); err != nil {
+				return err
+			}
+		}
+		return nil
+	}},
 }
 
 func migrate(db *sql.DB) error {

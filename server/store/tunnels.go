@@ -196,6 +196,10 @@ func (s *Store) GetOrCreatePersonalTunnel(userID, name string) (*Tunnel, bool, e
 			if err2 == nil && existing != nil {
 				return existing, false, nil
 			}
+			if err2 == nil {
+				// Collision caused by another user's tunnel winning the race on this subdomain.
+				return nil, false, ErrSubdomainTaken
+			}
 			return nil, false, err2
 		}
 		return nil, false, err
