@@ -115,6 +115,7 @@ export function OrgApp() {
       await api.replay(eventID, targetURL, apiKey)
     } catch (err) {
       setReplayError(err instanceof Error ? err.message : 'Replay failed')
+      throw err
     }
   }, [apiKey])
 

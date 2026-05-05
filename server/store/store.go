@@ -187,6 +187,10 @@ var migrations = []migration{
 		_, err := tx.Exec(`UPDATE roles SET is_system = TRUE WHERE name IN ('developer','manager') AND is_system = FALSE`)
 		return err
 	}},
+	{version: 7, sql: `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_personal_tunnel
+		ON tunnels(user_id) WHERE type='personal'
+	`},
 }
 
 func migrate(db *sql.DB) error {

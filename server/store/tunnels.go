@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -166,29 +167,38 @@ func nilIfEmpty(s string) any {
 var ErrSubdomainTaken = errors.New("subdomain already taken by another user")
 
 func (s *Store) GetOrCreatePersonalTunnel(userID, name string) (*Tunnel, bool, error) {
-	if name == "" {
-		existing, err := s.GetPersonalTunnel(userID)
-		if err != nil {
-			return nil, false, err
-		}
-		if existing != nil {
-			return existing, false, nil
-		}
-		tun, err := s.CreateTunnel(CreateTunnelParams{Type: "personal", UserID: userID})
-		return tun, err == nil, err
-	}
-
-	existing, err := s.GetTunnelBySubdomain(name)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	// Always check for an existing personal tunnel first, regardless of name.
+	// A user can only have one personal tunnel; name is only used when creating.
+	existing, err := s.GetPersonalTunnel(userID)
+	if err != nil {
 		return nil, false, err
 	}
-	if err == nil {
-		if existing.UserID == userID && existing.Type == "personal" {
-			return existing, false, nil
+	if existing != nil {
+		return existing, false, nil
+	}
+
+	if name != "" {
+		// Ensure the desired subdomain is available before creating.
+		_, err := s.GetTunnelBySubdomain(name)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, false, err
 		}
-		return nil, false, ErrSubdomainTaken
+		if err == nil {
+			return nil, false, ErrSubdomainTaken
+		}
 	}
 
 	tun, err := s.CreateTunnel(CreateTunnelParams{Type: "personal", UserID: userID, Name: name})
-	return tun, err == nil, err
+	if err != nil {
+		// Handle race: another request created the tunnel between our GET and INSERT.
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			existing, err2 := s.GetPersonalTunnel(userID)
+			if err2 == nil && existing != nil {
+				return existing, false, nil
+			}
+			return nil, false, err2
+		}
+		return nil, false, err
+	}
+	return tun, true, nil
 }

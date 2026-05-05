@@ -71,14 +71,47 @@ func runConnect(cmd *cobra.Command, args []string) error {
 }
 
 func resolveTunnel(cfg *config.Config, isOrg bool, orgName, personalName string) (id, subdomain string, err error) {
-	tunnelType := "personal"
-	name := personalName
 	if isOrg {
-		tunnelType = "org"
-		name = orgName
+		return resolveOrgTunnel(cfg, orgName)
+	}
+	return resolvePersonalTunnel(cfg, personalName)
+}
+
+func resolveOrgTunnel(cfg *config.Config, name string) (id, subdomain string, err error) {
+	req, err := http.NewRequest("GET", cfg.ServerURL+"/api/org/tunnels", nil)
+	if err != nil {
+		return "", "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
+
+	resp, err := apiClient.Do(req)
+	if err != nil {
+		return "", "", fmt.Errorf("cannot reach server: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("failed to list org tunnels: %d", resp.StatusCode)
 	}
 
-	payload, err := json.Marshal(map[string]string{"type": tunnelType, "name": name})
+	var tunnels []struct {
+		ID        string `json:"id"`
+		Subdomain string `json:"subdomain"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&tunnels); err != nil {
+		return "", "", err
+	}
+
+	for _, t := range tunnels {
+		if t.Subdomain == name {
+			return t.ID, t.Subdomain, nil
+		}
+	}
+	return "", "", fmt.Errorf("org tunnel '%s' not found", name)
+}
+
+func resolvePersonalTunnel(cfg *config.Config, name string) (id, subdomain string, err error) {
+	payload, err := json.Marshal(map[string]string{"type": "personal", "name": name})
 	if err != nil {
 		return "", "", fmt.Errorf("failed to encode request: %w", err)
 	}

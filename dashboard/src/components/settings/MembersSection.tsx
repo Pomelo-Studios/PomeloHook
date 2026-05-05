@@ -11,6 +11,7 @@ export function MembersSection({ apiKey, can }: Props) {
   const [members, setMembers] = useState<OrgMember[]>([])
   const [roles, setRoles] = useState<OrgRole[]>([])
   const [loading, setLoading] = useState(true)
+  const assignableRoles = roles.filter(r => r.name !== 'admin')
   const [showInvite, setShowInvite] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteName, setInviteName] = useState('')
@@ -82,7 +83,7 @@ export function MembersSection({ apiKey, can }: Props) {
                     onChange={e => handleRoleChange(m.ID, e.target.value)}
                     style={selectStyle}
                   >
-                    {roles.map(r => <option key={r.name} value={r.name}>{r.display_name}</option>)}
+                    {assignableRoles.map(r => <option key={r.name} value={r.name}>{r.display_name}</option>)}
                   </select>
                 ) : m.Role}
               </td>
@@ -119,7 +120,7 @@ export function MembersSection({ apiKey, can }: Props) {
                 <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} type="email" style={inputStyle} />
                 <label style={labelStyle}>Role</label>
                 <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={{ ...selectStyle, width: '100%', padding: '5px 8px', marginBottom: 12 }}>
-                  {roles.map(r => <option key={r.name} value={r.name}>{r.display_name}</option>)}
+                  {assignableRoles.map(r => <option key={r.name} value={r.name}>{r.display_name}</option>)}
                 </select>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={handleInvite} style={btnStyle}>Invite</button>

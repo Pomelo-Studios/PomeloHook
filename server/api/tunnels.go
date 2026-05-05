@@ -95,12 +95,16 @@ func handleDeleteOrgTunnel(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 		user := auth.UserFromContext(r.Context())
 		id := r.PathValue("id")
 		tun, err := s.GetTunnelByID(id)
-		if err != nil || tun.OrgID != user.OrgID {
+		if err != nil {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		if tun.Type == "personal" {
 			http.Error(w, "cannot delete personal tunnels via this endpoint", http.StatusForbidden)
+			return
+		}
+		if tun.OrgID != user.OrgID {
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		if err := s.DeleteTunnel(id, user.OrgID); err != nil {
@@ -132,7 +136,7 @@ func handleUpdateTunnel(s *store.Store) http.HandlerFunc {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
-		if tun.Type == "org" && !user.Can("create_org_tunnel") {
+		if tun.Type == "org" && (!user.Can("create_org_tunnel") || tun.OrgID != user.OrgID) {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}

@@ -111,6 +111,8 @@ func TestGetOrCreatePersonalTunnel(t *testing.T) {
 	s := openTestStore(t)
 	org, _ := s.CreateOrg("Org")
 	u, _ := s.CreateUser(store.CreateUserParams{OrgID: org.ID, Email: "x@test.com", Name: "X", Role: "member"})
+	u2, _ := s.CreateUser(store.CreateUserParams{OrgID: org.ID, Email: "y@test.com", Name: "Y", Role: "member"})
+	u3, _ := s.CreateUser(store.CreateUserParams{OrgID: org.ID, Email: "z@test.com", Name: "Z", Role: "member"})
 
 	// unnamed: creates one
 	tun1, created, err := s.GetOrCreatePersonalTunnel(u.ID, "")
@@ -124,27 +126,32 @@ func TestGetOrCreatePersonalTunnel(t *testing.T) {
 	require.False(t, created2)
 	require.Equal(t, tun1.ID, tun2.ID)
 
-	// named: creates with specific subdomain
+	// named when user already has a tunnel: returns existing, does not create a second one
 	tun3, created3, err := s.GetOrCreatePersonalTunnel(u.ID, "myapp")
 	require.NoError(t, err)
-	require.True(t, created3)
-	require.Equal(t, "myapp", tun3.Subdomain)
+	require.False(t, created3)
+	require.Equal(t, tun1.ID, tun3.ID)
 
-	// same name returns existing
-	tun4, created4, err := s.GetOrCreatePersonalTunnel(u.ID, "myapp")
+	// new user: named creates with specific subdomain
+	tun4, created4, err := s.GetOrCreatePersonalTunnel(u2.ID, "myapp")
 	require.NoError(t, err)
-	require.False(t, created4)
-	require.Equal(t, tun3.ID, tun4.ID)
+	require.True(t, created4)
+	require.Equal(t, "myapp", tun4.Subdomain)
 
-	// name taken by another user → ErrSubdomainTaken
-	u2, _ := s.CreateUser(store.CreateUserParams{OrgID: org.ID, Email: "y@test.com", Name: "Y", Role: "member"})
-	_, _, err = s.GetOrCreatePersonalTunnel(u2.ID, "myapp")
+	// same name for u2: returns existing
+	tun5, created5, err := s.GetOrCreatePersonalTunnel(u2.ID, "myapp")
+	require.NoError(t, err)
+	require.False(t, created5)
+	require.Equal(t, tun4.ID, tun5.ID)
+
+	// new user: name taken by another user → ErrSubdomainTaken
+	_, _, err = s.GetOrCreatePersonalTunnel(u3.ID, "myapp")
 	require.ErrorIs(t, err, store.ErrSubdomainTaken)
 
-	// name taken by an org tunnel → ErrSubdomainTaken
+	// new user: name taken by an org tunnel → ErrSubdomainTaken
 	_, err = s.CreateTunnel(store.CreateTunnelParams{Type: "org", OrgID: org.ID, Name: "orgapp"})
 	require.NoError(t, err)
-	_, _, err = s.GetOrCreatePersonalTunnel(u.ID, "orgapp")
+	_, _, err = s.GetOrCreatePersonalTunnel(u3.ID, "orgapp")
 	require.ErrorIs(t, err, store.ErrSubdomainTaken)
 }
 

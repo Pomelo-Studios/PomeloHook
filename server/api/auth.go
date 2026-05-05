@@ -138,6 +138,7 @@ func handleUpdateMe(s *store.Store) http.HandlerFunc {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
+		auth.InvalidateAPIKey(user.APIKey)
 		writeJSON(w, map[string]string{
 			"id":    updated.ID,
 			"email": updated.Email,
