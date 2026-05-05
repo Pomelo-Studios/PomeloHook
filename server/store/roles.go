@@ -17,9 +17,14 @@ type Role struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-func (s *Store) GetRolePermissions(roleName string) (map[string]bool, error) {
+// GetRolePermissions returns the permission map for a role visible to the given org
+// (system roles are always visible; custom roles are scoped to the org).
+func (s *Store) GetRolePermissions(roleName, orgID string) (map[string]bool, error) {
 	var permJSON string
-	err := s.db.QueryRow(`SELECT permissions FROM roles WHERE name = ?`, roleName).Scan(&permJSON)
+	err := s.db.QueryRow(
+		`SELECT permissions FROM roles WHERE name = ? AND (is_system = TRUE OR org_id = ?)`,
+		roleName, orgID,
+	).Scan(&permJSON)
 	if err == sql.ErrNoRows {
 		return map[string]bool{}, nil
 	}
@@ -37,8 +42,13 @@ func (s *Store) GetRolePermissions(roleName string) (map[string]bool, error) {
 	return out, nil
 }
 
-func (s *Store) ListRoles() ([]*Role, error) {
-	rows, err := s.db.Query(`SELECT name, display_name, permissions, is_system, created_at FROM roles ORDER BY created_at`)
+func (s *Store) ListRoles(orgID string) ([]*Role, error) {
+	rows, err := s.db.Query(
+		`SELECT name, display_name, permissions, is_system, created_at FROM roles
+		 WHERE is_system = TRUE OR org_id = ?
+		 ORDER BY created_at`,
+		orgID,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -54,34 +64,38 @@ func (s *Store) ListRoles() ([]*Role, error) {
 	return roles, rows.Err()
 }
 
-func (s *Store) GetRole(name string) (*Role, error) {
-	row := s.db.QueryRow(`SELECT name, display_name, permissions, is_system, created_at FROM roles WHERE name = ?`, name)
+func (s *Store) GetRole(name, orgID string) (*Role, error) {
+	row := s.db.QueryRow(
+		`SELECT name, display_name, permissions, is_system, created_at FROM roles
+		 WHERE name = ? AND (is_system = TRUE OR org_id = ?)`,
+		name, orgID,
+	)
 	return scanRole(row)
 }
 
-func (s *Store) CreateRole(name, displayName string, permissions []string) (*Role, error) {
+func (s *Store) CreateRole(orgID, name, displayName string, permissions []string) (*Role, error) {
 	if permissions == nil {
 		permissions = []string{}
 	}
 	permJSON, _ := json.Marshal(permissions)
 	_, err := s.db.Exec(
-		`INSERT INTO roles (name, display_name, permissions) VALUES (?, ?, ?)`,
-		name, displayName, string(permJSON),
+		`INSERT INTO roles (name, display_name, permissions, org_id) VALUES (?, ?, ?, ?)`,
+		name, displayName, string(permJSON), orgID,
 	)
 	if err != nil {
 		return nil, err
 	}
-	return s.GetRole(name)
+	return s.GetRole(name, orgID)
 }
 
-func (s *Store) UpdateRole(name, displayName string, permissions []string) (*Role, error) {
+func (s *Store) UpdateRole(orgID, name, displayName string, permissions []string) (*Role, error) {
 	if permissions == nil {
 		permissions = []string{}
 	}
 	permJSON, _ := json.Marshal(permissions)
 	res, err := s.db.Exec(
-		`UPDATE roles SET display_name = ?, permissions = ? WHERE name = ?`,
-		displayName, string(permJSON), name,
+		`UPDATE roles SET display_name = ?, permissions = ? WHERE name = ? AND org_id = ?`,
+		displayName, string(permJSON), name, orgID,
 	)
 	if err != nil {
 		return nil, err
@@ -89,10 +103,11 @@ func (s *Store) UpdateRole(name, displayName string, permissions []string) (*Rol
 	if n, _ := res.RowsAffected(); n == 0 {
 		return nil, sql.ErrNoRows
 	}
-	return s.GetRole(name)
+	return s.GetRole(name, orgID)
 }
 
-func (s *Store) DeleteRole(name string) error {
+// DeleteRole removes a custom org role and falls back all members with that role to "member".
+func (s *Store) DeleteRole(orgID, name string) error {
 	var isSystem bool
 	err := s.db.QueryRow(`SELECT is_system FROM roles WHERE name = ?`, name).Scan(&isSystem)
 	if err == sql.ErrNoRows {
@@ -104,8 +119,22 @@ func (s *Store) DeleteRole(name string) error {
 	if isSystem {
 		return ErrSystemRole
 	}
-	_, err = s.db.Exec(`DELETE FROM roles WHERE name = ?`, name)
-	return err
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(
+		`UPDATE users SET role = 'member' WHERE role = ? AND org_id = ?`, name, orgID,
+	); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM roles WHERE name = ? AND org_id = ?`, name, orgID); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func scanRole(row rowScanner) (*Role, error) {

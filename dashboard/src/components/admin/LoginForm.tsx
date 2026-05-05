@@ -32,7 +32,7 @@ export function LoginForm({ onLogin }: Props) {
         <div className="flex items-center gap-2 mb-6">
           <HookIcon size={28} />
           <span className="font-extrabold text-[15px] tracking-tight" style={{ color: 'var(--text)' }}>
-            PomeloHook Admin
+            PomeloHook
           </span>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">

@@ -22,6 +22,13 @@ func handleEventsStream(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 			return
 		}
 
+		perms, err := s.GetRolePermissions(user.Role, user.OrgID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		user.Permissions = perms
+
 		tunnelID := r.URL.Query().Get("tunnel_id")
 		if tunnelID == "" {
 			http.Error(w, "tunnel_id required", http.StatusBadRequest)
@@ -30,6 +37,10 @@ func handleEventsStream(s *store.Store, m *tunnel.Manager) http.HandlerFunc {
 
 		tun, err := s.GetTunnelByID(tunnelID)
 		if err != nil || !canAccessTunnel(user, tun) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		if !user.Can("view_events") {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}

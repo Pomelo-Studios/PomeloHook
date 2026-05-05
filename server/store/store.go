@@ -178,6 +178,15 @@ var migrations = []migration{
 		`)
 		return err
 	}},
+	{version: 6, fn: func(tx *sql.Tx) error {
+		if err := addColumnIfNotExists(tx, "roles", "org_id", "TEXT REFERENCES organizations(id)"); err != nil {
+			return err
+		}
+		// developer and manager were seeded as is_system=FALSE in migration 5;
+		// mark them system so they remain visible across all orgs after org scoping.
+		_, err := tx.Exec(`UPDATE roles SET is_system = TRUE WHERE name IN ('developer','manager') AND is_system = FALSE`)
+		return err
+	}},
 }
 
 func migrate(db *sql.DB) error {

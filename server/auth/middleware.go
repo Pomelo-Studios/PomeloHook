@@ -108,7 +108,7 @@ func lookupUser(s *store.Store, key string) (*store.User, error) {
 		return nil, err
 	}
 
-	perms, err := s.GetRolePermissions(user.Role)
+	perms, err := s.GetRolePermissions(user.Role, user.OrgID)
 	if err != nil {
 		return nil, err
 	}

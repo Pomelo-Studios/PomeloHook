@@ -5,9 +5,10 @@ import { api } from '../../api/client'
 interface Props {
   apiKey: string
   me: Me | null
+  onOrgNameSaved?: (name: string) => void
 }
 
-export function OrgSection({ apiKey, me }: Props) {
+export function OrgSection({ apiKey, me, onOrgNameSaved }: Props) {
   const [name, setName] = useState(me?.org_name ?? '')
   const [saved, setSaved] = useState(false)
 
@@ -15,6 +16,7 @@ export function OrgSection({ apiKey, me }: Props) {
     await api.org.updateSettings(apiKey, name)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+    onOrgNameSaved?.(name)
   }
 
   return (

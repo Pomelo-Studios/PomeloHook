@@ -10,9 +10,10 @@ interface Props {
   apiKey: string
   me: Me | null
   can: (perm: string) => boolean
+  onOrgNameSaved?: (name: string) => void
 }
 
-export function SettingsTab({ apiKey, me, can }: Props) {
+export function SettingsTab({ apiKey, me, can, onOrgNameSaved }: Props) {
   const sections: { id: SettingsSection; label: string; show: boolean }[] = [
     { id: 'members', label: 'Members', show: true },
     { id: 'roles', label: 'Roles', show: true },
@@ -45,7 +46,7 @@ export function SettingsTab({ apiKey, me, can }: Props) {
       <div style={{ flex: 1, overflow: 'auto', padding: 20 }}>
         {active === 'members' && <MembersSection apiKey={apiKey} can={can} />}
         {active === 'roles' && <RolesSection apiKey={apiKey} can={can} />}
-        {active === 'org' && can('edit_org_settings') && <OrgSection apiKey={apiKey} me={me} />}
+        {active === 'org' && can('edit_org_settings') && <OrgSection apiKey={apiKey} me={me} onOrgNameSaved={onOrgNameSaved} />}
       </div>
     </div>
   )

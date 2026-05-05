@@ -40,7 +40,7 @@ func handleInviteMember(s *store.Store) http.HandlerFunc {
 		if body.Role == "" {
 			body.Role = "member"
 		}
-		if _, err := s.GetRole(body.Role); err != nil {
+		if _, err := s.GetRole(body.Role, caller.OrgID); err != nil {
 			http.Error(w, "invalid role", http.StatusBadRequest)
 			return
 		}
@@ -117,8 +117,12 @@ func handleChangeMemberRole(s *store.Store) http.HandlerFunc {
 			http.Error(w, "role required", http.StatusBadRequest)
 			return
 		}
-		if _, err := s.GetRole(body.Role); err != nil {
+		if _, err := s.GetRole(body.Role, caller.OrgID); err != nil {
 			http.Error(w, "invalid role", http.StatusBadRequest)
+			return
+		}
+		if body.Role == "admin" {
+			http.Error(w, "use admin panel to assign admin role", http.StatusForbidden)
 			return
 		}
 		target, err := s.GetUserByID(id, caller.OrgID)
@@ -129,6 +133,17 @@ func handleChangeMemberRole(s *store.Store) http.HandlerFunc {
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
+		}
+		if target.Role == "admin" {
+			count, err := s.CountAdmins(caller.OrgID)
+			if err != nil {
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
+			if count <= 1 {
+				http.Error(w, "cannot demote the last admin", http.StatusBadRequest)
+				return
+			}
 		}
 		if err := s.SetUserRole(id, caller.OrgID, body.Role); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
