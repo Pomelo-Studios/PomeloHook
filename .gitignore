@@ -18,6 +18,7 @@ cli/cli
 .superpowers/
 docs/superpowers/
 docs/vault/
-docs/superpowers/
+docs/plans/
+docs/specs/
 design/
 CLAUDE.md
